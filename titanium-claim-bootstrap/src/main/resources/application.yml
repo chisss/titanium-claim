@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: titanium-claim
+  
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:8066/titanium_claim?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
+
+  # Kafka配置
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: titanium-claim-group
+      properties:
+        spring.json.trusted.packages: com.titanium.claim
+
+# Axon Framework配置
+axon:
+  serializer:
+    general: jackson
+    events: jackson
+    messages: jackson
+  eventhandling:
+    processors:
+      claim-group:
+        mode: subscribing
+        source: claimCreatedEventSource
+  persistence:
+    event-store:
+      emf-provider: axonConfiguration
+
+# 服务器配置
+server:
+  port: 8083
+  servlet:
+    context-path: /claim
+
+# 日志配置
+logging:
+  level:
+    com.titanium.claim: debug
+    org.axonframework: info
+    org.springframework: info
+    org.hibernate: info
+
+# Actuator配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# 多租户配置
+multi-tenant:
+  enabled: true
+  default-tenant: default-tenant
