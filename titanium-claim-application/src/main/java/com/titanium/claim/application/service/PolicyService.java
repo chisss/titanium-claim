@@ -1,9 +1,10 @@
 package com.titanium.claim.application.service;
 
+import org.springframework.stereotype.Service;
+
 import com.titanium.policy.api.PolicyApi;
 import com.titanium.policy.api.dto.PolicyDTO;
 import com.titanium.policy.api.response.ApiResponse;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

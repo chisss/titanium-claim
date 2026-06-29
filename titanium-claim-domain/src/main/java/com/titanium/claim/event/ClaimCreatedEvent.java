@@ -1,12 +1,12 @@
 package com.titanium.claim.event;
 
+import java.time.LocalDateTime;
+
+import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
 import com.titanium.claim.valueobject.PolicyId;
-import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.metadata.enums.claim.ClaimEnum;
-
-import java.time.LocalDateTime;
 
 public record ClaimCreatedEvent(
         ClaimId claimId,

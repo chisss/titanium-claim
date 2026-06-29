@@ -1,13 +1,13 @@
 package com.titanium.claim.repository;
 
+import java.util.List;
+import java.util.Optional;
+
 import com.titanium.claim.aggregate.Claim;
 import com.titanium.claim.enums.ClaimStatus;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
 import com.titanium.claim.valueobject.PolicyId;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * 理赔仓储接口（领域层抽象，实现在基础设施层）

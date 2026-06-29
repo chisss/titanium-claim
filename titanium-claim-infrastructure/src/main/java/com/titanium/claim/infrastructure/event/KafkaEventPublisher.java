@@ -1,14 +1,17 @@
 package com.titanium.claim.infrastructure.event;
 
-import com.alibaba.fastjson2.JSON;
-import com.titanium.claim.common.constant.ClaimConstants;
-import com.titanium.claim.event.ClaimCreatedEvent;
-import com.titanium.claim.event.ClaimUpdatedEvent;
-import com.titanium.claim.event.ClaimStatusChangedEvent;
-import lombok.AllArgsConstructor;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+
+import com.alibaba.fastjson2.JSON;
+
+import com.titanium.claim.common.constant.ClaimConstants;
+import com.titanium.claim.event.ClaimCreatedEvent;
+import com.titanium.claim.event.ClaimStatusChangedEvent;
+import com.titanium.claim.event.ClaimUpdatedEvent;
+
+import lombok.AllArgsConstructor;
 
 @Component
 @AllArgsConstructor

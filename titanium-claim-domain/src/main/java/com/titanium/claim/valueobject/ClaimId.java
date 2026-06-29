@@ -1,9 +1,9 @@
 package com.titanium.claim.valueobject;
 
+import java.util.UUID;
+
 import lombok.Getter;
 import lombok.experimental.Accessors;
-
-import java.util.UUID;
 
 @Getter
 @Accessors(fluent = true)
@@ -24,8 +24,12 @@ public class ClaimId {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ClaimId claimId = (ClaimId) o;
         return value.equals(claimId.value);

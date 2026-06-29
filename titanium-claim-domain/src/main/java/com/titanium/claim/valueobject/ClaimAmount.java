@@ -1,10 +1,11 @@
 package com.titanium.claim.valueobject;
 
+import java.math.BigDecimal;
+
 import com.titanium.claim.common.exception.InvalidClaimAmountException;
+
 import lombok.Getter;
 import lombok.experimental.Accessors;
-
-import java.math.BigDecimal;
 
 @Getter
 @Accessors(fluent = true)
@@ -39,8 +40,12 @@ public class ClaimAmount {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ClaimAmount that = (ClaimAmount) o;
         return value.equals(that.value);

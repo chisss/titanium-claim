@@ -1,13 +1,14 @@
 package com.titanium.claim.web.interceptor;
 
-import com.titanium.claim.infrastructure.config.TenantContext;
-import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import com.titanium.claim.infrastructure.config.TenantContext;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 租户拦截器：从请求头解析租户ID并写入 {@link TenantContext}，请求结束后清理。

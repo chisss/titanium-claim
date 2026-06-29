@@ -1,11 +1,12 @@
 package com.titanium.claim.application.dto;
 
-import com.titanium.claim.enums.ClaimStatus;
-import com.titanium.metadata.enums.claim.ClaimEnum;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.metadata.enums.claim.ClaimEnum;
+
+import lombok.Data;
 
 @Data
 public class ClaimResponseDTO {

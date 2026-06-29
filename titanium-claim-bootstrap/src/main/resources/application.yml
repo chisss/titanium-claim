@@ -17,8 +17,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
-        current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
+        # Hibernate 7（Spring Boot 4.0）：MySQL8Dialect 已废弃，统一用 MySQLDialect（自动探测版本）
+        dialect: org.hibernate.dialect.MySQLDialect
 
   # Kafka配置
   kafka:

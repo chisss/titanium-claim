@@ -1,40 +1,42 @@
 package com.titanium.claim.aggregate;
 
-import com.titanium.claim.command.CreateClaimCommand;
-import com.titanium.claim.command.UpdateClaimCommand;
-import com.titanium.claim.command.ChangeClaimStatusCommand;
-import com.titanium.claim.command.SettleClaimCommand;
-import com.titanium.claim.command.SubmitSurveyCommand;
-import com.titanium.claim.command.SubmitLossAssessmentCommand;
-import com.titanium.claim.enums.ClaimStatus;
-import com.titanium.claim.event.ClaimCreatedEvent;
-import com.titanium.claim.event.ClaimUpdatedEvent;
-import com.titanium.claim.event.ClaimStatusChangedEvent;
-import com.titanium.claim.event.ClaimSettledEvent;
-import com.titanium.claim.event.ClaimSurveySubmittedEvent;
-import com.titanium.claim.event.ClaimLossAssessedEvent;
-import com.titanium.claim.exception.ClaimPhaseTransitionException;
-import com.titanium.claim.exception.ClaimStatusPreconditionException;
-import com.titanium.claim.exception.ClaimStatusTransitionException;
-import com.titanium.claim.valueobject.ClaimId;
-import com.titanium.claim.valueobject.CustomerId;
-import com.titanium.claim.valueobject.PolicyId;
-import com.titanium.claim.valueobject.ClaimAmount;
-import com.titanium.claim.valueobject.ClaimSettlement;
-import com.titanium.claim.valueobject.Survey;
-import com.titanium.claim.valueobject.LossAssessment;
-import com.titanium.metadata.enums.claim.ClaimPhase;
-import com.titanium.metadata.enums.claim.ClaimEnum;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import java.time.LocalDateTime;
+
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
 import org.axonframework.modelling.command.AggregateIdentifier;
 import org.axonframework.modelling.command.AggregateLifecycle;
 import org.axonframework.spring.stereotype.Aggregate;
 
-import java.time.LocalDateTime;
+import com.titanium.claim.command.ChangeClaimStatusCommand;
+import com.titanium.claim.command.CreateClaimCommand;
+import com.titanium.claim.command.SettleClaimCommand;
+import com.titanium.claim.command.SubmitLossAssessmentCommand;
+import com.titanium.claim.command.SubmitSurveyCommand;
+import com.titanium.claim.command.UpdateClaimCommand;
+import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.claim.event.ClaimCreatedEvent;
+import com.titanium.claim.event.ClaimLossAssessedEvent;
+import com.titanium.claim.event.ClaimSettledEvent;
+import com.titanium.claim.event.ClaimStatusChangedEvent;
+import com.titanium.claim.event.ClaimSurveySubmittedEvent;
+import com.titanium.claim.event.ClaimUpdatedEvent;
+import com.titanium.claim.exception.ClaimPhaseTransitionException;
+import com.titanium.claim.exception.ClaimStatusPreconditionException;
+import com.titanium.claim.exception.ClaimStatusTransitionException;
+import com.titanium.claim.valueobject.ClaimAmount;
+import com.titanium.claim.valueobject.ClaimId;
+import com.titanium.claim.valueobject.ClaimSettlement;
+import com.titanium.claim.valueobject.CustomerId;
+import com.titanium.claim.valueobject.LossAssessment;
+import com.titanium.claim.valueobject.PolicyId;
+import com.titanium.claim.valueobject.Survey;
+import com.titanium.metadata.enums.claim.ClaimEnum;
+import com.titanium.metadata.enums.claim.ClaimPhase;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * 理赔聚合根

@@ -1,9 +1,9 @@
 package com.titanium.claim.event;
 
+import java.time.LocalDateTime;
+
 import com.titanium.claim.enums.ClaimStatus;
 import com.titanium.claim.valueobject.ClaimId;
-
-import java.time.LocalDateTime;
 
 public record ClaimStatusChangedEvent(
         ClaimId claimId,

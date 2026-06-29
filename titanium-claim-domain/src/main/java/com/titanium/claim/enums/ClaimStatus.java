@@ -1,10 +1,11 @@
 package com.titanium.claim.enums;
 
+import java.util.Arrays;
+
 import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.common.exception.InvalidClaimStatusException;
-import lombok.Getter;
 
-import java.util.Arrays;
+import lombok.Getter;
 
 @Getter
 public enum ClaimStatus {

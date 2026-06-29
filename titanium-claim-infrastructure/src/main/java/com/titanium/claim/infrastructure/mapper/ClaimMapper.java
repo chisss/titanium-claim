@@ -1,10 +1,11 @@
 package com.titanium.claim.infrastructure.mapper;
 
-import com.titanium.claim.aggregate.Claim;
-import com.titanium.claim.infrastructure.repository.entity.ClaimEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
+
+import com.titanium.claim.aggregate.Claim;
+import com.titanium.claim.infrastructure.repository.entity.ClaimEntity;
 
 /**
  * 理赔案件映射器

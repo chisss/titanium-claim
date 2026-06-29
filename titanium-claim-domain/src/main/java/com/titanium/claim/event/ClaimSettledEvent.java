@@ -1,9 +1,9 @@
 package com.titanium.claim.event;
 
+import java.time.LocalDateTime;
+
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.ClaimSettlement;
-
-import java.time.LocalDateTime;
 
 /**
  * 理赔核赔结算事件

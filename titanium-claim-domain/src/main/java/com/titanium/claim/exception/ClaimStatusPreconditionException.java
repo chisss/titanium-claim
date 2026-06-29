@@ -1,8 +1,8 @@
 package com.titanium.claim.exception;
 
-import com.titanium.metadata.exception.DomainException;
 import com.titanium.claim.enums.ClaimStatus;
 import com.titanium.claim.valueobject.ClaimId;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 理赔状态不满足操作前置条件异常

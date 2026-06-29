@@ -1,12 +1,12 @@
 package com.titanium.claim.api.dto;
 
-import lombok.Data;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import lombok.Data;
 
 @Data
 public class ClaimRequestDTO {

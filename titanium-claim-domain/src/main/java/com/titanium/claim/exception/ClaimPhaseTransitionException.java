@@ -1,8 +1,8 @@
 package com.titanium.claim.exception;
 
-import com.titanium.metadata.exception.IllegalStateTransitionException;
-import com.titanium.metadata.enums.claim.ClaimPhase;
 import com.titanium.claim.valueobject.ClaimId;
+import com.titanium.metadata.enums.claim.ClaimPhase;
+import com.titanium.metadata.exception.IllegalStateTransitionException;
 
 /**
  * 理赔阶段流转非法异常

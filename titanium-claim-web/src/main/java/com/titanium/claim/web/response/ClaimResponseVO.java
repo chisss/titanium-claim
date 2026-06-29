@@ -1,11 +1,12 @@
 package com.titanium.claim.web.response;
 
-import com.titanium.claim.enums.ClaimStatus;
-import com.titanium.metadata.enums.claim.ClaimEnum;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.metadata.enums.claim.ClaimEnum;
+
+import lombok.Data;
 
 /**
  * 理赔案件响应VO

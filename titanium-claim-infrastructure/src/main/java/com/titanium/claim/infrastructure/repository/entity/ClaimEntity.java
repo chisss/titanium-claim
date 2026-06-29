@@ -1,19 +1,25 @@
 package com.titanium.claim.infrastructure.repository.entity;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
 import com.titanium.claim.valueobject.PolicyId;
-import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.metadata.enums.claim.ClaimEnum;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "t_claim")

@@ -1,10 +1,11 @@
 package com.titanium.claim.web.mapper;
 
+import org.mapstruct.Mapper;
+
 import com.titanium.claim.api.dto.ClaimRequestDTO;
 import com.titanium.claim.api.dto.ClaimResponseDTO;
 import com.titanium.claim.application.dto.CreateClaimRequestDTO;
 import com.titanium.claim.application.dto.UpdateClaimRequestDTO;
-import org.mapstruct.Mapper;
 
 /**
  * 理赔案件 Web 映射器

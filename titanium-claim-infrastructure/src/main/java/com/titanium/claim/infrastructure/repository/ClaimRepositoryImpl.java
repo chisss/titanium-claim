@@ -1,5 +1,11 @@
 package com.titanium.claim.infrastructure.repository;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Repository;
+
 import com.titanium.claim.aggregate.Claim;
 import com.titanium.claim.enums.ClaimStatus;
 import com.titanium.claim.infrastructure.config.TenantContext;
@@ -10,12 +16,8 @@ import com.titanium.claim.repository.ClaimRepository;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
 import com.titanium.claim.valueobject.PolicyId;
-import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
 
 @Repository
 @AllArgsConstructor

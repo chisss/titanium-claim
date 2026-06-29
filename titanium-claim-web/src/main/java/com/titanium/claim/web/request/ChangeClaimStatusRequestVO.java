@@ -1,6 +1,7 @@
 package com.titanium.claim.web.request;
 
 import com.titanium.claim.enums.ClaimStatus;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

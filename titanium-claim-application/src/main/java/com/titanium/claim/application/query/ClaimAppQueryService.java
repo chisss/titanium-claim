@@ -1,19 +1,20 @@
 package com.titanium.claim.application.query;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+
 import com.titanium.claim.aggregate.Claim;
 import com.titanium.claim.query.ClaimQuery;
 import com.titanium.claim.query.FindClaimsByCustomerIdQuery;
 import com.titanium.claim.query.FindClaimsByPolicyIdQuery;
 import com.titanium.claim.query.FindClaimsByStatusQuery;
 import com.titanium.claim.repository.ClaimRepository;
-import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
 import com.titanium.claim.valueobject.PolicyId;
-import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import lombok.AllArgsConstructor;
 
 /**
  * 理赔案件查询应用服务

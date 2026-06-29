@@ -1,32 +1,32 @@
 package com.titanium.claim.application.service;
 
-import com.titanium.claim.command.CreateClaimCommand;
-import com.titanium.claim.command.UpdateClaimCommand;
-import com.titanium.claim.command.ChangeClaimStatusCommand;
-import com.titanium.claim.application.dto.CreateClaimRequestDTO;
-import com.titanium.claim.application.dto.UpdateClaimRequestDTO;
-import com.titanium.claim.application.dto.ChangeClaimStatusRequestDTO;
-import com.titanium.claim.application.dto.ClaimResponseDTO;
-import com.titanium.claim.common.exception.ClaimNotFoundException;
-import com.titanium.claim.enums.ClaimStatus;
-import com.titanium.claim.repository.ClaimRepository;
-import com.titanium.claim.service.ClaimService;
-import com.titanium.claim.valueobject.ClaimId;
-import com.titanium.claim.valueobject.CustomerId;
-import com.titanium.claim.valueobject.PolicyId;
-import com.titanium.claim.valueobject.ClaimAmount;
-import com.titanium.claim.application.service.PolicyService;
-import com.titanium.metadata.enums.claim.ClaimEnum;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.modelling.command.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.titanium.claim.application.dto.ChangeClaimStatusRequestDTO;
+import com.titanium.claim.application.dto.ClaimResponseDTO;
+import com.titanium.claim.application.dto.CreateClaimRequestDTO;
+import com.titanium.claim.application.dto.UpdateClaimRequestDTO;
+import com.titanium.claim.command.ChangeClaimStatusCommand;
+import com.titanium.claim.command.CreateClaimCommand;
+import com.titanium.claim.command.UpdateClaimCommand;
+import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.claim.repository.ClaimRepository;
+import com.titanium.claim.service.ClaimService;
+import com.titanium.claim.valueobject.ClaimAmount;
+import com.titanium.claim.valueobject.ClaimId;
+import com.titanium.claim.valueobject.CustomerId;
+import com.titanium.claim.valueobject.PolicyId;
+import com.titanium.metadata.enums.claim.ClaimEnum;
+
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @AllArgsConstructor
@@ -42,7 +42,7 @@ public class ClaimApplicationService {
     public String createClaim(CreateClaimRequestDTO request) {
         // 1. 验证理赔金额
         claimService.validateClaimAmount(request.getClaimAmount());
-        
+
         // 2. 验证保单是否存在且有效
         validatePolicy(request.getPolicyId());
 
@@ -65,7 +65,7 @@ public class ClaimApplicationService {
 
         return claimId.value();
     }
-    
+
     /**
      * 验证保单是否存在且有效
      */
@@ -74,12 +74,12 @@ public class ClaimApplicationService {
             // 调用保单系统获取保单详情
             // 注意：这里使用默认的tenantId，实际应该从请求中获取
             var policy = policyService.getPolicy(policyId, "default-tenant");
-            
+
             // 验证保单状态是否有效
             if (!"ACTIVE".equals(policy.getStatus())) {
                 throw new RuntimeException("保单状态无效，当前状态: " + policy.getStatus());
             }
-            
+
             log.info("保单验证通过, policyId={}, status={}", policyId, policy.getStatus());
         } catch (Exception e) {
             log.error("保单验证失败, policyId={}, error={}", policyId, e.getMessage());

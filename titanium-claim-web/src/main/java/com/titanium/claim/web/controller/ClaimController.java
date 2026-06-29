@@ -1,16 +1,18 @@
 package com.titanium.claim.web.controller;
 
+import java.util.List;
+
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.titanium.claim.api.ClaimApi;
 import com.titanium.claim.api.dto.ClaimRequestDTO;
 import com.titanium.claim.api.dto.ClaimResponseDTO;
 import com.titanium.claim.application.service.ClaimApplicationService;
 import com.titanium.claim.web.mapper.ClaimWebMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 理赔控制器

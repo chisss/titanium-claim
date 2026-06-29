@@ -3,6 +3,7 @@ package com.titanium.claim.valueobject;
 import java.math.BigDecimal;
 
 import com.titanium.metadata.enums.claim.ClaimEnum;
+
 import lombok.Getter;
 
 /**

@@ -1,23 +1,24 @@
 package com.titanium.claim.infrastructure.projection;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.axonframework.eventhandling.EventHandler;
+import org.axonframework.queryhandling.QueryHandler;
+import org.springframework.stereotype.Component;
+
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
+import com.titanium.claim.infrastructure.mapper.ClaimMapper;
 import com.titanium.claim.infrastructure.repository.entity.ClaimEntity;
 import com.titanium.claim.infrastructure.repository.jpa.JpaClaimRepository;
-import com.titanium.claim.infrastructure.mapper.ClaimMapper;
-import org.axonframework.eventhandling.EventHandler;
-import org.axonframework.queryhandling.QueryHandler;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import com.titanium.claim.query.ClaimQuery;
 import com.titanium.claim.query.FindClaimsByCustomerIdQuery;
 import com.titanium.claim.query.FindClaimsByPolicyIdQuery;
 import com.titanium.claim.query.FindClaimsByStatusQuery;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 理赔案件投影类
@@ -26,13 +27,12 @@ import java.util.stream.Collectors;
  * </p>
  */
 @Component
+@RequiredArgsConstructor
 public class ClaimProjection {
 
-    @Autowired
-    private JpaClaimRepository jpaClaimRepository;
+    private final JpaClaimRepository jpaClaimRepository;
 
-    @Autowired
-    private ClaimMapper claimMapper;
+    private final ClaimMapper claimMapper;
 
     /**
      * 处理理赔案件创建事件

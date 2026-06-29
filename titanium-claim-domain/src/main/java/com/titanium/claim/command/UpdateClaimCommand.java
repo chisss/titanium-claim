@@ -1,12 +1,12 @@
 package com.titanium.claim.command;
 
-import com.titanium.claim.valueobject.ClaimId;
-import com.titanium.claim.valueobject.ClaimAmount;
-import com.titanium.metadata.enums.claim.ClaimEnum;
+import java.time.LocalDateTime;
 
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
-import java.time.LocalDateTime;
+import com.titanium.claim.valueobject.ClaimAmount;
+import com.titanium.claim.valueobject.ClaimId;
+import com.titanium.metadata.enums.claim.ClaimEnum;
 
 /**
  * 更新理赔命令（领域层）

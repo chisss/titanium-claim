@@ -2,10 +2,10 @@ package com.titanium.claim.command;
 
 import java.math.BigDecimal;
 
+import org.axonframework.modelling.command.TargetAggregateIdentifier;
+
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.metadata.enums.claim.ClaimEnum;
-
-import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
 /**
  * 核赔结算命令（领域层）
