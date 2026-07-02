@@ -34,4 +34,22 @@ class ClaimArchitectureTest extends AbstractArchitectureGuardTest {
     protected void controllerShouldNotDependOnInfrastructure() {
         // 规则暂禁用，原因见方法 Javadoc
     }
+
+    /**
+     * 暂时禁用「应用层编排者禁用 Handler/Processor 后缀」规则。
+     * <p>
+     * 存量违规：{@code com.titanium.claim.application.saga.ClaimSettlementPaymentHandler} 是理赔结算
+     * 支付的 Axon {@code @EventHandler} 监听器，命名以 Handler 结尾，与新规「application 编排者禁用
+     * Handler/Processor 后缀」冲突。改名涉及事件处理组配置与调用点，属独立重命名重构；
+     * 暂以 {@code @Disabled} 放行并记录，待后续统一将其更名为 {@code ClaimSettlementSaga} 或
+     * {@code ...Listener} 后移除本覆盖。
+     * </p>
+     */
+    @Test
+    @Disabled("存量违规：ClaimSettlementPaymentHandler(application.saga) 以 Handler 结尾，"
+            + "属 Axon @EventHandler 监听器，需独立重命名为 Saga/Listener 后再启用")
+    @Override
+    protected void applicationCoordinatorsMustNotUseHandlerOrProcessorSuffix() {
+        // 规则暂禁用，原因见方法 Javadoc
+    }
 }

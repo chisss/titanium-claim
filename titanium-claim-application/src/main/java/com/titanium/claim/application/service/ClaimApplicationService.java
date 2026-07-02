@@ -173,8 +173,8 @@ public class ClaimApplicationService {
         response.setIncidentDescription(claim.getIncidentDescription());
         response.setClaimAmount(claim.getClaimAmount().value());
         response.setStatus(claim.getStatus());
-        response.setCreatedAt(claim.getCreatedAt());
-        response.setUpdatedAt(claim.getUpdatedAt());
+        response.setCreatedAt(claim.getCreateTime());
+        response.setUpdatedAt(claim.getUpdateTime());
         return response;
     }
 }

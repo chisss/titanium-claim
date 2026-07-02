@@ -51,11 +51,11 @@ public class ClaimProjection {
         claim.setIncidentDate(event.incidentDate());
         claim.setIncidentDescription(event.incidentDescription());
         claim.setClaimAmount(event.claimAmount());
-        claim.setCreatedAt(event.createdAt());
-        claim.setUpdatedAt(event.createdAt());
 
         // 保存到数据库
         ClaimEntity entity = claimMapper.toEntity(claim, "default"); // 实际应用中需要从TenantContext获取租户ID
+        entity.setCreateTime(event.createdAt());
+        entity.setUpdateTime(event.createdAt());
         jpaClaimRepository.save(entity);
     }
 
@@ -73,7 +73,7 @@ public class ClaimProjection {
                     entity.setIncidentDate(event.incidentDate());
                     entity.setIncidentDescription(event.incidentDescription());
                     entity.setClaimAmount(event.claimAmount().value());
-                    entity.setUpdatedAt(event.updatedAt());
+                    entity.setUpdateTime(event.updatedAt());
                     jpaClaimRepository.save(entity);
                 });
     }
@@ -89,7 +89,7 @@ public class ClaimProjection {
         jpaClaimRepository.findById(event.claimId().value())
                 .ifPresent(entity -> {
                     entity.setStatus(event.newStatus());
-                    entity.setUpdatedAt(event.changedAt());
+                    entity.setUpdateTime(event.changedAt());
                     jpaClaimRepository.save(entity);
                 });
     }
