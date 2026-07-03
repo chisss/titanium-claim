@@ -24,6 +24,12 @@
             <artifactId>titanium-claim-infrastructure</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
+        <!-- CQRS 读侧（组合根装配读模型投影/查询/DLQ） -->
+        <dependency>
+            <groupId>com.titanium</groupId>
+            <artifactId>titanium-claim-query</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>

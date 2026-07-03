@@ -5,9 +5,9 @@ import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 
+import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.exception.InvalidClaimAmountException;
 import com.titanium.claim.common.exception.InvalidClaimStatusException;
-import com.titanium.claim.enums.ClaimStatus;
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 

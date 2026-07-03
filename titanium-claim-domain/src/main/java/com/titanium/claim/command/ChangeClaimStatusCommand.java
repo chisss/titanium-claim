@@ -2,7 +2,7 @@ package com.titanium.claim.command;
 
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
-import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.valueobject.ClaimId;
 
 /**

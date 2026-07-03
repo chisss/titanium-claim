@@ -1,6 +1,6 @@
 package com.titanium.claim.exception;
 
-import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.metadata.exception.IllegalStateTransitionException;
 

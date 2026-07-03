@@ -3,7 +3,7 @@ package com.titanium.claim.web.response;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 import lombok.Data;

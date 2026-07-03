@@ -1,4 +1,4 @@
-package com.titanium.claim.enums;
+package com.titanium.claim.common.enums;
 
 import java.util.Arrays;
 
@@ -7,6 +7,9 @@ import com.titanium.claim.common.exception.InvalidClaimStatusException;
 
 import lombok.Getter;
 
+/**
+ * 理赔状态枚举（本域专属，置于 claim-common/enums 统一管理）
+ */
 @Getter
 public enum ClaimStatus {
     PENDING(ClaimConstants.CLAIM_STATUS_PENDING, "待处理"),

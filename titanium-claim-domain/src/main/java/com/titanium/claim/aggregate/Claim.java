@@ -14,7 +14,7 @@ import com.titanium.claim.command.SettleClaimCommand;
 import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
-import com.titanium.claim.enums.ClaimStatus;
+import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimLossAssessedEvent;
 import com.titanium.claim.event.ClaimSettledEvent;

@@ -24,6 +24,7 @@
         <module>titanium-claim-domain</module>
         <module>titanium-claim-infrastructure</module>
         <module>titanium-claim-common</module>
+        <module>titanium-claim-query</module>
         <module>titanium-claim-web</module>
         <module>titanium-claim-bootstrap</module>
     </modules>
