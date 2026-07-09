@@ -17,15 +17,54 @@ class ClaimArchitectureTest extends AbstractArchitectureGuardTest {
     }
 
     /**
-     * 启用「Web 层不得直接依赖领域命令/聚合根」严格隔离规则。
+     * 启用「application 层不得依赖 api 的 DTO」。
      * <p>
-     * 基类默认 {@code @Disabled} 该规则。理赔域 Controller 只依赖 api DTO/Web Request+VO 与应用层服务， 不直接消费 domain
-     * command/aggregate，故在本子类覆盖启用。
+     * 理赔域 api/web 已按《API层与Web层职责边界及协作规范》整改：DTO→应用层入参的翻译在 web 完成，
+     * {@code ClaimApplicationService} 只依赖本层入参 DTO 与读侧结果，不依赖 {@code claim.api} 契约细节。
      * </p>
      */
     @Test
     @Override
-    protected void webShouldNotDependOnDomainCommandsOrAggregates() {
-        super.webShouldNotDependOnDomainCommandsOrAggregates();
+    protected void applicationMustNotDependOnApiDto() {
+        super.applicationMustNotDependOnApiDto();
     }
+
+    /**
+     * 启用「API 契约实现（Provider）须位于 web.provider 且以 Provider 结尾」。
+     * <p>
+     * 理赔域契约实现为 {@code ClaimApiProvider}，统一落在 web/provider。
+     * </p>
+     */
+    @Test
+    @Override
+    protected void apiContractImplMustResideInProviderPackage() {
+        super.apiContractImplMustResideInProviderPackage();
+    }
+
+    /**
+     * 启用「Controller 不得实现 api 契约接口」。
+     * <p>
+     * {@code ClaimController} 已去掉 {@code implements ClaimApi}，契约实现下沉 web/provider 的 Provider。
+     * </p>
+     */
+    @Test
+    @Override
+    protected void controllerMustNotImplementApi() {
+        super.controllerMustNotImplementApi();
+    }
+
+    /**
+     * 启用「api 层 Feign 契约接口须以 Api 结尾（命名主键为聚合根）」。
+     * <p>
+     * 理赔域契约统一为 {@code ClaimApi}，原 {@code ClaimClient}（Client 后缀）冗余已删除。
+     * </p>
+     */
+    @Test
+    @Override
+    protected void apiInterfacesMustBeNamedByAggregate() {
+        super.apiInterfacesMustBeNamedByAggregate();
+    }
+
+    // 注：不启用严格隔离断言 webShouldNotDependOnDomainCommandsOrAggregates。
+    // 现行 api/web 规范允许 web 依赖 command/query（但不碰 aggregate），故回退为基类默认 @Disabled。
 }

@@ -1,5 +1,6 @@
 package com.titanium.claim.application.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -11,9 +12,15 @@ import org.springframework.transaction.annotation.Transactional;
 import com.titanium.claim.application.dto.ChangeClaimStatusRequestDTO;
 import com.titanium.claim.application.dto.ClaimResponseDTO;
 import com.titanium.claim.application.dto.CreateClaimRequestDTO;
+import com.titanium.claim.application.dto.SettleClaimRequestDTO;
+import com.titanium.claim.application.dto.SubmitLossAssessmentRequestDTO;
+import com.titanium.claim.application.dto.SubmitSurveyRequestDTO;
 import com.titanium.claim.application.dto.UpdateClaimRequestDTO;
 import com.titanium.claim.command.ChangeClaimStatusCommand;
 import com.titanium.claim.command.CreateClaimCommand;
+import com.titanium.claim.command.SettleClaimCommand;
+import com.titanium.claim.command.SubmitLossAssessmentCommand;
+import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
@@ -23,7 +30,9 @@ import com.titanium.claim.service.ClaimService;
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
+import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.PolicyId;
+import com.titanium.claim.valueobject.Survey;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.policy.api.dto.PolicyDTO;
 
@@ -122,6 +131,41 @@ public class ClaimApplicationService {
     @Transactional
     public void updateClaimStatus(String claimId, String status) {
         changeClaimStatus(claimId, new ChangeClaimStatusRequestDTO(status, "状态更新"));
+    }
+
+    /**
+     * 提交查勘：装配查勘值对象并发命令，推进理赔阶段至 SURVEY。
+     */
+    @Transactional
+    public void submitSurvey(String claimId, SubmitSurveyRequestDTO request) {
+        Survey survey = new Survey(request.getSurveyorId(), request.getSurveyReport(), request.getPhotos(),
+                request.getConclusion(), LocalDateTime.now());
+        commandGateway.sendAndWait(new SubmitSurveyCommand(ClaimId.of(claimId), survey));
+    }
+
+    /**
+     * 提交定损：装配定损值对象（含明细项）并发命令，推进理赔阶段至 LOSS_ASSESS。
+     */
+    @Transactional
+    public void submitLossAssessment(String claimId, SubmitLossAssessmentRequestDTO request) {
+        List<LossAssessment.LossItem> items = request.getItems() == null ? List.of()
+                : request.getItems().stream()
+                        .map(i -> new LossAssessment.LossItem(i.getItemName(), i.getAmount()))
+                        .collect(Collectors.toList());
+        LossAssessment lossAssessment = new LossAssessment(request.getAssessedAmount(), items,
+                request.getLiabilityRatio(), request.getAssessorId());
+        commandGateway.sendAndWait(new SubmitLossAssessmentCommand(ClaimId.of(claimId), lossAssessment));
+    }
+
+    /**
+     * 核赔结算：提交核赔结论，理赔流转至 PAID（给付方式 code 转枚举）。
+     */
+    @Transactional
+    public void settleClaim(String claimId, SettleClaimRequestDTO request) {
+        SettleClaimCommand command = new SettleClaimCommand(ClaimId.of(claimId), request.getSettledAmount(),
+                ClaimEnum.PayoutMethod.fromCode(request.getPayoutMethod()), request.getPayeeAccount(),
+                request.getConclusion());
+        commandGateway.sendAndWait(command);
     }
 
     // ==================== 读侧：委托 CQRS 查询服务 ====================
