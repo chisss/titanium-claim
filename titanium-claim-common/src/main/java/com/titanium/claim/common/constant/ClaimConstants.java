@@ -30,5 +30,7 @@ public class ClaimConstants {
         public static final String CLAIM_STATUS_CHANGED = "claim-status-changed";
         public static final String POLICY_VALIDATED = "policy-validated";
         public static final String PAYMENT_PROCESSED = "payment-processed";
+        /** 身故给付结算主题：供 policy 域防腐监听器消费以终止保单（给付后保单责任终结） */
+        public static final String DEATH_BENEFIT_SETTLED = "claim-death-benefit-settled";
     }
 }

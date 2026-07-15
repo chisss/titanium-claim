@@ -5,6 +5,7 @@ import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
 
 import com.titanium.claim.event.ClaimSettledEvent;
+import com.titanium.claim.event.DeathBenefitSettledEvent;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,5 +37,19 @@ public class ClaimSettlementPaymentSaga {
         // TODO 事件总线就绪后：commandGateway/paymentClient 派发
         //   CreatePaymentOrderCommand(paymentType=CLAIM_PAYOUT, businessId=event.claimId().value(),
         //       businessType="CLAIM", amount=event.settlement().getSettledAmount(), ...)
+    }
+
+    /**
+     * 身故给付结算完成 → 触发身故金支付单（寿险身故理赔专属）
+     * <p>
+     * 身故给付按受益人份额分账给付；保单终止由 policy 域防腐监听器据本事件的 policyId 独立完成
+     * （见 claim 域 KafkaEventPublisher），本编排只负责支付集成缝，与保单终止解耦（各自幂等）。
+     * </p>
+     */
+    @EventHandler
+    public void on(DeathBenefitSettledEvent event) {
+        log.info("[身故给付] 结算完成, claimId={}, policyId={}, 给付总额={} —— 待支付域 CLAIM_PAYOUT 按受益人份额派发",
+                event.claimId(), event.policyId(), event.settlement().getSettledAmount());
+        // TODO 事件总线就绪后：按 event.benefitCalculation().shares() 逐受益人派发 CreatePaymentOrderCommand
     }
 }

@@ -62,16 +62,12 @@ titanium-claim/
 │       ├── query/                  # ⚠️ 4个查询（record），无独立query模块
 │       ├── enums/                  # ClaimStatus
 │       ├── valueobject/            # ClaimId/CustomerId/PolicyId/ClaimAmount
-│       ├── repository/             # ClaimRepository 仓储接口
-│       └── service/                # ClaimService 领域服务
-├── titanium-claim-infrastructure/  # 基础设施层
+│       └── service/                # ClaimService 领域服务（写侧纯事件溯源，无仓储 Port）
+├── titanium-claim-infrastructure/  # 基础设施层（写侧纯事件溯源，无 JPA 写表/仓储/Entity/Mapper）
 │   └── com.titanium.claim.infrastructure
 │       ├── config/                 # AxonConfig / KafkaConfig
-│       ├── projection/             # ClaimProjection（⚠️ 事件投影 + QueryHandler 合一）
-│       ├── event/                  # KafkaEventPublisher
-│       ├── repository/             # ClaimRepositoryImpl + jpa/ + entity/
-│       ├── mapper/                 # ClaimMapper（MapStruct）
-│       └── tenant/                 # TenantContext
+│       └── event/                  # KafkaEventPublisher
+├── titanium-claim-query/           # 查询层：ClaimProjectionEventHandler / ClaimQueryHandler / ClaimView / ClaimViewRepository / ClaimQueryService
 ├── titanium-claim-common/          # 通用层：constant/exception
 ├── titanium-claim-web/             # Web层：ClaimController / TenantInterceptor / WebConfig
 └── titanium-claim-bootstrap/       # 启动层：ClaimApplication + application.yml
@@ -138,7 +134,8 @@ PENDING("待处理") → PROCESSING("处理中") → APPROVED("已批准") / REJ
 - **依赖注入**：构造器注入优先（现状用 `@AllArgsConstructor`/`@RequiredArgsConstructor`），禁用 `@Autowired` 字段注入（⚠️ `ClaimProjection` 现用字段注入，待整改）
 - **日志**：SLF4J `{}` 占位符，禁止字符串拼接
 - **异常**：Service 层抛自定义 `BusinessException`，`@ControllerAdvice` 全局兜底（⚠️ `ClaimApplicationService` 现抛裸 `RuntimeException`，待整改）
-- **跨层转换**：统一走 `ClaimMapper`(MapStruct)，禁止实体直接 new 转换
+- **跨层转换**：web 层 MapStruct（Request/DTO↔Command/VO），禁止实体直接 new 转换。写侧已纯事件溯源，无「聚合根↔Entity」的 infra Mapper
+- **持久化选型（写侧纯事件溯源）**：`Claim` 聚合为 Axon 事件溯源（`EventSourcingRepository` + `@EventSourcingHandler`），写侧状态只在事件流，**无 JPA 写表 / `*Entity` / `Jpa*Repository` / 仓储实现桩 / 领域仓储 Port**。JPA 仅承载 CQRS 读模型（`titanium-claim-query` 的 `ClaimView` / `ClaimViewRepository`，表 `t_claim_view`）。若后续新增**状态存储聚合**需保留的持久化对象，一律命名 `XxxxDO`（禁用 `Entity` 后缀），读模型投影保留 `*View`。选型细则见根 `docs/技术文档/持久化选型规范(JPA与EventSourcing).md`
 - **注释**：对外实体 `@Schema`，内部实体 `/** */`，注释中文、标识符英文
 - **多租户**：请求头 `X-Tenant-Id` → `TenantInterceptor` → `TenantContext`；所有表含 `tenant_id`
 

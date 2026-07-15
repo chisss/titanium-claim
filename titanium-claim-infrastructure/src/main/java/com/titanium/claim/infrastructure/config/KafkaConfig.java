@@ -14,7 +14,6 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JsonSerializer;
 
 /**
  * Kafka配置类
@@ -72,19 +71,25 @@ public class KafkaConfig {
      * Kafka生产者工厂配置
      */
     @Bean
-    public ProducerFactory<String, Object> producerFactory() {
+    public ProducerFactory<String, String> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        // 发布方 KafkaEventPublisher 以 fastjson2 生成 JSON String 发送，序列化器须用 StringSerializer，
+        // 避免 JsonSerializer 对已是 String 的 payload 二次 JSON 编码（外层再套引号），
+        // 使下游 StringDeserializer + JSONObject.parseObject 解析出转义字符串、字段取值恒 null。
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
     /**
      * Kafka模板配置
+     * <p>
+     * 泛型为 {@code <String, String>}，与 {@code KafkaEventPublisher} 注入类型一致（发 fastjson2 JSON String）。
+     * </p>
      */
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
+    public KafkaTemplate<String, String> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 }

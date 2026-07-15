@@ -11,6 +11,7 @@ import org.axonframework.spring.stereotype.Aggregate;
 import com.titanium.claim.command.ChangeClaimStatusCommand;
 import com.titanium.claim.command.CreateClaimCommand;
 import com.titanium.claim.command.SettleClaimCommand;
+import com.titanium.claim.command.SettleDeathBenefitCommand;
 import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
@@ -21,13 +22,16 @@ import com.titanium.claim.event.ClaimSettledEvent;
 import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimSurveySubmittedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
+import com.titanium.claim.event.DeathBenefitSettledEvent;
 import com.titanium.claim.exception.ClaimPhaseTransitionException;
 import com.titanium.claim.exception.ClaimStatusPreconditionException;
 import com.titanium.claim.exception.ClaimStatusTransitionException;
+import com.titanium.claim.valueobject.BenefitCalculation;
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.ClaimSettlement;
 import com.titanium.claim.valueobject.CustomerId;
+import com.titanium.claim.valueobject.DeathClaimEvidence;
 import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.PolicyId;
 import com.titanium.claim.valueobject.Survey;
@@ -70,6 +74,10 @@ public class Claim extends BaseAggregate {
     private Survey              survey;
     /** 定损记录（车险按损案件） */
     private LossAssessment      lossAssessment;
+    /** 身故证据材料（寿险身故理赔专属） */
+    private DeathClaimEvidence  deathEvidence;
+    /** 身故给付金核算（寿险身故理赔专属，按受益人份额分配） */
+    private BenefitCalculation  benefitCalculation;
 
     @CommandHandler
     public Claim(CreateClaimCommand command) {
@@ -106,6 +114,34 @@ public class Claim extends BaseAggregate {
         ClaimSettlement claimSettlement = ClaimSettlement.of(command.settledAmount(), command.payoutMethod(),
                 command.payeeAccount(), command.conclusion());
         AggregateLifecycle.apply(new ClaimSettledEvent(command.claimId(), claimSettlement, LocalDateTime.now()));
+    }
+
+    /**
+     * 身故给付结算（寿险身故理赔专属）：仅 APPROVED 状态可给付，须身故材料齐备，
+     * 记录身故证据/受益人核算并流转至 PAID，发布 {@link DeathBenefitSettledEvent} 触发下游保单终止。
+     * <p>
+     * 区别于通用核赔结算：以身故金核算总额为给付额，给付后保单责任终止（被保险人身故）。
+     * </p>
+     */
+    @CommandHandler
+    public void handle(SettleDeathBenefitCommand command) {
+        if (status != ClaimStatus.APPROVED) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "身故给付结算", "APPROVED");
+        }
+        if (this.claimType != ClaimEnum.ClaimType.DEATH) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "身故给付结算", "DEATH 类型案件");
+        }
+        if (command.evidence() == null || !command.evidence().isComplete()) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "身故给付结算", "身故材料齐备");
+        }
+        if (command.benefitCalculation() == null) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "身故给付结算", "受益人份额核算");
+        }
+        // 给付额取受益人份额核算的给付总额，收款方留空（按份额分账由支付域按受益人明细处理）
+        ClaimSettlement deathSettlement = ClaimSettlement.of(command.benefitCalculation().totalBenefit(),
+                command.payoutMethod(), null, command.conclusion());
+        AggregateLifecycle.apply(new DeathBenefitSettledEvent(command.claimId(), this.policyId.value(),
+                command.evidence(), command.benefitCalculation(), deathSettlement, LocalDateTime.now()));
     }
 
     /**
@@ -210,6 +246,15 @@ public class Claim extends BaseAggregate {
 
     @EventSourcingHandler
     protected void on(ClaimSettledEvent event) {
+        this.settlement = event.settlement();
+        this.status = ClaimStatus.PAID;
+        this.updateTime = event.settledAt();
+    }
+
+    @EventSourcingHandler
+    protected void on(DeathBenefitSettledEvent event) {
+        this.deathEvidence = event.evidence();
+        this.benefitCalculation = event.benefitCalculation();
         this.settlement = event.settlement();
         this.status = ClaimStatus.PAID;
         this.updateTime = event.settledAt();

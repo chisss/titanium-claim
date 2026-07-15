@@ -13,12 +13,14 @@ import com.titanium.claim.application.dto.ChangeClaimStatusRequestDTO;
 import com.titanium.claim.application.dto.ClaimResponseDTO;
 import com.titanium.claim.application.dto.CreateClaimRequestDTO;
 import com.titanium.claim.application.dto.SettleClaimRequestDTO;
+import com.titanium.claim.application.dto.SettleDeathBenefitRequestDTO;
 import com.titanium.claim.application.dto.SubmitLossAssessmentRequestDTO;
 import com.titanium.claim.application.dto.SubmitSurveyRequestDTO;
 import com.titanium.claim.application.dto.UpdateClaimRequestDTO;
 import com.titanium.claim.command.ChangeClaimStatusCommand;
 import com.titanium.claim.command.CreateClaimCommand;
 import com.titanium.claim.command.SettleClaimCommand;
+import com.titanium.claim.command.SettleDeathBenefitCommand;
 import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
@@ -27,9 +29,11 @@ import com.titanium.claim.common.exception.PolicyNotActiveException;
 import com.titanium.claim.query.result.ClaimQueryResult;
 import com.titanium.claim.query.service.ClaimQueryService;
 import com.titanium.claim.service.ClaimService;
+import com.titanium.claim.valueobject.BenefitCalculation;
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
+import com.titanium.claim.valueobject.DeathClaimEvidence;
 import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.PolicyId;
 import com.titanium.claim.valueobject.Survey;
@@ -165,6 +169,30 @@ public class ClaimApplicationService {
         SettleClaimCommand command = new SettleClaimCommand(ClaimId.of(claimId), request.getSettledAmount(),
                 ClaimEnum.PayoutMethod.fromCode(request.getPayoutMethod()), request.getPayeeAccount(),
                 request.getConclusion());
+        commandGateway.sendAndWait(command);
+    }
+
+    /**
+     * 身故给付结算（寿险身故理赔专属，APPROVED → PAID）。
+     * <p>
+     * 组装身故证据与受益人份额核算，派发 {@link SettleDeathBenefitCommand}。给付后由 claim 域发布
+     * {@code DeathBenefitSettledEvent}，policy 域防腐监听器据此终止保单（给付后保单责任终结）。
+     * 受益人份额之和须等于给付总额的不变量由 {@code BenefitCalculation} 值对象守护。
+     * </p>
+     */
+    @Transactional
+    public void settleDeathBenefit(String claimId, SettleDeathBenefitRequestDTO request) {
+        DeathClaimEvidence evidence = new DeathClaimEvidence(request.getDeathCertificateNo(), request.getDeathDate(),
+                request.getDeathCause(), request.isHouseholdCancelled(), request.getBeneficiaryProofNo(),
+                LocalDateTime.now());
+        List<BenefitCalculation.BeneficiaryShare> shares = request.getShares() == null ? List.of()
+                : request.getShares().stream()
+                        .map(s -> new BenefitCalculation.BeneficiaryShare(s.getBeneficiaryId(), s.getBeneficiaryName(),
+                                s.getBenefitRatio(), s.getAmount()))
+                        .collect(Collectors.toList());
+        BenefitCalculation benefitCalculation = new BenefitCalculation(request.getTotalBenefit(), shares);
+        SettleDeathBenefitCommand command = new SettleDeathBenefitCommand(ClaimId.of(claimId), evidence,
+                benefitCalculation, ClaimEnum.PayoutMethod.fromCode(request.getPayoutMethod()), request.getConclusion());
         commandGateway.sendAndWait(command);
     }
 
