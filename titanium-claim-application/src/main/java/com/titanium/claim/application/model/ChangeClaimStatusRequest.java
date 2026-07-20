@@ -1,4 +1,4 @@
-package com.titanium.claim.application.dto;
+package com.titanium.claim.application.model;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -6,10 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 变更理赔状态请求（application 写用例入参）
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChangeClaimStatusRequestDTO {
+public class ChangeClaimStatusRequest {
     @NotBlank(message = "新状态不能为空")
     @Size(max = 20, message = "状态不能超过20个字符")
     private String newStatus;

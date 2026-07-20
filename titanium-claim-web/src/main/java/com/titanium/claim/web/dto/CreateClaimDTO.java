@@ -1,4 +1,4 @@
-package com.titanium.claim.web.request;
+package com.titanium.claim.web.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,13 +12,19 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 更新理赔案件请求VO
+ * 创建理赔案件 DTO（web 前端入参）
  * <p>
- * 用于接收Web层更新理赔案件的请求参数
+ * 用于接收后台/端上创建理赔案件的请求参数，经 {@code ClaimWebMapper} 翻译为应用层创建入参。
  * </p>
  */
 @Data
-public class UpdateClaimRequestVO {
+public class CreateClaimDTO {
+    @NotBlank(message = "客户ID不能为空")
+    private String customerId;
+
+    @NotBlank(message = "保单ID不能为空")
+    private String policyId;
+
     @NotBlank(message = "理赔类型不能为空")
     @Size(max = 50, message = "理赔类型不能超过50个字符")
     private String claimType;

@@ -1,14 +1,14 @@
-package com.titanium.claim.application.dto;
+package com.titanium.claim.api.request;
 
 import java.math.BigDecimal;
 
 import lombok.Data;
 
 /**
- * 核赔结算请求DTO（应用层命令入参）
+ * 核赔结算请求（对外契约，Feign 入参，理赔核赔阶段 APPROVED → PAID）
  */
 @Data
-public class SettleClaimRequestDTO {
+public class SettleClaimRequest {
     /** 核定赔付金额 */
     private BigDecimal settledAmount;
     /** 给付方式：BANK_TRANSFER/CASH/CHECK/OFFSET_PREMIUM */

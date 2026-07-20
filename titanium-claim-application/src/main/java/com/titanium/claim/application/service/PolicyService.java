@@ -3,7 +3,7 @@ package com.titanium.claim.application.service;
 import org.springframework.stereotype.Service;
 
 import com.titanium.policy.api.PolicyApi;
-import com.titanium.policy.api.dto.PolicyDTO;
+import com.titanium.policy.api.response.PolicyResponse;
 import com.titanium.policy.api.response.ApiResponse;
 
 import jakarta.annotation.Resource;
@@ -23,9 +23,9 @@ public class PolicyService {
     /**
      * 获取保单详情
      */
-    public PolicyDTO getPolicy(String policyId, String tenantId) {
+    public PolicyResponse getPolicy(String policyId, String tenantId) {
         log.info("获取保单详情, policyId={}, tenantId={}", policyId, tenantId);
-        ApiResponse<PolicyDTO> response = policyApi.getPolicy(policyId, tenantId);
+        ApiResponse<PolicyResponse> response = policyApi.getPolicy(policyId, tenantId);
         if (response.isSuccess()) {
             return response.getData();
         } else {

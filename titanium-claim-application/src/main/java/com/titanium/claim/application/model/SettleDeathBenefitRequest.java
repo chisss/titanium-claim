@@ -1,4 +1,4 @@
-package com.titanium.claim.application.dto;
+package com.titanium.claim.application.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -7,7 +7,7 @@ import java.util.List;
 import lombok.Data;
 
 /**
- * 身故给付结算请求DTO（应用层命令入参，寿险身故理赔 APPROVED → PAID）
+ * 身故给付结算请求（application 写用例入参，寿险身故理赔 APPROVED → PAID）
  * <p>
  * 承载身故证据材料与受益人份额核算，应用层据此装配领域值对象 {@code DeathClaimEvidence} 与
  * {@code BenefitCalculation}，构造 {@code SettleDeathBenefitCommand}。区别于通用核赔结算：身故给付
@@ -15,7 +15,7 @@ import lombok.Data;
  * </p>
  */
 @Data
-public class SettleDeathBenefitRequestDTO {
+public class SettleDeathBenefitRequest {
 
     /** 死亡证明编号 */
     private String deathCertificateNo;
@@ -36,13 +36,13 @@ public class SettleDeathBenefitRequestDTO {
     private String conclusion;
 
     /** 受益人份额明细 */
-    private List<BeneficiaryShareDTO> shares;
+    private List<BeneficiaryShare> shares;
 
     /**
-     * 受益人份额明细DTO
+     * 受益人份额明细
      */
     @Data
-    public static class BeneficiaryShareDTO {
+    public static class BeneficiaryShare {
         /** 受益人ID */
         private String beneficiaryId;
         /** 受益人姓名 */

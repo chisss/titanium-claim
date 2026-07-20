@@ -9,14 +9,14 @@ import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.titanium.claim.application.dto.ChangeClaimStatusRequestDTO;
-import com.titanium.claim.application.dto.ClaimResponseDTO;
-import com.titanium.claim.application.dto.CreateClaimRequestDTO;
-import com.titanium.claim.application.dto.SettleClaimRequestDTO;
-import com.titanium.claim.application.dto.SettleDeathBenefitRequestDTO;
-import com.titanium.claim.application.dto.SubmitLossAssessmentRequestDTO;
-import com.titanium.claim.application.dto.SubmitSurveyRequestDTO;
-import com.titanium.claim.application.dto.UpdateClaimRequestDTO;
+import com.titanium.claim.application.model.ChangeClaimStatusRequest;
+import com.titanium.claim.application.model.ClaimReadModel;
+import com.titanium.claim.application.model.CreateClaimRequest;
+import com.titanium.claim.application.model.SettleClaimRequest;
+import com.titanium.claim.application.model.SettleDeathBenefitRequest;
+import com.titanium.claim.application.model.SubmitLossAssessmentRequest;
+import com.titanium.claim.application.model.SubmitSurveyRequest;
+import com.titanium.claim.application.model.UpdateClaimRequest;
 import com.titanium.claim.command.ChangeClaimStatusCommand;
 import com.titanium.claim.command.CreateClaimCommand;
 import com.titanium.claim.command.SettleClaimCommand;
@@ -27,6 +27,7 @@ import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
 import com.titanium.claim.query.result.ClaimQueryResult;
+import com.titanium.claim.query.result.ClaimStatisticsResult;
 import com.titanium.claim.query.service.ClaimQueryService;
 import com.titanium.claim.service.ClaimService;
 import com.titanium.claim.valueobject.BenefitCalculation;
@@ -38,7 +39,7 @@ import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.PolicyId;
 import com.titanium.claim.valueobject.Survey;
 import com.titanium.metadata.enums.claim.ClaimEnum;
-import com.titanium.policy.api.dto.PolicyDTO;
+import com.titanium.policy.api.response.PolicyResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
  * 理赔应用服务（写侧入口门面 + 读侧编排）
  * <p>
  * 写用例：校验 → 构造命令 → {@code CommandGateway} 发送；读用例：委托 CQRS 读侧 {@link ClaimQueryService}
- * 查询读模型（{@code t_claim_view}），组装为对外 {@link ClaimResponseDTO}。
+ * 查询读模型（{@code t_claim_view}），组装为应用层读模型 {@link ClaimReadModel}（非对外契约，表现层再转 VO/DTO）。
  * </p>
  */
 @Service
@@ -61,7 +62,7 @@ public class ClaimApplicationService {
     private final ClaimQueryService claimQueryService;
 
     @Transactional
-    public String createClaim(CreateClaimRequestDTO request) {
+    public String createClaim(CreateClaimRequest request) {
         // 1. 验证理赔金额
         claimService.validateClaimAmount(request.getClaimAmount());
 
@@ -95,7 +96,7 @@ public class ClaimApplicationService {
      * </p>
      */
     private void validatePolicy(String policyId) {
-        PolicyDTO policy = policyService.getPolicy(policyId, "default-tenant");
+        PolicyResponse policy = policyService.getPolicy(policyId, "default-tenant");
         String statusCode = policy == null || policy.getStatus() == null ? null : policy.getStatus().getCode();
         if (!"ACTIVE".equals(statusCode)) {
             log.error("保单验证失败, policyId={}, status={}", policyId, statusCode);
@@ -105,7 +106,7 @@ public class ClaimApplicationService {
     }
 
     @Transactional
-    public void updateClaim(String claimId, UpdateClaimRequestDTO request) {
+    public void updateClaim(String claimId, UpdateClaimRequest request) {
         // 验证理赔金额
         claimService.validateClaimAmount(request.getClaimAmount());
 
@@ -120,11 +121,11 @@ public class ClaimApplicationService {
     }
 
     @Transactional
-    public void changeClaimStatus(String claimId, ChangeClaimStatusRequestDTO request) {
+    public void changeClaimStatus(String claimId, ChangeClaimStatusRequest request) {
         // 验证理赔状态
         claimService.validateClaimStatus(request.getNewStatus());
 
-        // 创建并发送命令（DTO 状态字符串按 code 解析为枚举）
+        // 创建并发送命令（状态字符串按 code 解析为枚举）
         ChangeClaimStatusCommand command = new ChangeClaimStatusCommand(
                 ClaimId.of(claimId),
                 ClaimStatus.fromCode(request.getNewStatus()),
@@ -134,14 +135,14 @@ public class ClaimApplicationService {
 
     @Transactional
     public void updateClaimStatus(String claimId, String status) {
-        changeClaimStatus(claimId, new ChangeClaimStatusRequestDTO(status, "状态更新"));
+        changeClaimStatus(claimId, new ChangeClaimStatusRequest(status, "状态更新"));
     }
 
     /**
      * 提交查勘：装配查勘值对象并发命令，推进理赔阶段至 SURVEY。
      */
     @Transactional
-    public void submitSurvey(String claimId, SubmitSurveyRequestDTO request) {
+    public void submitSurvey(String claimId, SubmitSurveyRequest request) {
         Survey survey = new Survey(request.getSurveyorId(), request.getSurveyReport(), request.getPhotos(),
                 request.getConclusion(), LocalDateTime.now());
         commandGateway.sendAndWait(new SubmitSurveyCommand(ClaimId.of(claimId), survey));
@@ -151,7 +152,7 @@ public class ClaimApplicationService {
      * 提交定损：装配定损值对象（含明细项）并发命令，推进理赔阶段至 LOSS_ASSESS。
      */
     @Transactional
-    public void submitLossAssessment(String claimId, SubmitLossAssessmentRequestDTO request) {
+    public void submitLossAssessment(String claimId, SubmitLossAssessmentRequest request) {
         List<LossAssessment.LossItem> items = request.getItems() == null ? List.of()
                 : request.getItems().stream()
                         .map(i -> new LossAssessment.LossItem(i.getItemName(), i.getAmount()))
@@ -165,7 +166,7 @@ public class ClaimApplicationService {
      * 核赔结算：提交核赔结论，理赔流转至 PAID（给付方式 code 转枚举）。
      */
     @Transactional
-    public void settleClaim(String claimId, SettleClaimRequestDTO request) {
+    public void settleClaim(String claimId, SettleClaimRequest request) {
         SettleClaimCommand command = new SettleClaimCommand(ClaimId.of(claimId), request.getSettledAmount(),
                 ClaimEnum.PayoutMethod.fromCode(request.getPayoutMethod()), request.getPayeeAccount(),
                 request.getConclusion());
@@ -181,7 +182,7 @@ public class ClaimApplicationService {
      * </p>
      */
     @Transactional
-    public void settleDeathBenefit(String claimId, SettleDeathBenefitRequestDTO request) {
+    public void settleDeathBenefit(String claimId, SettleDeathBenefitRequest request) {
         DeathClaimEvidence evidence = new DeathClaimEvidence(request.getDeathCertificateNo(), request.getDeathDate(),
                 request.getDeathCause(), request.isHouseholdCancelled(), request.getBeneficiaryProofNo(),
                 LocalDateTime.now());
@@ -199,48 +200,69 @@ public class ClaimApplicationService {
     // ==================== 读侧：委托 CQRS 查询服务 ====================
 
     @Transactional(readOnly = true)
-    public Optional<ClaimResponseDTO> getClaim(String claimId) {
-        return claimQueryService.getClaimSummary(claimId).map(this::toResponseDTO);
+    public Optional<ClaimReadModel> getClaim(String claimId) {
+        return claimQueryService.getClaimSummary(claimId).map(this::toReadModel);
     }
 
     @Transactional(readOnly = true)
-    public List<ClaimResponseDTO> getClaimsByCustomerId(String customerId) {
+    public List<ClaimReadModel> getClaimsByCustomerId(String customerId) {
         return claimQueryService.getClaimSummariesByCustomerId(customerId)
-                .stream().map(this::toResponseDTO).collect(Collectors.toList());
+                .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ClaimResponseDTO> getClaimsByPolicyId(String policyId) {
+    public List<ClaimReadModel> getClaimsByPolicyId(String policyId) {
         return claimQueryService.getClaimSummariesByPolicyId(policyId)
-                .stream().map(this::toResponseDTO).collect(Collectors.toList());
+                .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ClaimResponseDTO> getClaimsByStatus(String status) {
+    public List<ClaimReadModel> getClaimsByStatus(String status) {
         return claimQueryService.getClaimSummariesByStatus(status)
-                .stream().map(this::toResponseDTO).collect(Collectors.toList());
+                .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ClaimResponseDTO> getAllClaims() {
+    public List<ClaimReadModel> getAllClaims() {
         return claimQueryService.getAllClaimSummaries()
-                .stream().map(this::toResponseDTO).collect(Collectors.toList());
+                .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 
-    // 读模型查询结果 → 对外响应 DTO
-    private ClaimResponseDTO toResponseDTO(ClaimQueryResult result) {
-        ClaimResponseDTO response = new ClaimResponseDTO();
-        response.setClaimId(result.getClaimId());
-        response.setCustomerId(result.getCustomerId());
-        response.setPolicyId(result.getPolicyId());
-        response.setClaimNumber(result.getClaimNumber());
-        response.setClaimType(result.getClaimType());
-        response.setIncidentDate(result.getIncidentDate());
-        response.setIncidentDescription(result.getIncidentDescription());
-        response.setClaimAmount(result.getClaimAmount());
-        response.setStatus(result.getStatus());
-        response.setCreatedAt(result.getCreatedAt());
-        response.setUpdatedAt(result.getUpdatedAt());
-        return response;
+    /**
+     * 查询理赔聚合统计（管理后台看板读入口）。
+     * <p>
+     * 委托 CQRS 读侧 {@link ClaimQueryService} 聚合读模型（{@code t_claim_view}）：待处理数、今日报案数、
+     * 理赔总数、累计已结案赔付金额。强制携带 {@code tenantId} 保证多租户隔离。
+     * </p>
+     *
+     * @param tenantId 租户ID
+     * @return 理赔统计结果
+     */
+    @Transactional(readOnly = true)
+    public ClaimStatisticsResult getStatistics(String tenantId) {
+        return claimQueryService.getStatistics(tenantId);
+    }
+
+    /**
+     * 读模型查询结果 → 应用层读模型。
+     * <p>
+     * 读侧读模型（ClaimQueryResult）→ 应用层读模型（ClaimReadModel）的内部装配：状态/理赔类型枚举
+     * 经 {@link ClaimReadModel} 的空安全重载 setter 收敛为 code（沿用 billing {@code ReadModel} 内部装配范式）。
+     * </p>
+     */
+    private ClaimReadModel toReadModel(ClaimQueryResult result) {
+        ClaimReadModel model = new ClaimReadModel();
+        model.setClaimId(result.getClaimId());
+        model.setCustomerId(result.getCustomerId());
+        model.setPolicyId(result.getPolicyId());
+        model.setClaimNumber(result.getClaimNumber());
+        model.setClaimType(result.getClaimType());
+        model.setIncidentDate(result.getIncidentDate());
+        model.setIncidentDescription(result.getIncidentDescription());
+        model.setClaimAmount(result.getClaimAmount());
+        model.setStatus(result.getStatus());
+        model.setCreatedAt(result.getCreatedAt());
+        model.setUpdatedAt(result.getUpdatedAt());
+        return model;
     }
 }

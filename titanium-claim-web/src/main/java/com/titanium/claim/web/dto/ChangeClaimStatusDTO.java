@@ -1,4 +1,4 @@
-package com.titanium.claim.web.request;
+package com.titanium.claim.web.dto;
 
 import com.titanium.claim.common.enums.ClaimStatus;
 
@@ -7,13 +7,13 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * 变更理赔案件状态请求VO
+ * 变更理赔案件状态 DTO（web 前端入参）
  * <p>
- * 用于接收Web层变更理赔案件状态的请求参数
+ * 用于接收后台/端上变更理赔案件状态的请求参数。
  * </p>
  */
 @Data
-public class ChangeClaimStatusRequestVO {
+public class ChangeClaimStatusDTO {
     @NotNull(message = "新状态不能为空")
     private ClaimStatus newStatus;
 

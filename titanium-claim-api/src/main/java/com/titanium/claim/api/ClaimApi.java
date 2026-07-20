@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.titanium.claim.api.dto.ClaimRequestDTO;
-import com.titanium.claim.api.dto.ClaimResponseDTO;
-import com.titanium.claim.api.dto.SettleClaimRequestDTO;
-import com.titanium.claim.api.dto.SubmitLossAssessmentRequestDTO;
-import com.titanium.claim.api.dto.SubmitSurveyRequestDTO;
+import com.titanium.claim.api.request.ClaimRequest;
+import com.titanium.claim.api.request.SettleClaimRequest;
+import com.titanium.claim.api.request.SubmitLossAssessmentRequest;
+import com.titanium.claim.api.request.SubmitSurveyRequest;
 import com.titanium.claim.api.response.ApiResponse;
+import com.titanium.claim.api.response.ClaimResponse;
 
 import jakarta.validation.Valid;
 
@@ -46,7 +46,7 @@ public interface ClaimApi {
      * @return 理赔案件ID
      */
     @PostMapping
-    ApiResponse<String> createClaim(@RequestBody @Valid ClaimRequestDTO requestDTO,
+    ApiResponse<String> createClaim(@RequestBody @Valid ClaimRequest requestDTO,
                                     @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
@@ -59,7 +59,7 @@ public interface ClaimApi {
      */
     @PutMapping("/{claimId}")
     ApiResponse<Void> updateClaim(@PathVariable("claimId") String claimId,
-                                  @RequestBody @Valid ClaimRequestDTO requestDTO,
+                                  @RequestBody @Valid ClaimRequest requestDTO,
                                   @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
@@ -83,7 +83,7 @@ public interface ClaimApi {
      * @return 理赔详情，不存在时 code=404
      */
     @GetMapping("/{claimId}")
-    ApiResponse<ClaimResponseDTO> getClaim(@PathVariable("claimId") String claimId,
+    ApiResponse<ClaimResponse> getClaim(@PathVariable("claimId") String claimId,
                                            @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
@@ -94,7 +94,7 @@ public interface ClaimApi {
      * @return 理赔案件列表
      */
     @GetMapping("/customer/{customerId}")
-    ApiResponse<List<ClaimResponseDTO>> getClaimsByCustomerId(@PathVariable("customerId") String customerId,
+    ApiResponse<List<ClaimResponse>> getClaimsByCustomerId(@PathVariable("customerId") String customerId,
                                                               @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
@@ -105,7 +105,7 @@ public interface ClaimApi {
      * @return 理赔案件列表
      */
     @GetMapping("/policy/{policyId}")
-    ApiResponse<List<ClaimResponseDTO>> getClaimsByPolicyId(@PathVariable("policyId") String policyId,
+    ApiResponse<List<ClaimResponse>> getClaimsByPolicyId(@PathVariable("policyId") String policyId,
                                                             @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
@@ -116,7 +116,7 @@ public interface ClaimApi {
      * @return 理赔案件列表
      */
     @GetMapping("/status/{status}")
-    ApiResponse<List<ClaimResponseDTO>> getClaimsByStatus(@PathVariable("status") String status,
+    ApiResponse<List<ClaimResponse>> getClaimsByStatus(@PathVariable("status") String status,
                                                           @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
@@ -126,7 +126,7 @@ public interface ClaimApi {
      * @return 理赔案件列表
      */
     @GetMapping
-    ApiResponse<List<ClaimResponseDTO>> getAllClaims(@RequestHeader("X-Tenant-Id") String tenantId);
+    ApiResponse<List<ClaimResponse>> getAllClaims(@RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
      * 提交查勘（推进理赔阶段至 SURVEY）
@@ -138,7 +138,7 @@ public interface ClaimApi {
      */
     @PostMapping("/{claimId}/survey")
     ApiResponse<Void> submitSurvey(@PathVariable("claimId") String claimId,
-                                   @RequestBody @Valid SubmitSurveyRequestDTO requestDTO,
+                                   @RequestBody @Valid SubmitSurveyRequest requestDTO,
                                    @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
@@ -151,7 +151,7 @@ public interface ClaimApi {
      */
     @PostMapping("/{claimId}/loss-assessment")
     ApiResponse<Void> submitLossAssessment(@PathVariable("claimId") String claimId,
-                                           @RequestBody @Valid SubmitLossAssessmentRequestDTO requestDTO,
+                                           @RequestBody @Valid SubmitLossAssessmentRequest requestDTO,
                                            @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
@@ -164,6 +164,6 @@ public interface ClaimApi {
      */
     @PostMapping("/{claimId}/settlement")
     ApiResponse<Void> settleClaim(@PathVariable("claimId") String claimId,
-                                  @RequestBody @Valid SettleClaimRequestDTO requestDTO,
+                                  @RequestBody @Valid SettleClaimRequest requestDTO,
                                   @RequestHeader("X-Tenant-Id") String tenantId);
 }

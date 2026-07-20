@@ -9,17 +9,21 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.titanium.claim.api.response.ClaimStatisticsResponse;
 import com.titanium.claim.application.service.ClaimApplicationService;
+import com.titanium.claim.web.dto.CreateClaimDTO;
+import com.titanium.claim.web.dto.SettleClaimDTO;
+import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
+import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
+import com.titanium.claim.web.dto.SubmitSurveyDTO;
+import com.titanium.claim.web.dto.UpdateClaimDTO;
+import com.titanium.claim.web.mapper.ClaimStatisticsWebMapper;
 import com.titanium.claim.web.mapper.ClaimWebMapper;
-import com.titanium.claim.web.request.CreateClaimRequestVO;
-import com.titanium.claim.web.request.SettleClaimRequestVO;
-import com.titanium.claim.web.request.SubmitLossAssessmentRequestVO;
-import com.titanium.claim.web.request.SubmitSurveyRequestVO;
-import com.titanium.claim.web.request.UpdateClaimRequestVO;
 import com.titanium.claim.web.response.ClaimResponseVO;
 
 import jakarta.validation.Valid;
@@ -28,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 /**
  * 理赔控制器（后台/端上 HTTP 入口）
  * <p>
- * 面向管理后台/端上，路径 {@code /web/v1/claims}，入参为 web 层 {@code XxxRequestVO}、出参 {@code ClaimResponseVO}，
+ * 面向管理后台/端上，路径 {@code /web/v1/claims}，入参为 web 层 {@code XxxDTO}（web/dto）、出参 {@code ClaimResponseVO}，
  * <b>不再 implements ClaimApi</b>（远程契约由 {@code ClaimApiProvider} 承接）。经 {@link ClaimWebMapper} 把
  * Request VO 翻译为应用层入参 DTO，交 {@link ClaimApplicationService} 编排；读侧查询结果转 VO 返回。
  * 与 {@code ClaimApiProvider} 平行收敛到同一应用层门面，Controller 零业务逻辑。
@@ -41,13 +45,30 @@ public class ClaimController {
 
     private final ClaimApplicationService claimApplicationService;
     private final ClaimWebMapper          claimWebMapper;
+    private final ClaimStatisticsWebMapper claimStatisticsWebMapper;
+
+    /**
+     * 理赔统计（管理后台看板聚合）
+     * <p>
+     * 返回待处理理赔数、今日报案数、理赔总数及累计已结案赔付金额。强制按 {@code X-Tenant-Id} 租户隔离。
+     * </p>
+     *
+     * @param tenantId 租户ID
+     * @return 理赔统计结果
+     */
+    @GetMapping("/statistics")
+    public ResponseEntity<ClaimStatisticsResponse> getStatistics(
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        return ResponseEntity.ok(
+                claimStatisticsWebMapper.toResponse(claimApplicationService.getStatistics(tenantId)));
+    }
 
     /**
      * 创建理赔案件
      */
     @PostMapping
-    public ResponseEntity<String> createClaim(@RequestBody @Valid CreateClaimRequestVO requestVO) {
-        String claimId = claimApplicationService.createClaim(claimWebMapper.toCreateDTO(requestVO));
+    public ResponseEntity<String> createClaim(@RequestBody @Valid CreateClaimDTO requestVO) {
+        String claimId = claimApplicationService.createClaim(claimWebMapper.toCreateRequest(requestVO));
         return new ResponseEntity<>(claimId, HttpStatus.CREATED);
     }
 
@@ -56,8 +77,8 @@ public class ClaimController {
      */
     @PutMapping("/{claimId}")
     public ResponseEntity<Void> updateClaim(@PathVariable("claimId") String claimId,
-                                            @RequestBody @Valid UpdateClaimRequestVO requestVO) {
-        claimApplicationService.updateClaim(claimId, claimWebMapper.toUpdateDTO(requestVO));
+                                            @RequestBody @Valid UpdateClaimDTO requestVO) {
+        claimApplicationService.updateClaim(claimId, claimWebMapper.toUpdateRequest(requestVO));
         return ResponseEntity.noContent().build();
     }
 
@@ -124,8 +145,8 @@ public class ClaimController {
      */
     @PostMapping("/{claimId}/survey")
     public ResponseEntity<Void> submitSurvey(@PathVariable("claimId") String claimId,
-                                             @RequestBody @Valid SubmitSurveyRequestVO requestVO) {
-        claimApplicationService.submitSurvey(claimId, claimWebMapper.toSurveyDTO(requestVO));
+                                             @RequestBody @Valid SubmitSurveyDTO requestVO) {
+        claimApplicationService.submitSurvey(claimId, claimWebMapper.toSurveyRequest(requestVO));
         return ResponseEntity.noContent().build();
     }
 
@@ -134,8 +155,8 @@ public class ClaimController {
      */
     @PostMapping("/{claimId}/loss-assessment")
     public ResponseEntity<Void> submitLossAssessment(@PathVariable("claimId") String claimId,
-                                                     @RequestBody @Valid SubmitLossAssessmentRequestVO requestVO) {
-        claimApplicationService.submitLossAssessment(claimId, claimWebMapper.toLossAssessmentDTO(requestVO));
+                                                     @RequestBody @Valid SubmitLossAssessmentDTO requestVO) {
+        claimApplicationService.submitLossAssessment(claimId, claimWebMapper.toLossAssessmentRequest(requestVO));
         return ResponseEntity.noContent().build();
     }
 
@@ -144,8 +165,45 @@ public class ClaimController {
      */
     @PostMapping("/{claimId}/settlement")
     public ResponseEntity<Void> settleClaim(@PathVariable("claimId") String claimId,
-                                            @RequestBody @Valid SettleClaimRequestVO requestVO) {
-        claimApplicationService.settleClaim(claimId, claimWebMapper.toSettleDTO(requestVO));
+                                            @RequestBody @Valid SettleClaimDTO requestVO) {
+        claimApplicationService.settleClaim(claimId, claimWebMapper.toSettleRequest(requestVO));
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 身故给付结算（寿险专属，APPROVED → PAID，按受益人份额一次性给付）
+     */
+    @PostMapping("/{claimId}/death-benefit")
+    public ResponseEntity<Void> settleDeathBenefit(@PathVariable("claimId") String claimId,
+                                                   @RequestBody @Valid SettleDeathBenefitDTO requestVO) {
+        claimApplicationService.settleDeathBenefit(claimId, claimWebMapper.toDeathBenefitRequest(requestVO));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 多条件搜索理赔案件（内存过滤 + 简单分页）
+     * <p>
+     * 支持按理赔编号、保单ID、客户ID、状态任意组合过滤，参数均可选；结果先全量拉取再内存过滤，
+     * 适用于数据量可控场景。若需高性能分页，可后续扩展 ClaimApplicationService 加 CQRS 条件查询。
+     * </p>
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<ClaimResponseVO>> searchClaims(
+            @RequestParam(required = false) String claimNo,
+            @RequestParam(required = false) String policyId,
+            @RequestParam(required = false) String customerId,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        List<ClaimResponseVO> all = claimApplicationService.getAllClaims().stream()
+                .filter(m -> claimNo == null || claimNo.equals(m.getClaimNumber()))
+                .filter(m -> policyId == null || policyId.equals(m.getPolicyId()))
+                .filter(m -> customerId == null || customerId.equals(m.getCustomerId()))
+                .filter(m -> status == null || status.equals(m.getStatus()))
+                .map(claimWebMapper::toVO)
+                .toList();
+        int from = Math.min(page * size, all.size());
+        int to   = Math.min(from + size, all.size());
+        return ResponseEntity.ok(all.subList(from, to));
     }
 }

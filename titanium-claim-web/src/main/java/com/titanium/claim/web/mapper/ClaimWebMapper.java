@@ -2,109 +2,119 @@ package com.titanium.claim.web.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-import com.titanium.claim.api.dto.ClaimRequestDTO;
-import com.titanium.claim.api.dto.ClaimResponseDTO;
-import com.titanium.claim.api.dto.SettleClaimRequestDTO;
-import com.titanium.claim.api.dto.SubmitLossAssessmentRequestDTO;
-import com.titanium.claim.api.dto.SubmitSurveyRequestDTO;
-import com.titanium.claim.application.dto.CreateClaimRequestDTO;
-import com.titanium.claim.application.dto.UpdateClaimRequestDTO;
+import com.titanium.claim.api.request.ClaimRequest;
+import com.titanium.claim.api.response.ClaimResponse;
+import com.titanium.claim.application.model.ClaimReadModel;
+import com.titanium.claim.application.model.CreateClaimRequest;
+import com.titanium.claim.application.model.SettleClaimRequest;
+import com.titanium.claim.application.model.SettleDeathBenefitRequest;
+import com.titanium.claim.application.model.SubmitLossAssessmentRequest;
+import com.titanium.claim.application.model.SubmitSurveyRequest;
+import com.titanium.claim.application.model.UpdateClaimRequest;
 import com.titanium.claim.common.enums.ClaimStatus;
-import com.titanium.claim.web.request.CreateClaimRequestVO;
-import com.titanium.claim.web.request.SettleClaimRequestVO;
-import com.titanium.claim.web.request.SubmitLossAssessmentRequestVO;
-import com.titanium.claim.web.request.SubmitSurveyRequestVO;
-import com.titanium.claim.web.request.UpdateClaimRequestVO;
+import com.titanium.claim.web.dto.CreateClaimDTO;
+import com.titanium.claim.web.dto.SettleClaimDTO;
+import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
+import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
+import com.titanium.claim.web.dto.SubmitSurveyDTO;
+import com.titanium.claim.web.dto.UpdateClaimDTO;
 import com.titanium.claim.web.response.ClaimResponseVO;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 /**
  * 理赔案件 Web 层对象映射器（MapStruct）
  * <p>
- * 边界协议转换枢纽：对内 {@code ClaimController} 把后台/端上 {@code XxxRequestVO} 翻译为应用层入参
- * DTO；对外 {@code ClaimApiProvider} 把远程契约 {@code XxxRequestDTO}（api）翻译为应用层入参 DTO；
- * 应用层响应 {@code ClaimResponseDTO} 再分别组装为展示 {@code ClaimResponseVO}（Controller）与对外
- * {@code ClaimResponseDTO}（Provider）。应用层做真正的编排（生成 ClaimId/理赔编号、跨域校验保单），
- * 故写门面入参保留应用层 DTO，本映射器只承担 Request/DTO ⇄ 应用层 DTO 的结构翻译。
+ * 边界协议转换枢纽：对内 {@code ClaimController} 把后台/端上 {@code XxxDTO}（web/dto）翻译为应用层入参模型
+ * （{@code XxxRequest}）；对外 {@code ClaimApiProvider} 把远程契约 {@code XxxRequest}（api/request）翻译为应用层
+ * 入参模型；应用层读模型 {@link ClaimReadModel} 再分别组装为展示 {@link ClaimResponseVO}（Controller）与对外
+ * {@link ClaimResponse}（Provider）。应用层做真正的编排（生成 ClaimId/理赔编号、跨域校验保单），故写门面
+ * 入参为应用层模型，本映射器只承担 DTO/Request ⇄ 应用层模型的结构翻译（同名字段自动映射，枚举 code
+ * 经空安全 {@code @Named} 方法还原）。api 层请求类型与应用层同名，Provider 方法以全限定名区分。
  * </p>
  */
 @Mapper(componentModel = "spring")
 public interface ClaimWebMapper {
 
-    // ==================== Controller：Web Request VO → 应用层 DTO ====================
+    // ==================== Controller：Web DTO → 应用层入参模型 ====================
 
     /**
-     * 后台创建请求 VO → 应用层创建入参 DTO
+     * 后台创建 DTO → 应用层创建入参
      */
-    CreateClaimRequestDTO toCreateDTO(CreateClaimRequestVO requestVO);
+    CreateClaimRequest toCreateRequest(CreateClaimDTO dto);
 
     /**
-     * 后台更新请求 VO → 应用层更新入参 DTO
+     * 后台更新 DTO → 应用层更新入参
      */
-    UpdateClaimRequestDTO toUpdateDTO(UpdateClaimRequestVO requestVO);
+    UpdateClaimRequest toUpdateRequest(UpdateClaimDTO dto);
 
     /**
-     * 后台查勘请求 VO → 应用层查勘入参 DTO
+     * 后台查勘 DTO → 应用层查勘入参
      */
-    com.titanium.claim.application.dto.SubmitSurveyRequestDTO toSurveyDTO(SubmitSurveyRequestVO requestVO);
+    SubmitSurveyRequest toSurveyRequest(SubmitSurveyDTO dto);
 
     /**
-     * 后台定损请求 VO → 应用层定损入参 DTO
+     * 后台定损 DTO → 应用层定损入参
      */
-    com.titanium.claim.application.dto.SubmitLossAssessmentRequestDTO toLossAssessmentDTO(
-            SubmitLossAssessmentRequestVO requestVO);
+    SubmitLossAssessmentRequest toLossAssessmentRequest(SubmitLossAssessmentDTO dto);
 
     /**
-     * 后台结算请求 VO → 应用层结算入参 DTO
+     * 后台结算 DTO → 应用层结算入参
      */
-    com.titanium.claim.application.dto.SettleClaimRequestDTO toSettleDTO(SettleClaimRequestVO requestVO);
+    SettleClaimRequest toSettleRequest(SettleClaimDTO dto);
 
     /**
-     * 应用层响应 DTO → 展示 VO（Controller 用，状态/理赔类型 code 还原为枚举）
+     * 后台身故给付结算 DTO → 应用层身故给付结算入参（寿险专属）
      */
-    @Mapping(target = "status", expression = "java(toStatus(responseDTO.getStatus()))")
-    @Mapping(target = "claimType", expression = "java(toClaimType(responseDTO.getClaimType()))")
-    ClaimResponseVO toVO(com.titanium.claim.application.dto.ClaimResponseDTO responseDTO);
-
-    // ==================== Provider：api DTO → 应用层 DTO ====================
+    SettleDeathBenefitRequest toDeathBenefitRequest(SettleDeathBenefitDTO dto);
 
     /**
-     * 对外创建请求 DTO → 应用层创建入参 DTO
+     * 应用层读模型 → 展示 VO（Controller 用，状态/理赔类型 code 还原为枚举）
      */
-    CreateClaimRequestDTO toCreateDTO(ClaimRequestDTO requestDTO);
+    @Mapping(target = "status", source = "status", qualifiedByName = "toStatus")
+    @Mapping(target = "claimType", source = "claimType", qualifiedByName = "toClaimType")
+    ClaimResponseVO toVO(ClaimReadModel readModel);
+
+    // ==================== Provider：api Request → 应用层入参模型 ====================
 
     /**
-     * 对外更新请求 DTO → 应用层更新入参 DTO
+     * 对外创建请求 → 应用层创建入参
      */
-    UpdateClaimRequestDTO toUpdateDTO(ClaimRequestDTO requestDTO);
+    CreateClaimRequest toCreateRequest(ClaimRequest request);
 
     /**
-     * 对外查勘请求 DTO → 应用层查勘入参 DTO
+     * 对外更新请求 → 应用层更新入参
      */
-    com.titanium.claim.application.dto.SubmitSurveyRequestDTO toSurveyDTO(SubmitSurveyRequestDTO requestDTO);
+    UpdateClaimRequest toUpdateRequest(ClaimRequest request);
 
     /**
-     * 对外定损请求 DTO → 应用层定损入参 DTO
+     * 对外查勘请求 → 应用层查勘入参
      */
-    com.titanium.claim.application.dto.SubmitLossAssessmentRequestDTO toLossAssessmentDTO(
-            SubmitLossAssessmentRequestDTO requestDTO);
+    SubmitSurveyRequest toSurveyRequest(com.titanium.claim.api.request.SubmitSurveyRequest request);
 
     /**
-     * 对外结算请求 DTO → 应用层结算入参 DTO
+     * 对外定损请求 → 应用层定损入参
      */
-    com.titanium.claim.application.dto.SettleClaimRequestDTO toSettleDTO(SettleClaimRequestDTO requestDTO);
+    SubmitLossAssessmentRequest toLossAssessmentRequest(
+            com.titanium.claim.api.request.SubmitLossAssessmentRequest request);
 
     /**
-     * 应用层响应 DTO → 对外响应 DTO（Provider 用）
+     * 对外结算请求 → 应用层结算入参
      */
-    ClaimResponseDTO toApiResponse(com.titanium.claim.application.dto.ClaimResponseDTO responseDTO);
+    SettleClaimRequest toSettleRequest(com.titanium.claim.api.request.SettleClaimRequest request);
+
+    /**
+     * 应用层读模型 → 对外响应（Provider 用，同名字段结构映射）
+     */
+    ClaimResponse toApiResponse(ClaimReadModel readModel);
 
     // ==================== 类型转换辅助（空安全） ====================
 
     /**
      * 状态码 → 理赔状态枚举（空安全）
      */
+    @Named("toStatus")
     default ClaimStatus toStatus(String code) {
         return code != null ? ClaimStatus.fromCode(code) : null;
     }
@@ -112,6 +122,7 @@ public interface ClaimWebMapper {
     /**
      * 理赔类型码 → 理赔类型枚举（空安全）
      */
+    @Named("toClaimType")
     default ClaimEnum.ClaimType toClaimType(String code) {
         return code != null ? ClaimEnum.ClaimType.fromCode(code) : null;
     }

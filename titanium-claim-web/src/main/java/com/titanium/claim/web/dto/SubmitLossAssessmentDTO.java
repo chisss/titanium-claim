@@ -1,4 +1,4 @@
-package com.titanium.claim.web.request;
+package com.titanium.claim.web.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -8,13 +8,13 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * 提交定损请求VO（理赔定损阶段，后台/端上入口）
+ * 提交定损 DTO（web 前端入参，理赔定损阶段）
  * <p>
  * 面向人机终端接收定损提交参数，经 {@code ClaimWebMapper} 翻译为应用层定损入参。
  * </p>
  */
 @Data
-public class SubmitLossAssessmentRequestVO {
+public class SubmitLossAssessmentDTO {
     /** 定损总金额 */
     @NotNull(message = "定损总金额不能为空")
     private BigDecimal        assessedAmount;
@@ -24,11 +24,11 @@ public class SubmitLossAssessmentRequestVO {
     @NotBlank(message = "定损员ID不能为空")
     private String            assessorId;
     /** 定损明细项 */
-    private List<LossItemVO> items;
+    private List<LossItem> items;
 
     /** 定损明细项 */
     @Data
-    public static class LossItemVO {
+    public static class LossItem {
         /** 项目名称（如保险杠/挡风玻璃） */
         private String     itemName;
         /** 损失金额 */

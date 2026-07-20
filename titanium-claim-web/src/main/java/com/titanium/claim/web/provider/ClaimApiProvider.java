@@ -5,12 +5,12 @@ import java.util.List;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.titanium.claim.api.ClaimApi;
-import com.titanium.claim.api.dto.ClaimRequestDTO;
-import com.titanium.claim.api.dto.ClaimResponseDTO;
-import com.titanium.claim.api.dto.SettleClaimRequestDTO;
-import com.titanium.claim.api.dto.SubmitLossAssessmentRequestDTO;
-import com.titanium.claim.api.dto.SubmitSurveyRequestDTO;
+import com.titanium.claim.api.request.ClaimRequest;
+import com.titanium.claim.api.request.SettleClaimRequest;
+import com.titanium.claim.api.request.SubmitLossAssessmentRequest;
+import com.titanium.claim.api.request.SubmitSurveyRequest;
 import com.titanium.claim.api.response.ApiResponse;
+import com.titanium.claim.api.response.ClaimResponse;
 import com.titanium.claim.application.service.ClaimApplicationService;
 import com.titanium.claim.web.mapper.ClaimWebMapper;
 
@@ -34,14 +34,14 @@ public class ClaimApiProvider implements ClaimApi {
     private final ClaimWebMapper          claimWebMapper;
 
     @Override
-    public ApiResponse<String> createClaim(ClaimRequestDTO requestDTO, String tenantId) {
-        String claimId = claimApplicationService.createClaim(claimWebMapper.toCreateDTO(requestDTO));
+    public ApiResponse<String> createClaim(ClaimRequest requestDTO, String tenantId) {
+        String claimId = claimApplicationService.createClaim(claimWebMapper.toCreateRequest(requestDTO));
         return ApiResponse.success(claimId);
     }
 
     @Override
-    public ApiResponse<Void> updateClaim(String claimId, ClaimRequestDTO requestDTO, String tenantId) {
-        claimApplicationService.updateClaim(claimId, claimWebMapper.toUpdateDTO(requestDTO));
+    public ApiResponse<Void> updateClaim(String claimId, ClaimRequest requestDTO, String tenantId) {
+        claimApplicationService.updateClaim(claimId, claimWebMapper.toUpdateRequest(requestDTO));
         return ApiResponse.success();
     }
 
@@ -52,7 +52,7 @@ public class ClaimApiProvider implements ClaimApi {
     }
 
     @Override
-    public ApiResponse<ClaimResponseDTO> getClaim(String claimId, String tenantId) {
+    public ApiResponse<ClaimResponse> getClaim(String claimId, String tenantId) {
         return claimApplicationService.getClaim(claimId)
                 .map(claimWebMapper::toApiResponse)
                 .map(ApiResponse::success)
@@ -60,49 +60,49 @@ public class ClaimApiProvider implements ClaimApi {
     }
 
     @Override
-    public ApiResponse<List<ClaimResponseDTO>> getClaimsByCustomerId(String customerId, String tenantId) {
-        List<ClaimResponseDTO> list = claimApplicationService.getClaimsByCustomerId(customerId)
+    public ApiResponse<List<ClaimResponse>> getClaimsByCustomerId(String customerId, String tenantId) {
+        List<ClaimResponse> list = claimApplicationService.getClaimsByCustomerId(customerId)
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
-    public ApiResponse<List<ClaimResponseDTO>> getClaimsByPolicyId(String policyId, String tenantId) {
-        List<ClaimResponseDTO> list = claimApplicationService.getClaimsByPolicyId(policyId)
+    public ApiResponse<List<ClaimResponse>> getClaimsByPolicyId(String policyId, String tenantId) {
+        List<ClaimResponse> list = claimApplicationService.getClaimsByPolicyId(policyId)
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
-    public ApiResponse<List<ClaimResponseDTO>> getClaimsByStatus(String status, String tenantId) {
-        List<ClaimResponseDTO> list = claimApplicationService.getClaimsByStatus(status)
+    public ApiResponse<List<ClaimResponse>> getClaimsByStatus(String status, String tenantId) {
+        List<ClaimResponse> list = claimApplicationService.getClaimsByStatus(status)
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
-    public ApiResponse<List<ClaimResponseDTO>> getAllClaims(String tenantId) {
-        List<ClaimResponseDTO> list = claimApplicationService.getAllClaims()
+    public ApiResponse<List<ClaimResponse>> getAllClaims(String tenantId) {
+        List<ClaimResponse> list = claimApplicationService.getAllClaims()
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
-    public ApiResponse<Void> submitSurvey(String claimId, SubmitSurveyRequestDTO requestDTO, String tenantId) {
-        claimApplicationService.submitSurvey(claimId, claimWebMapper.toSurveyDTO(requestDTO));
+    public ApiResponse<Void> submitSurvey(String claimId, SubmitSurveyRequest requestDTO, String tenantId) {
+        claimApplicationService.submitSurvey(claimId, claimWebMapper.toSurveyRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> submitLossAssessment(String claimId, SubmitLossAssessmentRequestDTO requestDTO,
+    public ApiResponse<Void> submitLossAssessment(String claimId, SubmitLossAssessmentRequest requestDTO,
                                                   String tenantId) {
-        claimApplicationService.submitLossAssessment(claimId, claimWebMapper.toLossAssessmentDTO(requestDTO));
+        claimApplicationService.submitLossAssessment(claimId, claimWebMapper.toLossAssessmentRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> settleClaim(String claimId, SettleClaimRequestDTO requestDTO, String tenantId) {
-        claimApplicationService.settleClaim(claimId, claimWebMapper.toSettleDTO(requestDTO));
+    public ApiResponse<Void> settleClaim(String claimId, SettleClaimRequest requestDTO, String tenantId) {
+        claimApplicationService.settleClaim(claimId, claimWebMapper.toSettleRequest(requestDTO));
         return ApiResponse.success();
     }
 }

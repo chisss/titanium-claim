@@ -72,6 +72,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- MapStruct（事件 → 读模型投影映射） -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

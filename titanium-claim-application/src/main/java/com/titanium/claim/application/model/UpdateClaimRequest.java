@@ -1,4 +1,4 @@
-package com.titanium.claim.application.dto;
+package com.titanium.claim.application.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,14 +11,11 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * 更新理赔案件请求（application 写用例入参）
+ */
 @Data
-public class CreateClaimRequestDTO {
-    @NotBlank(message = "客户ID不能为空")
-    private String customerId;
-
-    @NotBlank(message = "保单ID不能为空")
-    private String policyId;
-
+public class UpdateClaimRequest {
     @NotBlank(message = "理赔类型不能为空")
     @Size(max = 50, message = "理赔类型不能超过50个字符")
     private String claimType;

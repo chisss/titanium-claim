@@ -1,14 +1,14 @@
-package com.titanium.claim.application.dto;
+package com.titanium.claim.api.request;
 
 import java.util.List;
 
 import lombok.Data;
 
 /**
- * 提交查勘请求DTO（应用层命令入参）
+ * 提交查勘请求（对外契约，Feign 入参，理赔查勘阶段）
  */
 @Data
-public class SubmitSurveyRequestDTO {
+public class SubmitSurveyRequest {
     /** 查勘员ID */
     private String       surveyorId;
     /** 查勘报告 */

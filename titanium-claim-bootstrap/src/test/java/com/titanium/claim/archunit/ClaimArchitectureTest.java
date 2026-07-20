@@ -30,6 +30,32 @@ class ClaimArchitectureTest extends AbstractArchitectureGuardTest {
     }
 
     /**
+     * 启用「api 层使用 Request/Response 而非 DTO」（2026-07-19 命名新规）。
+     * <p>
+     * 理赔域 api 层已弃用 DTO：写入参 {@code ClaimRequest}/{@code SettleClaimRequest} 等落 {@code claim.api.request}，
+     * 读出参 {@code ClaimResponse}/{@code ClaimStatisticsResponse} 落 {@code claim.api.response}，api 层无 DTO 后缀类型。
+     * </p>
+     */
+    @Test
+    @Override
+    protected void apiLayerUsesRequestResponseNotDto() {
+        super.apiLayerUsesRequestResponseNotDto();
+    }
+
+    /**
+     * 启用「web 层使用 DTO/VO 而非 Request/Response」（2026-07-19 命名新规）。
+     * <p>
+     * 理赔域 web 层前端入参已改名 {@code CreateClaimDTO}/{@code SettleClaimDTO} 等落 {@code claim.web.dto}，
+     * 出参 {@code ClaimResponseVO} 等用 VO，web 层无 Request/Response 后缀类型。
+     * </p>
+     */
+    @Test
+    @Override
+    protected void webLayerUsesDtoVoNotRequest() {
+        super.webLayerUsesDtoVoNotRequest();
+    }
+
+    /**
      * 启用「API 契约实现（Provider）须位于 web.provider 且以 Provider 结尾」。
      * <p>
      * 理赔域契约实现为 {@code ClaimApiProvider}，统一落在 web/provider。

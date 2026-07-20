@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.titanium.claim.query.result.ClaimQueryResult;
+import com.titanium.claim.query.result.ClaimStatisticsResult;
 
 /**
  * 理赔查询服务（CQRS 读侧）
@@ -37,4 +38,16 @@ public interface ClaimQueryService {
      * 查询全部理赔案件摘要列表
      */
     List<ClaimQueryResult> getAllClaimSummaries();
+
+    /**
+     * 查询理赔聚合统计（管理后台看板用）
+     * <p>
+     * 聚合读模型表 {@code t_claim_view}：待处理理赔数、今日报案数、理赔总数，及累计已结案赔付金额。
+     * 强制携带 {@code tenantId} 保证多租户隔离。
+     * </p>
+     *
+     * @param tenantId 租户ID
+     * @return 理赔统计结果
+     */
+    ClaimStatisticsResult getStatistics(String tenantId);
 }
