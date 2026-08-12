@@ -33,10 +33,10 @@ public class ClaimSettlementPaymentSaga {
     @EventHandler
     public void on(ClaimSettledEvent event) {
         log.info("[理赔赔付] 核赔结算完成, claimId={}, 核定赔付金额={}, 给付方式={} —— 待支付域 CLAIM_PAYOUT 派发",
-                event.claimId(), event.settlement().getSettledAmount(), event.settlement().getPayoutMethod());
+                event.claimId(), event.settlement().settledAmount(), event.settlement().payoutMethod());
         // TODO 事件总线就绪后：commandGateway/paymentClient 派发
         //   CreatePaymentOrderCommand(paymentType=CLAIM_PAYOUT, businessId=event.claimId().value(),
-        //       businessType="CLAIM", amount=event.settlement().getSettledAmount(), ...)
+        //       businessType="CLAIM", amount=event.settlement().settledAmount(), ...)
     }
 
     /**
@@ -49,7 +49,7 @@ public class ClaimSettlementPaymentSaga {
     @EventHandler
     public void on(DeathBenefitSettledEvent event) {
         log.info("[身故给付] 结算完成, claimId={}, policyId={}, 给付总额={} —— 待支付域 CLAIM_PAYOUT 按受益人份额派发",
-                event.claimId(), event.policyId(), event.settlement().getSettledAmount());
+                event.claimId(), event.policyId(), event.settlement().settledAmount());
         // TODO 事件总线就绪后：按 event.benefitCalculation().shares() 逐受益人派发 CreatePaymentOrderCommand
     }
 }

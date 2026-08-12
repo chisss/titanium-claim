@@ -2,6 +2,7 @@ package com.titanium.claim.web.provider;
 
 import java.util.List;
 
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.titanium.claim.api.ClaimApi;
@@ -9,10 +10,11 @@ import com.titanium.claim.api.request.ClaimRequest;
 import com.titanium.claim.api.request.SettleClaimRequest;
 import com.titanium.claim.api.request.SubmitLossAssessmentRequest;
 import com.titanium.claim.api.request.SubmitSurveyRequest;
-import com.titanium.claim.api.response.ApiResponse;
 import com.titanium.claim.api.response.ClaimResponse;
 import com.titanium.claim.application.service.ClaimApplicationService;
 import com.titanium.claim.web.mapper.ClaimWebMapper;
+import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
  * </p>
  */
 @RestController
+@RequestMapping("/api/v1/claims")
 @RequiredArgsConstructor
 public class ClaimApiProvider implements ClaimApi {
 
@@ -56,7 +59,7 @@ public class ClaimApiProvider implements ClaimApi {
         return claimApplicationService.getClaim(claimId)
                 .map(claimWebMapper::toApiResponse)
                 .map(ApiResponse::success)
-                .orElseGet(() -> ApiResponse.error(404, "理赔案件不存在: " + claimId));
+                .orElseGet(() -> ApiResponse.error(ClaimErrorCode.CLAIM_NOT_EXIST, "理赔案件不存在: " + claimId));
     }
 
     @Override

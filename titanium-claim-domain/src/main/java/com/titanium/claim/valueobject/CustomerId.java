@@ -1,37 +1,20 @@
 package com.titanium.claim.valueobject;
 
-import lombok.Getter;
-import lombok.experimental.Accessors;
+/**
+ * 客户标识值对象
+ *
+ * @param value 客户唯一标识
+ */
+public record CustomerId(String value) {
 
-@Getter
-@Accessors(fluent = true)
-public class CustomerId {
-    private final String value;
-
-    private CustomerId(String value) {
-        this.value = value;
-    }
-
+    /**
+     * 由字符串构造客户标识
+     *
+     * @param value 标识字符串
+     * @return 客户标识
+     */
     public static CustomerId of(String value) {
         return new CustomerId(value);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        CustomerId that = (CustomerId) o;
-        return value.equals(that.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
     }
 
     @Override

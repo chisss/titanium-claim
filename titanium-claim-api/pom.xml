@@ -14,6 +14,12 @@
     <description>理赔服务API模块</description>
 
     <dependencies>
+        <!-- 元数据共享库：统一 ApiResponse / 错误码 -->
+        <dependency>
+            <groupId>com.titanium</groupId>
+            <artifactId>titanium-metadata</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>

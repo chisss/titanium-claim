@@ -138,7 +138,7 @@ public class ClaimProjectionEventHandler {
 
         claimViewRepository.findByClaimId(event.claimId().value()).ifPresentOrElse(view -> {
             if (event.settlement() != null) {
-                view.setSettledAmount(event.settlement().getSettledAmount());
+                view.setSettledAmount(event.settlement().settledAmount());
             }
             view.setStatus(ClaimStatus.PAID);
             view.setUpdateTime(event.settledAt());

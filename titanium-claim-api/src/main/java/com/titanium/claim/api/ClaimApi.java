@@ -9,15 +9,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.titanium.claim.api.request.ClaimRequest;
 import com.titanium.claim.api.request.SettleClaimRequest;
 import com.titanium.claim.api.request.SubmitLossAssessmentRequest;
 import com.titanium.claim.api.request.SubmitSurveyRequest;
-import com.titanium.claim.api.response.ApiResponse;
 import com.titanium.claim.api.response.ClaimResponse;
+import com.titanium.metadata.response.ApiResponse;
 
 import jakarta.validation.Valid;
 
@@ -34,8 +33,7 @@ import jakarta.validation.Valid;
  * （api/client）为老式命名的冗余契约，已合并至本接口并删除。
  * </p>
  */
-@FeignClient(name = "titanium-claim", contextId = "claimApi")
-@RequestMapping("/api/v1/claims")
+@FeignClient(name = "titanium-claim", contextId = "claimApi", path = "/api/v1/claims")
 public interface ClaimApi {
 
     /**
