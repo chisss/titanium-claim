@@ -56,7 +56,7 @@ public class ClaimApiProvider implements ClaimApi {
 
     @Override
     public ApiResponse<ClaimResponse> getClaim(String claimId, String tenantId) {
-        return claimApplicationService.getClaim(claimId)
+        return claimApplicationService.getClaim(claimId, tenantId)
                 .map(claimWebMapper::toApiResponse)
                 .map(ApiResponse::success)
                 .orElseGet(() -> ApiResponse.error(ClaimErrorCode.CLAIM_NOT_EXIST, "理赔案件不存在: " + claimId));
@@ -64,28 +64,28 @@ public class ClaimApiProvider implements ClaimApi {
 
     @Override
     public ApiResponse<List<ClaimResponse>> getClaimsByCustomerId(String customerId, String tenantId) {
-        List<ClaimResponse> list = claimApplicationService.getClaimsByCustomerId(customerId)
+        List<ClaimResponse> list = claimApplicationService.getClaimsByCustomerId(customerId, tenantId)
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
     public ApiResponse<List<ClaimResponse>> getClaimsByPolicyId(String policyId, String tenantId) {
-        List<ClaimResponse> list = claimApplicationService.getClaimsByPolicyId(policyId)
+        List<ClaimResponse> list = claimApplicationService.getClaimsByPolicyId(policyId, tenantId)
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
     public ApiResponse<List<ClaimResponse>> getClaimsByStatus(String status, String tenantId) {
-        List<ClaimResponse> list = claimApplicationService.getClaimsByStatus(status)
+        List<ClaimResponse> list = claimApplicationService.getClaimsByStatus(status, tenantId)
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
     public ApiResponse<List<ClaimResponse>> getAllClaims(String tenantId) {
-        List<ClaimResponse> list = claimApplicationService.getAllClaims()
+        List<ClaimResponse> list = claimApplicationService.getAllClaims(tenantId)
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }

@@ -17,27 +17,27 @@ public interface ClaimQueryService {
     /**
      * 根据理赔案件ID查询摘要
      */
-    Optional<ClaimQueryResult> getClaimSummary(String claimId);
+    Optional<ClaimQueryResult> getClaimSummary(String claimId, String tenantId);
 
     /**
      * 根据客户ID查询理赔案件摘要列表
      */
-    List<ClaimQueryResult> getClaimSummariesByCustomerId(String customerId);
+    List<ClaimQueryResult> getClaimSummariesByCustomerId(String customerId, String tenantId);
 
     /**
      * 根据保单ID查询理赔案件摘要列表
      */
-    List<ClaimQueryResult> getClaimSummariesByPolicyId(String policyId);
+    List<ClaimQueryResult> getClaimSummariesByPolicyId(String policyId, String tenantId);
 
     /**
      * 根据状态查询理赔案件摘要列表
      */
-    List<ClaimQueryResult> getClaimSummariesByStatus(String status);
+    List<ClaimQueryResult> getClaimSummariesByStatus(String status, String tenantId);
 
     /**
      * 查询全部理赔案件摘要列表
      */
-    List<ClaimQueryResult> getAllClaimSummaries();
+    List<ClaimQueryResult> getAllClaimSummaries(String tenantId);
 
     /**
      * 查询理赔聚合统计（管理后台看板用）

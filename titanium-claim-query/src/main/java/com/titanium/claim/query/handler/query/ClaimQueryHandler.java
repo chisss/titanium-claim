@@ -30,21 +30,21 @@ public class ClaimQueryHandler {
 
     @QueryHandler
     public ClaimQueryResult handle(FindClaimByIdQuery query) {
-        return claimQueryService.getClaimSummary(query.claimId()).orElse(null);
+        return claimQueryService.getClaimSummary(query.claimId(), query.tenantId()).orElse(null);
     }
 
     @QueryHandler
     public List<ClaimQueryResult> handle(FindClaimsByCustomerIdQuery query) {
-        return claimQueryService.getClaimSummariesByCustomerId(query.customerId());
+        return claimQueryService.getClaimSummariesByCustomerId(query.customerId(), query.tenantId());
     }
 
     @QueryHandler
     public List<ClaimQueryResult> handle(FindClaimsByPolicyIdQuery query) {
-        return claimQueryService.getClaimSummariesByPolicyId(query.policyId());
+        return claimQueryService.getClaimSummariesByPolicyId(query.policyId(), query.tenantId());
     }
 
     @QueryHandler
     public List<ClaimQueryResult> handle(FindClaimsByStatusQuery query) {
-        return claimQueryService.getClaimSummariesByStatus(query.status());
+        return claimQueryService.getClaimSummariesByStatus(query.status(), query.tenantId());
     }
 }

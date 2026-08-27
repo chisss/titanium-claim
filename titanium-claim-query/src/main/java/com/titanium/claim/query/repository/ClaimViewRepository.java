@@ -29,11 +29,13 @@ public interface ClaimViewRepository
 
     Optional<ClaimView> findByClaimIdAndTenantId(String claimId, String tenantId);
 
-    List<ClaimView> findByCustomerId(String customerId);
+    List<ClaimView> findByCustomerIdAndTenantId(String customerId, String tenantId);
 
-    List<ClaimView> findByPolicyId(String policyId);
+    List<ClaimView> findByPolicyIdAndTenantId(String policyId, String tenantId);
 
-    List<ClaimView> findByStatus(ClaimStatus status);
+    List<ClaimView> findByStatusAndTenantId(ClaimStatus status, String tenantId);
+
+    List<ClaimView> findByTenantId(String tenantId);
 
     /**
      * 按租户ID统计理赔案件总数（多租户隔离）

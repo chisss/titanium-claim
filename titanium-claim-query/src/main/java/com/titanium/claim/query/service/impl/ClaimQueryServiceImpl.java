@@ -36,35 +36,36 @@ public class ClaimQueryServiceImpl implements ClaimQueryService {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<ClaimQueryResult> getClaimSummary(String claimId) {
-        return claimViewRepository.findByClaimId(claimId).map(this::toResult);
+    public Optional<ClaimQueryResult> getClaimSummary(String claimId, String tenantId) {
+        return claimViewRepository.findByClaimIdAndTenantId(claimId, tenantId).map(this::toResult);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClaimQueryResult> getClaimSummariesByCustomerId(String customerId) {
-        return claimViewRepository.findByCustomerId(customerId).stream().map(this::toResult)
+    public List<ClaimQueryResult> getClaimSummariesByCustomerId(String customerId, String tenantId) {
+        return claimViewRepository.findByCustomerIdAndTenantId(customerId, tenantId).stream().map(this::toResult)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClaimQueryResult> getClaimSummariesByPolicyId(String policyId) {
-        return claimViewRepository.findByPolicyId(policyId).stream().map(this::toResult)
+    public List<ClaimQueryResult> getClaimSummariesByPolicyId(String policyId, String tenantId) {
+        return claimViewRepository.findByPolicyIdAndTenantId(policyId, tenantId).stream().map(this::toResult)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClaimQueryResult> getClaimSummariesByStatus(String status) {
-        return claimViewRepository.findByStatus(ClaimStatus.fromCode(status)).stream().map(this::toResult)
+    public List<ClaimQueryResult> getClaimSummariesByStatus(String status, String tenantId) {
+        return claimViewRepository.findByStatusAndTenantId(ClaimStatus.fromCode(status), tenantId).stream()
+                .map(this::toResult)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClaimQueryResult> getAllClaimSummaries() {
-        return claimViewRepository.findAll().stream().map(this::toResult).collect(Collectors.toList());
+    public List<ClaimQueryResult> getAllClaimSummaries(String tenantId) {
+        return claimViewRepository.findByTenantId(tenantId).stream().map(this::toResult).collect(Collectors.toList());
     }
 
     @Override

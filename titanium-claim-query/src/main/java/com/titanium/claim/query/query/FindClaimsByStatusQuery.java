@@ -5,5 +5,5 @@ package com.titanium.claim.query.query;
  *
  * @param status 理赔状态 code
  */
-public record FindClaimsByStatusQuery(String status) {
+public record FindClaimsByStatusQuery(String status, String tenantId) {
 }

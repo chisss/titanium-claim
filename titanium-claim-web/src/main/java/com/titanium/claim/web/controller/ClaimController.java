@@ -96,8 +96,10 @@ public class ClaimController {
      * 获取理赔案件详情
      */
     @GetMapping("/{claimId}")
-    public ResponseEntity<ClaimResponseVO> getClaim(@PathVariable("claimId") String claimId) {
-        return claimApplicationService.getClaim(claimId)
+    public ResponseEntity<ClaimResponseVO> getClaim(
+            @PathVariable("claimId") String claimId,
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        return claimApplicationService.getClaim(claimId, tenantId)
                 .map(claimWebMapper::toVO)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -108,8 +110,9 @@ public class ClaimController {
      */
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<ClaimResponseVO>> getClaimsByCustomerId(
-            @PathVariable("customerId") String customerId) {
-        return ResponseEntity.ok(claimApplicationService.getClaimsByCustomerId(customerId)
+            @PathVariable("customerId") String customerId,
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        return ResponseEntity.ok(claimApplicationService.getClaimsByCustomerId(customerId, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
 
@@ -117,8 +120,10 @@ public class ClaimController {
      * 根据保单ID查询理赔案件列表
      */
     @GetMapping("/policy/{policyId}")
-    public ResponseEntity<List<ClaimResponseVO>> getClaimsByPolicyId(@PathVariable("policyId") String policyId) {
-        return ResponseEntity.ok(claimApplicationService.getClaimsByPolicyId(policyId)
+    public ResponseEntity<List<ClaimResponseVO>> getClaimsByPolicyId(
+            @PathVariable("policyId") String policyId,
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        return ResponseEntity.ok(claimApplicationService.getClaimsByPolicyId(policyId, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
 
@@ -126,8 +131,10 @@ public class ClaimController {
      * 根据状态查询理赔案件列表
      */
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<ClaimResponseVO>> getClaimsByStatus(@PathVariable("status") String status) {
-        return ResponseEntity.ok(claimApplicationService.getClaimsByStatus(status)
+    public ResponseEntity<List<ClaimResponseVO>> getClaimsByStatus(
+            @PathVariable("status") String status,
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        return ResponseEntity.ok(claimApplicationService.getClaimsByStatus(status, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
 
@@ -135,8 +142,9 @@ public class ClaimController {
      * 查询所有理赔案件列表
      */
     @GetMapping
-    public ResponseEntity<List<ClaimResponseVO>> getAllClaims() {
-        return ResponseEntity.ok(claimApplicationService.getAllClaims()
+    public ResponseEntity<List<ClaimResponseVO>> getAllClaims(
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        return ResponseEntity.ok(claimApplicationService.getAllClaims(tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
 
@@ -194,8 +202,9 @@ public class ClaimController {
             @RequestParam(required = false) String customerId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        List<ClaimResponseVO> all = claimApplicationService.getAllClaims().stream()
+            @RequestParam(defaultValue = "10") int size,
+            @RequestHeader("X-Tenant-Id") String tenantId) {
+        List<ClaimResponseVO> all = claimApplicationService.getAllClaims(tenantId).stream()
                 .filter(m -> claimNo == null || claimNo.equals(m.getClaimNumber()))
                 .filter(m -> policyId == null || policyId.equals(m.getPolicyId()))
                 .filter(m -> customerId == null || customerId.equals(m.getCustomerId()))

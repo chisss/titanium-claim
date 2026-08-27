@@ -5,5 +5,5 @@ package com.titanium.claim.query.query;
  *
  * @param policyId 保单ID
  */
-public record FindClaimsByPolicyIdQuery(String policyId) {
+public record FindClaimsByPolicyIdQuery(String policyId, String tenantId) {
 }

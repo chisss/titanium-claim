@@ -200,31 +200,31 @@ public class ClaimApplicationService {
     // ==================== 读侧：委托 CQRS 查询服务 ====================
 
     @Transactional(readOnly = true)
-    public Optional<ClaimReadModel> getClaim(String claimId) {
-        return claimQueryService.getClaimSummary(claimId).map(this::toReadModel);
+    public Optional<ClaimReadModel> getClaim(String claimId, String tenantId) {
+        return claimQueryService.getClaimSummary(claimId, tenantId).map(this::toReadModel);
     }
 
     @Transactional(readOnly = true)
-    public List<ClaimReadModel> getClaimsByCustomerId(String customerId) {
-        return claimQueryService.getClaimSummariesByCustomerId(customerId)
+    public List<ClaimReadModel> getClaimsByCustomerId(String customerId, String tenantId) {
+        return claimQueryService.getClaimSummariesByCustomerId(customerId, tenantId)
                 .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ClaimReadModel> getClaimsByPolicyId(String policyId) {
-        return claimQueryService.getClaimSummariesByPolicyId(policyId)
+    public List<ClaimReadModel> getClaimsByPolicyId(String policyId, String tenantId) {
+        return claimQueryService.getClaimSummariesByPolicyId(policyId, tenantId)
                 .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ClaimReadModel> getClaimsByStatus(String status) {
-        return claimQueryService.getClaimSummariesByStatus(status)
+    public List<ClaimReadModel> getClaimsByStatus(String status, String tenantId) {
+        return claimQueryService.getClaimSummariesByStatus(status, tenantId)
                 .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<ClaimReadModel> getAllClaims() {
-        return claimQueryService.getAllClaimSummaries()
+    public List<ClaimReadModel> getAllClaims(String tenantId) {
+        return claimQueryService.getAllClaimSummaries(tenantId)
                 .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 
