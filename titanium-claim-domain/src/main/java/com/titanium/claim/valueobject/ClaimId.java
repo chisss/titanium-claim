@@ -1,6 +1,6 @@
 package com.titanium.claim.valueobject;
 
-import java.util.UUID;
+import com.titanium.common.util.SnowflakeIdGenerator;
 
 /**
  * 理赔案件标识值对象（Claim 聚合根标识）
@@ -19,7 +19,7 @@ public record ClaimId(String value) {
      * @return 理赔案件标识
      */
     public static ClaimId generate() {
-        return new ClaimId(UUID.randomUUID().toString());
+        return new ClaimId(SnowflakeIdGenerator.generate());
     }
 
     /**
