@@ -2,6 +2,7 @@ package com.titanium.claim.valueobject;
 
 import java.math.BigDecimal;
 
+import com.titanium.claim.common.exception.InvalidClaimAmountException;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 /**
@@ -23,7 +24,7 @@ public record ClaimSettlement(
 
     public ClaimSettlement {
         if (settledAmount == null || settledAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("核定赔付金额必须大于0");
+            throw new InvalidClaimAmountException("核定赔付金额必须大于0");
         }
     }
 

@@ -3,6 +3,7 @@ package com.titanium.claim.query.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.titanium.claim.query.query.SearchClaimSummariesQuery;
 import com.titanium.claim.query.result.ClaimQueryResult;
 import com.titanium.claim.query.result.ClaimStatisticsResult;
 
@@ -38,6 +39,21 @@ public interface ClaimQueryService {
      * 查询全部理赔案件摘要列表
      */
     List<ClaimQueryResult> getAllClaimSummaries(String tenantId);
+
+    /**
+     * 多条件搜索理赔案件摘要（数据库侧 Specification 过滤 + 分页）
+     * <p>
+     * 按理赔编号/保单ID/客户ID/状态任意组合精确过滤（条件均可空），分页返回指定页数据。
+     * 状态码非法时返回空列表（与历史内存过滤语义一致，不抛异常）。
+     * </p>
+     *
+     * @param query    搜索条件（字段均可空）
+     * @param page     页码（从 0 开始，负数按 0 处理）
+     * @param size     每页条数（小于 1 按 1 处理）
+     * @param tenantId 租户ID
+     * @return 命中页的理赔案件摘要列表
+     */
+    List<ClaimQueryResult> searchClaimSummaries(SearchClaimSummariesQuery query, int page, int size, String tenantId);
 
     /**
      * 查询理赔聚合统计（管理后台看板用）

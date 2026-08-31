@@ -3,6 +3,9 @@ package com.titanium.claim.valueobject;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.titanium.claim.common.exception.BenefitCalculationException;
+import com.titanium.metadata.errorcode.ClaimErrorCode;
+
 /**
  * 身故给付金核算值对象（寿险身故金按受益人份额分配）
  * <p>
@@ -23,17 +26,17 @@ public record BenefitCalculation(
 
     public BenefitCalculation {
         if (totalBenefit == null || totalBenefit.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("身故给付总额必须大于0");
+            throw new BenefitCalculationException(ClaimErrorCode.CLAIM_BENEFIT_AMOUNT_INVALID, "身故给付总额必须大于0");
         }
         shares = shares == null ? List.of() : List.copyOf(shares);
         if (shares.isEmpty()) {
-            throw new IllegalArgumentException("身故给付受益人份额不能为空");
+            throw new BenefitCalculationException(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISSING, "身故给付受益人份额不能为空");
         }
         BigDecimal sum = shares.stream()
                 .map(BeneficiaryShare::amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (sum.compareTo(totalBenefit) != 0) {
-            throw new IllegalArgumentException(
+            throw new BenefitCalculationException(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISMATCH,
                     "受益人份额之和(" + sum + ")必须等于给付总额(" + totalBenefit + ")");
         }
     }

@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.titanium.claim.query.mapper.ClaimQueryResultMapper;
 import com.titanium.claim.query.repository.ClaimViewRepository;
 
 class ClaimQueryServiceImplTest {
@@ -16,7 +17,7 @@ class ClaimQueryServiceImplTest {
     @Test
     void shouldRestrictPolicyQueryToTenant() {
         ClaimViewRepository repository = mock(ClaimViewRepository.class);
-        ClaimQueryServiceImpl service = new ClaimQueryServiceImpl(repository);
+        ClaimQueryServiceImpl service = new ClaimQueryServiceImpl(repository, mock(ClaimQueryResultMapper.class));
         when(repository.findByPolicyIdAndTenantId("policy-1", "tenant-b")).thenReturn(List.of());
 
         assertTrue(service.getClaimSummariesByPolicyId("policy-1", "tenant-b").isEmpty());
@@ -27,7 +28,7 @@ class ClaimQueryServiceImplTest {
     @Test
     void shouldRestrictAllClaimsQueryToTenant() {
         ClaimViewRepository repository = mock(ClaimViewRepository.class);
-        ClaimQueryServiceImpl service = new ClaimQueryServiceImpl(repository);
+        ClaimQueryServiceImpl service = new ClaimQueryServiceImpl(repository, mock(ClaimQueryResultMapper.class));
         when(repository.findByTenantId("tenant-a")).thenReturn(List.of());
 
         assertTrue(service.getAllClaimSummaries("tenant-a").isEmpty());

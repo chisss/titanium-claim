@@ -2,6 +2,7 @@ package com.titanium.claim.exception;
 
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.valueobject.ClaimId;
+import com.titanium.metadata.errorcode.ClaimErrorCode;
 import com.titanium.metadata.exception.DomainException;
 
 /**
@@ -21,7 +22,7 @@ public class ClaimStatusPreconditionException extends DomainException {
 
     public ClaimStatusPreconditionException(ClaimId claimId, ClaimStatus currentStatus,
                                             String operation, String requiredStatus) {
-        super("CLAIM_STATUS_PRECONDITION_NOT_MET",
+        super(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET,
               String.format("理赔案件[%s] 操作 %s 要求状态为 %s，当前状态: %s",
                             claimId.value(), operation, requiredStatus, currentStatus.name()));
     }

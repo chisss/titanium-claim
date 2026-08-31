@@ -9,6 +9,7 @@ import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.titanium.claim.application.mapper.ClaimReadModelMapper;
 import com.titanium.claim.application.model.ChangeClaimStatusRequest;
 import com.titanium.claim.application.model.ClaimReadModel;
 import com.titanium.claim.application.model.CreateClaimRequest;
@@ -26,6 +27,7 @@ import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
+import com.titanium.claim.query.query.SearchClaimSummariesQuery;
 import com.titanium.claim.query.result.ClaimQueryResult;
 import com.titanium.claim.query.result.ClaimStatisticsResult;
 import com.titanium.claim.query.service.ClaimQueryService;
@@ -56,10 +58,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClaimApplicationService {
 
-    private final CommandGateway    commandGateway;
-    private final ClaimService      claimService;
-    private final PolicyService     policyService;
-    private final ClaimQueryService claimQueryService;
+    private final CommandGateway       commandGateway;
+    private final ClaimService         claimService;
+    private final PolicyService        policyService;
+    private final ClaimQueryService    claimQueryService;
+    private final ClaimReadModelMapper claimReadModelMapper;
 
     @Transactional
     public String createClaim(CreateClaimRequest request) {
@@ -229,6 +232,25 @@ public class ClaimApplicationService {
     }
 
     /**
+     * 多条件搜索理赔案件（数据库侧过滤 + 分页，读入口）。
+     * <p>
+     * 委托 CQRS 读侧 {@link ClaimQueryService#searchClaimSummaries} 按组合条件 Specification 过滤并分页，
+     * 取代历史 Controller 层内存过滤分页。
+     * </p>
+     *
+     * @param query    搜索条件（字段均可空）
+     * @param page     页码（从 0 开始）
+     * @param size     每页条数
+     * @param tenantId 租户ID
+     * @return 命中页的应用层读模型列表
+     */
+    @Transactional(readOnly = true)
+    public List<ClaimReadModel> searchClaims(SearchClaimSummariesQuery query, int page, int size, String tenantId) {
+        return claimQueryService.searchClaimSummaries(query, page, size, tenantId)
+                .stream().map(this::toReadModel).collect(Collectors.toList());
+    }
+
+    /**
      * 查询理赔聚合统计（管理后台看板读入口）。
      * <p>
      * 委托 CQRS 读侧 {@link ClaimQueryService} 聚合读模型（{@code t_claim_view}）：待处理数、今日报案数、
@@ -246,23 +268,11 @@ public class ClaimApplicationService {
     /**
      * 读模型查询结果 → 应用层读模型。
      * <p>
-     * 读侧读模型（ClaimQueryResult）→ 应用层读模型（ClaimReadModel）的内部装配：状态/理赔类型枚举
-     * 经 {@link ClaimReadModel} 的空安全重载 setter 收敛为 code（沿用 billing {@code ReadModel} 内部装配范式）。
+     * 读侧读模型（ClaimQueryResult）→ 应用层读模型（ClaimReadModel）的内部装配，经
+     * {@link ClaimReadModelMapper} 声明式映射：状态/理赔类型枚举经空安全 {@code @Named} 方法收敛为 code 与中文描述。
      * </p>
      */
     private ClaimReadModel toReadModel(ClaimQueryResult result) {
-        ClaimReadModel model = new ClaimReadModel();
-        model.setClaimId(result.getClaimId());
-        model.setCustomerId(result.getCustomerId());
-        model.setPolicyId(result.getPolicyId());
-        model.setClaimNumber(result.getClaimNumber());
-        model.setClaimType(result.getClaimType());
-        model.setIncidentDate(result.getIncidentDate());
-        model.setIncidentDescription(result.getIncidentDescription());
-        model.setClaimAmount(result.getClaimAmount());
-        model.setStatus(result.getStatus());
-        model.setCreatedAt(result.getCreatedAt());
-        model.setUpdatedAt(result.getUpdatedAt());
-        return model;
+        return claimReadModelMapper.toReadModel(result);
     }
 }

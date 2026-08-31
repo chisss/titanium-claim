@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.titanium.claim.api.response.ClaimStatisticsResponse;
 import com.titanium.claim.application.service.ClaimApplicationService;
+import com.titanium.claim.query.query.SearchClaimSummariesQuery;
 import com.titanium.claim.web.dto.CreateClaimDTO;
 import com.titanium.claim.web.dto.SettleClaimDTO;
 import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
@@ -189,10 +190,11 @@ public class ClaimController {
     }
 
     /**
-     * 多条件搜索理赔案件（内存过滤 + 简单分页）
+     * 多条件搜索理赔案件（数据库侧过滤 + 分页）
      * <p>
-     * 支持按理赔编号、保单ID、客户ID、状态任意组合过滤，参数均可选；结果先全量拉取再内存过滤，
-     * 适用于数据量可控场景。若需高性能分页，可后续扩展 ClaimApplicationService 加 CQRS 条件查询。
+     * 支持按理赔编号、保单ID、客户ID、状态任意组合过滤，参数均可选；过滤与分页已下沉 CQRS 读侧
+     * （{@code ClaimQueryService.searchClaimSummaries} 的 JPA Specification 动态组装），
+     * Controller 只组装查询条件记录并委托应用层读入口，零业务逻辑。
      * </p>
      */
     @GetMapping("/search")
@@ -204,15 +206,9 @@ public class ClaimController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestHeader("X-Tenant-Id") String tenantId) {
-        List<ClaimResponseVO> all = claimApplicationService.getAllClaims(tenantId).stream()
-                .filter(m -> claimNo == null || claimNo.equals(m.getClaimNumber()))
-                .filter(m -> policyId == null || policyId.equals(m.getPolicyId()))
-                .filter(m -> customerId == null || customerId.equals(m.getCustomerId()))
-                .filter(m -> status == null || status.equals(m.getStatus()))
-                .map(claimWebMapper::toVO)
-                .toList();
-        int from = Math.min(page * size, all.size());
-        int to   = Math.min(from + size, all.size());
-        return ResponseEntity.ok(all.subList(from, to));
+        List<ClaimResponseVO> result = claimApplicationService
+                .searchClaims(new SearchClaimSummariesQuery(claimNo, policyId, customerId, status), page, size, tenantId)
+                .stream().map(claimWebMapper::toVO).toList();
+        return ResponseEntity.ok(result);
     }
 }

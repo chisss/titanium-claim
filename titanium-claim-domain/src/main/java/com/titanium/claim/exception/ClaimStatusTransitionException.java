@@ -2,6 +2,7 @@ package com.titanium.claim.exception;
 
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.valueobject.ClaimId;
+import com.titanium.metadata.errorcode.ClaimErrorCode;
 import com.titanium.metadata.exception.IllegalStateTransitionException;
 
 /**
@@ -22,6 +23,6 @@ import com.titanium.metadata.exception.IllegalStateTransitionException;
 public class ClaimStatusTransitionException extends IllegalStateTransitionException {
 
     public ClaimStatusTransitionException(ClaimId claimId, ClaimStatus from, ClaimStatus to) {
-        super("理赔案件", claimId.value(), from.name(), to.name());
+        super(ClaimErrorCode.CLAIM_STATUS_TRANSITION_INVALID, "理赔案件", claimId.value(), from.name(), to.name());
     }
 }
