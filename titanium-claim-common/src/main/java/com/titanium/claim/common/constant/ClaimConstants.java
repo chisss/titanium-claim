@@ -25,5 +25,7 @@ public class ClaimConstants {
         public static final String DEATH_BENEFIT_SETTLED = "claim-death-benefit-settled";
         /** 理赔拒赔主题：供 notification 域/下游消费触发拒赔通知书发送 */
         public static final String CLAIM_REJECTED = "claim-rejected";
+        /** 理赔赔付支付单主题：供 payment 域防腐消费创建 CLAIM_PAYOUT 支付单 */
+        public static final String PAYMENT_ORDER_CREATED = "payment-order-created";
     }
 }

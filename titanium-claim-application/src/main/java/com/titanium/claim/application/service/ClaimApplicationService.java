@@ -27,6 +27,8 @@ import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
+import com.titanium.claim.port.policy.PolicyInfo;
+import com.titanium.claim.port.policy.PolicyServicePort;
 import com.titanium.claim.query.query.SearchClaimSummariesQuery;
 import com.titanium.claim.query.result.ClaimQueryResult;
 import com.titanium.claim.query.result.ClaimStatisticsResult;
@@ -41,7 +43,6 @@ import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.PolicyId;
 import com.titanium.claim.valueobject.Survey;
 import com.titanium.metadata.enums.claim.ClaimEnum;
-import com.titanium.policy.api.response.PolicyResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +61,7 @@ public class ClaimApplicationService {
 
     private final CommandGateway       commandGateway;
     private final ClaimService         claimService;
-    private final PolicyService        policyService;
+    private final PolicyServicePort    policyServicePort;
     private final ClaimQueryService    claimQueryService;
     private final ClaimReadModelMapper claimReadModelMapper;
 
@@ -99,8 +100,8 @@ public class ClaimApplicationService {
      * </p>
      */
     private void validatePolicy(String policyId) {
-        PolicyResponse policy = policyService.getPolicy(policyId, "default-tenant");
-        String statusCode = policy == null || policy.getStatus() == null ? null : policy.getStatus().getCode();
+        PolicyInfo policy = policyServicePort.getPolicy(policyId, "default-tenant");
+        String statusCode = policy == null ? null : policy.statusCode();
         if (!"ACTIVE".equals(statusCode)) {
             log.error("保单验证失败, policyId={}, status={}", policyId, statusCode);
             throw new PolicyNotActiveException();

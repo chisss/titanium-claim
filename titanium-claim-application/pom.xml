@@ -69,19 +69,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-
-        <!-- 保单系统API -->
-        <dependency>
-            <groupId>com.titanium</groupId>
-            <artifactId>titanium-policy-api</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-        
-        <!-- OpenFeign -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

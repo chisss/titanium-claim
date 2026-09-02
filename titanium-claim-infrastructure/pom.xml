@@ -50,6 +50,19 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- 保单系统API（PolicyServiceAdapter 调 PolicyApi Feign） -->
+        <dependency>
+            <groupId>com.titanium</groupId>
+            <artifactId>titanium-policy-api</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- OpenFeign（跨域 Feign 客户端） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
         <!-- Axon Framework (axon-spring-boot-starter 已内置 JPA 事件存储) -->
         <dependency>
             <groupId>org.axonframework</groupId>
