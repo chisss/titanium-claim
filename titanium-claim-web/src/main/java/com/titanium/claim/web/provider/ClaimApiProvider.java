@@ -7,9 +7,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.titanium.claim.api.ClaimApi;
 import com.titanium.claim.api.request.ClaimRequest;
+import com.titanium.claim.api.request.FlagClaimAlertRequest;
 import com.titanium.claim.api.request.RejectClaimRequest;
 import com.titanium.claim.api.request.SettleClaimRequest;
 import com.titanium.claim.api.request.SettleDeathBenefitRequest;
+import com.titanium.claim.api.request.SettleDisabilityBenefitRequest;
 import com.titanium.claim.api.request.SubmitLossAssessmentRequest;
 import com.titanium.claim.api.request.SubmitSurveyRequest;
 import com.titanium.claim.api.response.ClaimResponse;
@@ -117,6 +119,25 @@ public class ClaimApiProvider implements ClaimApi {
     public ApiResponse<Void> settleDeathBenefit(String claimId, SettleDeathBenefitRequest requestDTO,
                                                 String tenantId) {
         claimCommandService.settleDeathBenefit(claimId, claimWebMapper.toDeathBenefitRequest(requestDTO));
+        return ApiResponse.success();
+    }
+
+    @Override
+    public ApiResponse<Void> settleDisabilityBenefit(String claimId, SettleDisabilityBenefitRequest requestDTO,
+                                                     String tenantId) {
+        claimCommandService.settleDisabilityBenefit(claimId, claimWebMapper.toDisabilityBenefitRequest(requestDTO));
+        return ApiResponse.success();
+    }
+
+    @Override
+    public ApiResponse<Void> flagClaimAlert(String claimId, FlagClaimAlertRequest requestDTO, String tenantId) {
+        claimCommandService.flagAlert(claimId, claimWebMapper.toFlagAlertRequest(requestDTO));
+        return ApiResponse.success();
+    }
+
+    @Override
+    public ApiResponse<Void> quickPay(String claimId, String tenantId) {
+        claimCommandService.quickPay(claimId);
         return ApiResponse.success();
     }
 

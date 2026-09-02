@@ -1,6 +1,8 @@
 package com.titanium.claim.aggregate;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
@@ -12,14 +14,17 @@ import com.titanium.claim.command.ChangeClaimStatusCommand;
 import com.titanium.claim.command.CloseClaimCommand;
 import com.titanium.claim.command.CompletePaymentCommand;
 import com.titanium.claim.command.CreateClaimCommand;
+import com.titanium.claim.command.FlagClaimAlertCommand;
 import com.titanium.claim.command.RejectClaimCommand;
 import com.titanium.claim.command.SettleClaimCommand;
 import com.titanium.claim.command.SettleDeathBenefitCommand;
+import com.titanium.claim.command.SettleDisabilityBenefitCommand;
 import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.enums.RejectReason;
+import com.titanium.claim.event.ClaimAlertFlaggedEvent;
 import com.titanium.claim.event.ClaimClosedEvent;
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimLossAssessedEvent;
@@ -30,15 +35,18 @@ import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimSurveySubmittedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
+import com.titanium.claim.event.DisabilityBenefitSettledEvent;
 import com.titanium.claim.exception.ClaimPhaseTransitionException;
 import com.titanium.claim.exception.ClaimStatusPreconditionException;
 import com.titanium.claim.exception.ClaimStatusTransitionException;
+import com.titanium.claim.valueobject.AlertFlag;
 import com.titanium.claim.valueobject.BenefitCalculation;
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.ClaimSettlement;
 import com.titanium.claim.valueobject.CustomerId;
 import com.titanium.claim.valueobject.DeathClaimEvidence;
+import com.titanium.claim.valueobject.DisabilityClaimEvidence;
 import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.PolicyId;
 import com.titanium.claim.valueobject.Survey;
@@ -97,6 +105,12 @@ public class Claim extends BaseAggregate {
     private DeathClaimEvidence  deathEvidence;
     /** 身故给付金核算（寿险身故理赔专属，按受益人份额分配） */
     private BenefitCalculation  benefitCalculation;
+    /** 全残证据材料（寿险/意外险全残理赔专属，CLAIM-6） */
+    private DisabilityClaimEvidence disabilityEvidence;
+    /** 全残给付金核算（寿险/意外险全残理赔专属，按受益人份额分配） */
+    private BenefitCalculation  disabilityBenefitCalculation;
+    /** 反欺诈警示与统计口径标记（延迟报案/多次报案/风险评分/快赔，快赔通道判据的数据来源） */
+    private List<AlertFlag>     alertFlags = new ArrayList<>();
 
     @CommandHandler
     public Claim(CreateClaimCommand command) {
@@ -109,6 +123,36 @@ public class Claim extends BaseAggregate {
     public void handle(UpdateClaimCommand command) {
         AggregateLifecycle.apply(new ClaimUpdatedEvent(command.claimId(), command.claimType(), command.incidentDate(),
                 command.incidentDescription(), command.claimAmount(), LocalDateTime.now()));
+    }
+
+    /**
+     * 打标警示标记（反欺诈警示 + 统计口径标记）：按类型合并去重后发布事件投影至读模型，
+     * 供快赔通道判据「无欺诈警示标记」使用。幂等：全部标记均已存在时不重复发布。
+     */
+    @CommandHandler
+    public void handle(FlagClaimAlertCommand command) {
+        List<AlertFlag> merged = mergeAlertFlags(command.flags());
+        if (merged.size() == this.alertFlags.size()) {
+            return; // 幂等：无新增标记
+        }
+        AggregateLifecycle.apply(new ClaimAlertFlaggedEvent(command.claimId(), merged, LocalDateTime.now()));
+    }
+
+    /**
+     * 按类型合并去重：新标记类型不存在于既有标记时追加，已存在则忽略（保留首次命中的规则标识）。
+     */
+    private List<AlertFlag> mergeAlertFlags(List<AlertFlag> flags) {
+        List<AlertFlag> merged = new ArrayList<>(this.alertFlags);
+        if (flags == null || flags.isEmpty()) {
+            return merged;
+        }
+        for (AlertFlag flag : flags) {
+            boolean exists = merged.stream().anyMatch(existing -> existing.type() == flag.type());
+            if (!exists) {
+                merged.add(flag);
+            }
+        }
+        return merged;
     }
 
     @CommandHandler
@@ -163,6 +207,35 @@ public class Claim extends BaseAggregate {
                 command.payoutMethod(), null, command.conclusion());
         AggregateLifecycle.apply(new DeathBenefitSettledEvent(command.claimId(), this.policyId.value(),
                 command.evidence(), command.benefitCalculation(), deathSettlement, LocalDateTime.now()));
+    }
+
+    /**
+     * 全残给付结算（寿险/意外险全残理赔专属，CLAIM-6）：仅 APPROVED 状态可给付，须全残材料齐备，
+     * 记录全残证据/受益人核算并进入赔付中，发布 {@link DisabilityBenefitSettledEvent} 触发下游保单终止。
+     * <p>
+     * 与身故给付同构：以全残给付金核算总额为给付额（基本保额、或账户价值与基本保额孰高，
+     * 按条款来源精算），给付后保单责任终止（被保险人全残）。
+     * </p>
+     */
+    @CommandHandler
+    public void handle(SettleDisabilityBenefitCommand command) {
+        if (status != ClaimStatus.APPROVED) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "全残给付结算", "APPROVED");
+        }
+        if (this.claimType != ClaimEnum.ClaimType.DISABILITY) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "全残给付结算", "DISABILITY 类型案件");
+        }
+        if (command.evidence() == null || !command.evidence().isComplete()) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "全残给付结算", "全残材料齐备");
+        }
+        if (command.benefitCalculation() == null) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "全残给付结算", "受益人份额核算");
+        }
+        // 给付额取受益人份额核算的给付总额，收款方留空（按份额分账由支付域按受益人明细处理）
+        ClaimSettlement disabilitySettlement = ClaimSettlement.of(command.benefitCalculation().totalBenefit(),
+                command.payoutMethod(), null, command.conclusion());
+        AggregateLifecycle.apply(new DisabilityBenefitSettledEvent(command.claimId(), this.policyId.value(),
+                command.evidence(), command.benefitCalculation(), disabilitySettlement, LocalDateTime.now()));
     }
 
     /**
@@ -302,6 +375,12 @@ public class Claim extends BaseAggregate {
     }
 
     @EventSourcingHandler
+    protected void on(ClaimAlertFlaggedEvent event) {
+        this.alertFlags = new ArrayList<>(event.flags());
+        this.updateTime = event.flaggedAt();
+    }
+
+    @EventSourcingHandler
     protected void on(ClaimStatusChangedEvent event) {
         this.status = event.newStatus();
         this.updateTime = event.changedAt();
@@ -321,6 +400,16 @@ public class Claim extends BaseAggregate {
         this.benefitCalculation = event.benefitCalculation();
         this.settlement = event.settlement();
         // 身故给付结算后进入赔付中，保持 APPROVED 待支付域出账回写，不再直接置 PAID
+        this.paymentStatus = ClaimEnum.PaymentStatus.PROCESSING;
+        this.updateTime = event.settledAt();
+    }
+
+    @EventSourcingHandler
+    protected void on(DisabilityBenefitSettledEvent event) {
+        this.disabilityEvidence = event.evidence();
+        this.disabilityBenefitCalculation = event.benefitCalculation();
+        this.settlement = event.settlement();
+        // 全残给付结算后进入赔付中，保持 APPROVED 待支付域出账回写，不再直接置 PAID
         this.paymentStatus = ClaimEnum.PaymentStatus.PROCESSING;
         this.updateTime = event.settledAt();
     }

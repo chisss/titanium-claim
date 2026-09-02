@@ -22,7 +22,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest;
+import com.titanium.claim.application.model.settlement.SettleDisabilityBenefitRequest;
 import com.titanium.claim.command.SettleDeathBenefitCommand;
+import com.titanium.claim.command.SettleDisabilityBenefitCommand;
 import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.enums.BenefitSource;
 import com.titanium.claim.common.exception.BenefitCalculationException;
@@ -83,7 +85,7 @@ class ClaimSettlementOrchestratorTest {
     }
 
     private PolicyInfo activePolicy() {
-        return new PolicyInfo("POL-1", "ACTIVE", new BigDecimal("500000"), LocalDateTime.now().minusDays(30));
+        return new PolicyInfo("POL-1", "ACTIVE", new BigDecimal("500000"), null, LocalDateTime.now().minusDays(30));
     }
 
     private List<BeneficiaryInfo> masterBeneficiaries() {
@@ -191,7 +193,7 @@ class ClaimSettlementOrchestratorTest {
     @DisplayName("保单非生效状态抛保单未生效异常，不发命令")
     void shouldRejectInactivePolicy() {
         when(policyServicePort.getPolicy("POL-1", "T-1"))
-                .thenReturn(new PolicyInfo("POL-1", "EXPIRED", new BigDecimal("500000"), null));
+                .thenReturn(new PolicyInfo("POL-1", "EXPIRED", new BigDecimal("500000"), null, null));
 
         assertThrows(PolicyNotActiveException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
@@ -212,7 +214,7 @@ class ClaimSettlementOrchestratorTest {
     @DisplayName("基本保额缺失抛金额无效错误码，不发命令")
     void shouldRejectMissingBasicSumInsured() {
         when(policyServicePort.getPolicy("POL-1", "T-1"))
-                .thenReturn(new PolicyInfo("POL-1", "ACTIVE", null, LocalDateTime.now().minusDays(30)));
+                .thenReturn(new PolicyInfo("POL-1", "ACTIVE", null, null, LocalDateTime.now().minusDays(30)));
 
         BenefitCalculationException ex = assertThrows(BenefitCalculationException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
@@ -244,5 +246,76 @@ class ClaimSettlementOrchestratorTest {
 
         verify(policyServicePort).getPolicy("POL-1", "T-1");
         verify(policyServicePort).fetchBeneficiaries("POL-1", "T-1");
+    }
+
+    // ==================== 全残给付（CLAIM-6） ====================
+
+    private SettleDisabilityBenefitRequest validDisabilityRequest() {
+        SettleDisabilityBenefitRequest request = new SettleDisabilityBenefitRequest();
+        request.setPolicyId("POL-1");
+        request.setDisabilityCertificateNo("DC-001");
+        request.setDisabilityGrade("一级伤残");
+        request.setAssessmentDate(LocalDateTime.now().minusDays(2));
+        request.setAssessmentAgency("某司法鉴定中心");
+        request.setBeneficiaryProofNo("BP-001");
+        request.setPayoutMethod(ClaimEnum.PayoutMethod.BANK_TRANSFER.getCode());
+        request.setConclusion("全残给付核准");
+        SettleDisabilityBenefitRequest.BeneficiaryShare s1 = new SettleDisabilityBenefitRequest.BeneficiaryShare();
+        s1.setBeneficiaryId("B-1");
+        s1.setBeneficiaryName("配偶");
+        s1.setBenefitRatio(new BigDecimal("0.6"));
+        SettleDisabilityBenefitRequest.BeneficiaryShare s2 = new SettleDisabilityBenefitRequest.BeneficiaryShare();
+        s2.setBeneficiaryId("B-2");
+        s2.setBeneficiaryName("子女");
+        s2.setBenefitRatio(new BigDecimal("0.4"));
+        request.setShares(List.of(s1, s2));
+        return request;
+    }
+
+    @Test
+    @DisplayName("全残给付：账户价值未取到回落基本保额，按份额精算后发送命令")
+    void shouldSettleDisabilityByFallbackToBasicSumInsured() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
+
+        orchestrator.settleDisabilityBenefit("CLAIM-1", validDisabilityRequest());
+
+        ArgumentCaptor<SettleDisabilityBenefitCommand> captor = ArgumentCaptor.forClass(
+                SettleDisabilityBenefitCommand.class);
+        verify(commandGateway).sendAndWait(captor.capture());
+        SettleDisabilityBenefitCommand command = captor.getValue();
+        assertEquals(BenefitSource.ACCOUNT_VALUE_MAX, command.benefitCalculation().source());
+        assertEquals(0, command.benefitCalculation().totalBenefit()
+                .compareTo(new BigDecimal("500000")));
+        assertEquals("一级伤残", command.evidence().disabilityGrade());
+    }
+
+    @Test
+    @DisplayName("全残给付：账户价值高于基本保额取账户价值")
+    void shouldSettleDisabilityByAccountValueMax() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(new PolicyInfo("POL-1", "ACTIVE",
+                new BigDecimal("500000"), new BigDecimal("600000"), LocalDateTime.now().minusDays(30)));
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
+
+        orchestrator.settleDisabilityBenefit("CLAIM-1", validDisabilityRequest());
+
+        ArgumentCaptor<SettleDisabilityBenefitCommand> captor = ArgumentCaptor.forClass(
+                SettleDisabilityBenefitCommand.class);
+        verify(commandGateway).sendAndWait(captor.capture());
+        assertEquals(0, captor.getValue().benefitCalculation().totalBenefit()
+                .compareTo(new BigDecimal("600000")));
+    }
+
+    @Test
+    @DisplayName("全残给付：未知受益人拒绝")
+    void shouldRejectUnknownBeneficiaryForDisability() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
+        SettleDisabilityBenefitRequest request = validDisabilityRequest();
+        request.getShares().get(0).setBeneficiaryId("B-99");
+
+        assertThrows(BusinessException.class,
+                () -> orchestrator.settleDisabilityBenefit("CLAIM-1", request));
+        verify(commandGateway, never()).sendAndWait(any());
     }
 }

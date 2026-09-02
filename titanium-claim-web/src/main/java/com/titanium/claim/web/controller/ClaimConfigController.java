@@ -18,18 +18,21 @@ import com.titanium.claim.application.command.config.DocumentTemplateConfigServi
 import com.titanium.claim.application.command.config.FlowTemplateConfigService;
 import com.titanium.claim.application.command.config.HospitalNetworkConfigService;
 import com.titanium.claim.application.command.config.PayoutRuleConfigService;
+import com.titanium.claim.application.command.config.QuickPayRuleConfigService;
 import com.titanium.claim.application.command.config.TimeLimitRuleConfigService;
 import com.titanium.claim.application.query.config.BlacklistConfigQueryService;
 import com.titanium.claim.application.query.config.DocumentTemplateConfigQueryService;
 import com.titanium.claim.application.query.config.FlowTemplateConfigQueryService;
 import com.titanium.claim.application.query.config.HospitalNetworkConfigQueryService;
 import com.titanium.claim.application.query.config.PayoutRuleConfigQueryService;
+import com.titanium.claim.application.query.config.QuickPayRuleConfigQueryService;
 import com.titanium.claim.application.query.config.TimeLimitRuleConfigQueryService;
 import com.titanium.claim.web.dto.config.ClaimBlacklistConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimDocumentTemplateConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimFlowTemplateConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimHospitalNetworkConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimPayoutRuleConfigDTO;
+import com.titanium.claim.web.dto.config.ClaimQuickPayRuleConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimTimeLimitRuleConfigDTO;
 import com.titanium.claim.web.mapper.ClaimConfigWebMapper;
 import com.titanium.claim.web.response.config.ClaimBlacklistConfigVO;
@@ -37,6 +40,7 @@ import com.titanium.claim.web.response.config.ClaimDocumentTemplateConfigVO;
 import com.titanium.claim.web.response.config.ClaimFlowTemplateConfigVO;
 import com.titanium.claim.web.response.config.ClaimHospitalNetworkConfigVO;
 import com.titanium.claim.web.response.config.ClaimPayoutRuleConfigVO;
+import com.titanium.claim.web.response.config.ClaimQuickPayRuleConfigVO;
 import com.titanium.claim.web.response.config.ClaimTimeLimitRuleConfigVO;
 
 import jakarta.validation.Valid;
@@ -59,12 +63,14 @@ public class ClaimConfigController {
 
     private final FlowTemplateConfigService        flowTemplateConfigService;
     private final PayoutRuleConfigService          payoutRuleConfigService;
+    private final QuickPayRuleConfigService         quickPayRuleConfigService;
     private final DocumentTemplateConfigService    documentTemplateConfigService;
     private final TimeLimitRuleConfigService       timeLimitRuleConfigService;
     private final HospitalNetworkConfigService     hospitalNetworkConfigService;
     private final BlacklistConfigService           blacklistConfigService;
     private final FlowTemplateConfigQueryService   flowTemplateConfigQueryService;
     private final PayoutRuleConfigQueryService     payoutRuleConfigQueryService;
+    private final QuickPayRuleConfigQueryService    quickPayRuleConfigQueryService;
     private final DocumentTemplateConfigQueryService documentTemplateConfigQueryService;
     private final TimeLimitRuleConfigQueryService  timeLimitRuleConfigQueryService;
     private final HospitalNetworkConfigQueryService hospitalNetworkConfigQueryService;
@@ -128,6 +134,36 @@ public class ClaimConfigController {
     @DeleteMapping("/payout-rules/{ruleId}")
     public ResponseEntity<Void> deletePayoutRule(@PathVariable String ruleId) {
         payoutRuleConfigService.deletePayoutRule(ruleId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== 快赔规则配置 ====================
+
+    /** 新增/更新快赔规则（ruleId 空=新增） */
+    @PostMapping("/quick-pay-rules")
+    public ResponseEntity<String> saveQuickPayRule(@RequestBody @Valid ClaimQuickPayRuleConfigDTO dto) {
+        return new ResponseEntity<>(quickPayRuleConfigService.saveQuickPayRule(
+                claimConfigWebMapper.toRequest(dto)), HttpStatus.CREATED);
+    }
+
+    /** 快赔规则列表（当前租户） */
+    @GetMapping("/quick-pay-rules")
+    public ResponseEntity<List<ClaimQuickPayRuleConfigVO>> listQuickPayRules() {
+        return ResponseEntity.ok(quickPayRuleConfigQueryService.listQuickPayRules()
+                .stream().map(claimConfigWebMapper::toVO).toList());
+    }
+
+    /** 快赔规则详情 */
+    @GetMapping("/quick-pay-rules/{ruleId}")
+    public ResponseEntity<ClaimQuickPayRuleConfigVO> getQuickPayRule(@PathVariable String ruleId) {
+        return ResponseEntity.ok(claimConfigWebMapper.toVO(
+                quickPayRuleConfigQueryService.getQuickPayRule(ruleId)));
+    }
+
+    /** 删除快赔规则（逻辑删除） */
+    @DeleteMapping("/quick-pay-rules/{ruleId}")
+    public ResponseEntity<Void> deleteQuickPayRule(@PathVariable String ruleId) {
+        quickPayRuleConfigService.deleteQuickPayRule(ruleId);
         return ResponseEntity.noContent().build();
     }
 

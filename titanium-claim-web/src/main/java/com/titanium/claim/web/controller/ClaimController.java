@@ -20,9 +20,11 @@ import com.titanium.claim.application.query.ClaimAppQueryService;
 import com.titanium.claim.application.query.ReimbursementAdjustmentQueryService;
 import com.titanium.claim.query.query.SearchClaimSummariesQuery;
 import com.titanium.claim.web.dto.CreateClaimDTO;
+import com.titanium.claim.web.dto.FlagClaimAlertDTO;
 import com.titanium.claim.web.dto.RejectClaimDTO;
 import com.titanium.claim.web.dto.SettleClaimDTO;
 import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
+import com.titanium.claim.web.dto.SettleDisabilityBenefitDTO;
 import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
 import com.titanium.claim.web.dto.SubmitSurveyDTO;
 import com.titanium.claim.web.dto.UpdateClaimDTO;
@@ -193,6 +195,35 @@ public class ClaimController {
     public ResponseEntity<Void> settleDeathBenefit(@PathVariable("claimId") String claimId,
                                                    @RequestBody @Valid SettleDeathBenefitDTO requestVO) {
         claimCommandService.settleDeathBenefit(claimId, claimWebMapper.toDeathBenefitRequest(requestVO));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 全残给付结算（寿险/意外险专属，CLAIM-6，APPROVED → PAID，按受益人份额一次性给付）
+     */
+    @PostMapping("/{claimId}/disability-benefit")
+    public ResponseEntity<Void> settleDisabilityBenefit(@PathVariable("claimId") String claimId,
+                                                        @RequestBody @Valid SettleDisabilityBenefitDTO requestVO) {
+        claimCommandService.settleDisabilityBenefit(claimId, claimWebMapper.toDisabilityBenefitRequest(requestVO));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 打标警示标记（手动：人工复核/规则引擎回写，聚合根按类型合并去重幂等）
+     */
+    @PostMapping("/{claimId}/alert-flags")
+    public ResponseEntity<Void> flagClaimAlert(@PathVariable("claimId") String claimId,
+                                               @RequestBody @Valid FlagClaimAlertDTO requestVO) {
+        claimCommandService.flagAlert(claimId, claimWebMapper.toFlagAlertRequest(requestVO));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 快赔自动核赔（小额快赔通道：规则匹配 + 判据全过自动核赔并打快赔统计标记）
+     */
+    @PostMapping("/{claimId}/quick-pay")
+    public ResponseEntity<Void> quickPay(@PathVariable("claimId") String claimId) {
+        claimCommandService.quickPay(claimId);
         return ResponseEntity.noContent().build();
     }
 

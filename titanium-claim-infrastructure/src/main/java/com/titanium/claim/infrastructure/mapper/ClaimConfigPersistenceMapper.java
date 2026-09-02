@@ -14,6 +14,7 @@ import com.titanium.claim.aggregate.ClaimDocumentTemplate;
 import com.titanium.claim.aggregate.ClaimFlowTemplate;
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.aggregate.ClaimPayoutRule;
+import com.titanium.claim.aggregate.ClaimQuickPayRule;
 import com.titanium.claim.aggregate.ClaimTimeLimitRule;
 import com.titanium.claim.common.enums.config.BlacklistStatus;
 import com.titanium.claim.common.enums.config.BlacklistSubjectType;
@@ -23,6 +24,7 @@ import com.titanium.claim.infrastructure.entity.ClaimDocumentTemplateDO;
 import com.titanium.claim.infrastructure.entity.ClaimFlowTemplateDO;
 import com.titanium.claim.infrastructure.entity.ClaimHospitalNetworkDO;
 import com.titanium.claim.infrastructure.entity.ClaimPayoutRuleDO;
+import com.titanium.claim.infrastructure.entity.ClaimQuickPayRuleDO;
 import com.titanium.claim.infrastructure.entity.ClaimTimeLimitRuleDO;
 
 /**
@@ -48,6 +50,10 @@ public interface ClaimConfigPersistenceMapper {
     @Mapping(target = "hospitalTierRatios", qualifiedByName = "toJsonMap")
     @Mapping(target = "exclusions", qualifiedByName = "toJsonList")
     ClaimPayoutRuleDO toDO(ClaimPayoutRule rule);
+
+    // ==================== 快赔规则 ====================
+
+    ClaimQuickPayRuleDO toDO(ClaimQuickPayRule rule);
 
     // ==================== 单证模板 ====================
 

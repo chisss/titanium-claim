@@ -9,12 +9,14 @@ import com.titanium.claim.aggregate.ClaimDocumentTemplate;
 import com.titanium.claim.aggregate.ClaimFlowTemplate;
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.aggregate.ClaimPayoutRule;
+import com.titanium.claim.aggregate.ClaimQuickPayRule;
 import com.titanium.claim.aggregate.ClaimTimeLimitRule;
 import com.titanium.claim.application.model.config.ClaimBlacklistConfigRequest;
 import com.titanium.claim.application.model.config.ClaimDocumentTemplateConfigRequest;
 import com.titanium.claim.application.model.config.ClaimFlowTemplateConfigRequest;
 import com.titanium.claim.application.model.config.ClaimHospitalNetworkConfigRequest;
 import com.titanium.claim.application.model.config.ClaimPayoutRuleConfigRequest;
+import com.titanium.claim.application.model.config.ClaimQuickPayRuleConfigRequest;
 import com.titanium.claim.application.model.config.ClaimTimeLimitRuleConfigRequest;
 import com.titanium.claim.common.enums.config.BlacklistStatus;
 import com.titanium.claim.common.enums.config.BlacklistSubjectType;
@@ -24,12 +26,14 @@ import com.titanium.claim.web.dto.config.ClaimDocumentTemplateConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimFlowTemplateConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimHospitalNetworkConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimPayoutRuleConfigDTO;
+import com.titanium.claim.web.dto.config.ClaimQuickPayRuleConfigDTO;
 import com.titanium.claim.web.dto.config.ClaimTimeLimitRuleConfigDTO;
 import com.titanium.claim.web.response.config.ClaimBlacklistConfigVO;
 import com.titanium.claim.web.response.config.ClaimDocumentTemplateConfigVO;
 import com.titanium.claim.web.response.config.ClaimFlowTemplateConfigVO;
 import com.titanium.claim.web.response.config.ClaimHospitalNetworkConfigVO;
 import com.titanium.claim.web.response.config.ClaimPayoutRuleConfigVO;
+import com.titanium.claim.web.response.config.ClaimQuickPayRuleConfigVO;
 import com.titanium.claim.web.response.config.ClaimTimeLimitRuleConfigVO;
 
 /**
@@ -51,6 +55,9 @@ public interface ClaimConfigWebMapper {
     /** 赔付规则 DTO → 应用层入参 */
     ClaimPayoutRuleConfigRequest toRequest(ClaimPayoutRuleConfigDTO dto);
 
+    /** 快赔规则 DTO → 应用层入参 */
+    ClaimQuickPayRuleConfigRequest toRequest(ClaimQuickPayRuleConfigDTO dto);
+
     /** 单证模板 DTO → 应用层入参 */
     ClaimDocumentTemplateConfigRequest toRequest(ClaimDocumentTemplateConfigDTO dto);
 
@@ -70,6 +77,9 @@ public interface ClaimConfigWebMapper {
 
     /** 赔付规则聚合 → VO */
     ClaimPayoutRuleConfigVO toVO(ClaimPayoutRule rule);
+
+    /** 快赔规则聚合 → VO */
+    ClaimQuickPayRuleConfigVO toVO(ClaimQuickPayRule rule);
 
     /** 单证模板聚合 → VO */
     ClaimDocumentTemplateConfigVO toVO(ClaimDocumentTemplate template);

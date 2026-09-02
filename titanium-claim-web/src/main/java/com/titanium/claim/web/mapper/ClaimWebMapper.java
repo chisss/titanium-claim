@@ -6,6 +6,7 @@ import org.mapstruct.Named;
 
 import com.titanium.claim.api.request.ClaimRequest;
 import com.titanium.claim.api.response.ClaimResponse;
+import com.titanium.claim.application.model.assessment.FlagClaimAlertRequest;
 import com.titanium.claim.application.model.assessment.ReimbursementSettlementRequest;
 import com.titanium.claim.application.model.assessment.SubmitLossAssessmentRequest;
 import com.titanium.claim.application.model.assessment.SubmitSurveyRequest;
@@ -14,15 +15,18 @@ import com.titanium.claim.application.model.maintenance.RejectClaimRequest;
 import com.titanium.claim.application.model.maintenance.UpdateClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest;
+import com.titanium.claim.application.model.settlement.SettleDisabilityBenefitRequest;
 import com.titanium.claim.application.query.ClaimReadModel;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.enums.config.SettlementChannel;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
 import com.titanium.claim.valueobject.ReimbursementCalculation;
 import com.titanium.claim.web.dto.CreateClaimDTO;
+import com.titanium.claim.web.dto.FlagClaimAlertDTO;
 import com.titanium.claim.web.dto.RejectClaimDTO;
 import com.titanium.claim.web.dto.SettleClaimDTO;
 import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
+import com.titanium.claim.web.dto.SettleDisabilityBenefitDTO;
 import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
 import com.titanium.claim.web.dto.SubmitSurveyDTO;
 import com.titanium.claim.web.dto.UpdateClaimDTO;
@@ -78,6 +82,16 @@ public interface ClaimWebMapper {
     SettleDeathBenefitRequest toDeathBenefitRequest(SettleDeathBenefitDTO dto);
 
     /**
+     * 后台全残给付结算 DTO → 应用层全残给付结算入参（寿险/意外险专属，CLAIM-6）
+     */
+    SettleDisabilityBenefitRequest toDisabilityBenefitRequest(SettleDisabilityBenefitDTO dto);
+
+    /**
+     * 后台警示标记 DTO → 应用层警示标记入参（手动打标：人工复核/规则引擎回写）
+     */
+    FlagClaimAlertRequest toFlagAlertRequest(FlagClaimAlertDTO dto);
+
+    /**
      * 后台拒赔 DTO → 应用层拒赔入参
      */
     RejectClaimRequest toRejectRequest(RejectClaimDTO dto);
@@ -127,6 +141,18 @@ public interface ClaimWebMapper {
      */
     SettleDeathBenefitRequest toDeathBenefitRequest(
             com.titanium.claim.api.request.SettleDeathBenefitRequest request);
+
+    /**
+     * 对外全残给付结算请求 → 应用层全残给付结算入参
+     */
+    SettleDisabilityBenefitRequest toDisabilityBenefitRequest(
+            com.titanium.claim.api.request.SettleDisabilityBenefitRequest request);
+
+    /**
+     * 对外警示标记请求 → 应用层警示标记入参（api 层同名类型以全限定名区分）
+     */
+    FlagClaimAlertRequest toFlagAlertRequest(
+            com.titanium.claim.api.request.FlagClaimAlertRequest request);
 
     /**
      * 应用层读模型 → 对外响应（Provider 用，同名字段结构映射）

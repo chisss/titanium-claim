@@ -61,7 +61,7 @@ class CoverageValidatorTest {
     }
 
     private PolicyInfo policy(LocalDateTime effectiveDate) {
-        return new PolicyInfo("POL-1", "ACTIVE", new BigDecimal("500000"), effectiveDate);
+        return new PolicyInfo("POL-1", "ACTIVE", new BigDecimal("500000"), null, effectiveDate);
     }
 
     @Test

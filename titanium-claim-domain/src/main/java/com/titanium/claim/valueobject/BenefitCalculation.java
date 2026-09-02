@@ -66,6 +66,35 @@ public record BenefitCalculation(
      * @return 精算产物（来源规则 = 基本保额定额给付）
      */
     public static BenefitCalculation ofBasicSumInsured(BigDecimal basicSumInsured, List<BeneficiaryShareSpec> specs) {
+        return allocate(basicSumInsured, specs, BenefitSource.BASIC_SUM_INSURED);
+    }
+
+    /**
+     * 全残给付精算工厂（CLAIM-6）：给付总额 = {@code max(账户价值, 基本保额)}。
+     * <p>
+     * 全残给付金额按产品条款「基本保额、或账户价值与基本保额孰高」计算。账户价值未取到时
+     * （policy 域账户价值查询接口未提供）回落基本保额，保证给付链路的可用性与向后兼容；
+     * 比例分配与尾差调整同 {@link #ofBasicSumInsured}。
+     * </p>
+     *
+     * @param accountValue    保单账户价值（可空，空时回落基本保额）
+     * @param basicSumInsured 保单基本保额（policy 域取数）
+     * @param specs           受益人份额规格（受益人 ID/姓名/受益比例）
+     * @return 精算产物（来源规则 = 账户价值与基本保额孰高给付）
+     */
+    public static BenefitCalculation ofAccountValueMax(BigDecimal accountValue, BigDecimal basicSumInsured,
+                                                       List<BeneficiaryShareSpec> specs) {
+        BigDecimal total = accountValue == null || accountValue.compareTo(basicSumInsured) < 0
+                ? basicSumInsured
+                : accountValue;
+        return allocate(total, specs, BenefitSource.ACCOUNT_VALUE_MAX);
+    }
+
+    /**
+     * 通用分配：按受益比例分配给付总额，尾差调整至最后一位受益人（份额守恒由构造器校验）。
+     */
+    private static BenefitCalculation allocate(BigDecimal total, List<BeneficiaryShareSpec> specs,
+                                               BenefitSource source) {
         List<BeneficiaryShareSpec> copy = specs == null ? List.of() : List.copyOf(specs);
         List<BeneficiaryShare> shares = new ArrayList<>(copy.size());
         BigDecimal allocated = BigDecimal.ZERO;
@@ -74,15 +103,15 @@ public record BenefitCalculation(
             BigDecimal amount;
             if (i == copy.size() - 1) {
                 // 最后一位受益人吸收四舍五入尾差，保证份额之和精确等于给付总额
-                amount = basicSumInsured.subtract(allocated);
+                amount = total.subtract(allocated);
             } else {
-                amount = basicSumInsured.multiply(spec.benefitRatio()).setScale(2, RoundingMode.HALF_UP);
+                amount = total.multiply(spec.benefitRatio()).setScale(2, RoundingMode.HALF_UP);
                 allocated = allocated.add(amount);
             }
             shares.add(new BeneficiaryShare(spec.beneficiaryId(), spec.beneficiaryName(), spec.benefitRatio(),
                     amount));
         }
-        return new BenefitCalculation(basicSumInsured, shares, BenefitSource.BASIC_SUM_INSURED);
+        return new BenefitCalculation(total, shares, source);
     }
 
     /**

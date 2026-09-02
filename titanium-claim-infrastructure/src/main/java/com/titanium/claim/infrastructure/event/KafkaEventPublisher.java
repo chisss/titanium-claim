@@ -12,6 +12,7 @@ import com.titanium.claim.event.ClaimRejectedEvent;
 import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
+import com.titanium.claim.event.DisabilityBenefitSettledEvent;
 import com.titanium.claim.port.notification.NotificationServicePort;
 
 import lombok.AllArgsConstructor;
@@ -60,6 +61,17 @@ public class KafkaEventPublisher {
         String eventJson = JSON.toJSONString(event);
         log.info("[身故给付-出站] 发布身故给付结算事件: claimId={}, policyId={}", event.claimId(), event.policyId());
         kafkaTemplate.send(ClaimConstants.KafkaTopic.DEATH_BENEFIT_SETTLED,
+                           event.policyId(), eventJson);
+    }
+
+    /**
+     * 发布全残给付结算事件到 Kafka，供 policy 域防腐监听器据 policyId 终止保单（给付后保单责任终结，同身故）。
+     */
+    @EventHandler
+    public void handle(DisabilityBenefitSettledEvent event) {
+        String eventJson = JSON.toJSONString(event);
+        log.info("[全残给付-出站] 发布全残给付结算事件: claimId={}, policyId={}", event.claimId(), event.policyId());
+        kafkaTemplate.send(ClaimConstants.KafkaTopic.DISABILITY_BENEFIT_SETTLED,
                            event.policyId(), eventJson);
     }
 

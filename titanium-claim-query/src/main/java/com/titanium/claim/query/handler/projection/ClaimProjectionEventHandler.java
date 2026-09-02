@@ -1,6 +1,7 @@
 package com.titanium.claim.query.handler.projection;
 
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.common.enums.ClaimStatus;
+import com.titanium.claim.event.ClaimAlertFlaggedEvent;
 import com.titanium.claim.event.ClaimClosedEvent;
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimLossAssessedEvent;
@@ -18,6 +20,7 @@ import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimSurveySubmittedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
+import com.titanium.claim.event.DisabilityBenefitSettledEvent;
 import com.titanium.claim.query.mapper.ClaimViewMapper;
 import com.titanium.claim.query.repository.ClaimViewRepository;
 import com.titanium.claim.query.view.ClaimView;
@@ -167,6 +170,43 @@ public class ClaimProjectionEventHandler {
             view.setUpdateTime(event.settledAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 身故给付结算失败：未找到读模型记录 claimId={}", event.claimId()));
+    }
+
+    /**
+     * 投影全残给付结算事件（CLAIM-6：settled_amount 取给付总额，进入赔付中）
+     */
+    @EventHandler
+    @Transactional
+    public void on(DisabilityBenefitSettledEvent event) {
+        log.info("[读模型投影] 全残给付结算: claimId={}, policyId={}", event.claimId(), event.policyId());
+
+        claimViewRepository.findByClaimId(event.claimId().value()).ifPresentOrElse(view -> {
+            if (event.settlement() != null) {
+                view.setSettledAmount(event.settlement().settledAmount());
+            }
+            view.setPaymentStatus(ClaimEnum.PaymentStatus.PROCESSING);
+            view.setUpdateTime(event.settledAt());
+            claimViewRepository.save(view);
+        }, () -> log.warn("[读模型投影] 全残给付结算失败：未找到读模型记录 claimId={}", event.claimId()));
+    }
+
+    /**
+     * 投影警示打标事件（刷新读模型 alertFlags 列：AlertType code 逗号分隔，
+     * 快赔通道判据「无欺诈警示标记」的数据来源）
+     */
+    @EventHandler
+    @Transactional
+    public void on(ClaimAlertFlaggedEvent event) {
+        log.info("[读模型投影] 理赔警示打标: claimId={}, flags={}", event.claimId(), event.flags());
+
+        claimViewRepository.findByClaimId(event.claimId().value()).ifPresentOrElse(view -> {
+            String flagCodes = event.flags().stream()
+                    .map(flag -> flag.type().getCode())
+                    .collect(Collectors.joining(","));
+            view.setAlertFlags(flagCodes);
+            view.setUpdateTime(event.flaggedAt());
+            claimViewRepository.save(view);
+        }, () -> log.warn("[读模型投影] 理赔警示打标失败：未找到读模型记录 claimId={}", event.claimId()));
     }
 
     /**

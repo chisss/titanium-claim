@@ -48,9 +48,12 @@ public class PolicyServiceAdapter implements PolicyServicePort {
         if (policy == null) {
             return null;
         }
+        // 账户价值暂传 null：policy 域尚未提供账户价值查询接口（仅有回写），全残给付精算
+        // ofAccountValueMax 在 cashValue 为空时回落基本保额；接口提供后在 PolicyResponse 映射填充。
         return new PolicyInfo(policy.getPolicyId(),
                 policy.getStatus() == null ? null : policy.getStatus().getCode(),
                 policy.getSumInsured() == null ? null : BigDecimal.valueOf(policy.getSumInsured()),
+                null,
                 policy.getEffectiveDate());
     }
 

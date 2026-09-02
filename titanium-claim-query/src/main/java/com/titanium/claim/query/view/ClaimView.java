@@ -101,4 +101,8 @@ public class ClaimView extends BaseView {
     /** 结案时间 */
     @Column(name = "closed_at")
     private LocalDateTime       closedAt;
+
+    /** 反欺诈警示与统计口径标记（AlertType code 逗号分隔，快赔通道判据的数据来源） */
+    @Column(name = "alert_flags", length = 200)
+    private String              alertFlags;
 }

@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.titanium.claim.api.request.ClaimRequest;
+import com.titanium.claim.api.request.FlagClaimAlertRequest;
 import com.titanium.claim.api.request.RejectClaimRequest;
 import com.titanium.claim.api.request.SettleClaimRequest;
 import com.titanium.claim.api.request.SettleDeathBenefitRequest;
+import com.titanium.claim.api.request.SettleDisabilityBenefitRequest;
 import com.titanium.claim.api.request.SubmitLossAssessmentRequest;
 import com.titanium.claim.api.request.SubmitSurveyRequest;
 import com.titanium.claim.api.response.ClaimResponse;
@@ -183,6 +185,52 @@ public interface ClaimApi {
     ApiResponse<Void> settleDeathBenefit(@PathVariable("claimId") String claimId,
                                          @RequestBody @Valid SettleDeathBenefitRequest requestDTO,
                                          @RequestHeader("X-Tenant-Id") String tenantId);
+
+    /**
+     * 全残给付结算（寿险/意外险专属，CLAIM-6，APPROVED → PAID，按受益人份额一次性给付）
+     * <p>
+     * 给付总额由下游按保单条款精算（基本保额、或账户价值与基本保额孰高），入参只承载保单定位键、
+     * 全残证据与受益人份额规格，禁止调用方透传金额。
+     * </p>
+     *
+     * @param claimId 理赔案件ID
+     * @param requestDTO 全残给付结算请求
+     * @param tenantId 租户ID
+     * @return 空响应
+     */
+    @PostMapping("/{claimId}/disability-benefit")
+    ApiResponse<Void> settleDisabilityBenefit(@PathVariable("claimId") String claimId,
+                                              @RequestBody @Valid SettleDisabilityBenefitRequest requestDTO,
+                                              @RequestHeader("X-Tenant-Id") String tenantId);
+
+    /**
+     * 打标警示标记（手动打标/规则引擎回写：反欺诈警示 + 统计口径标记）
+     * <p>
+     * 类型经 {@code AlertType} code 承载（落库枚举化，红线 20），聚合根按类型合并去重（幂等），
+     * 投影至读模型 {@code alert_flags} 列供快赔通道判据「无欺诈警示标记」使用。
+     * </p>
+     *
+     * @param claimId 理赔案件ID
+     * @param requestDTO 警示标记请求
+     * @param tenantId 租户ID
+     * @return 空响应
+     */
+    @PostMapping("/{claimId}/alert-flags")
+    ApiResponse<Void> flagClaimAlert(@PathVariable("claimId") String claimId,
+                                     @RequestBody @Valid FlagClaimAlertRequest requestDTO,
+                                     @RequestHeader("X-Tenant-Id") String tenantId);
+
+    /**
+     * 快赔自动核赔（小额快赔通道，产品文档 §2.10：规则匹配 + 金额/状态/无欺诈警示判据
+     * 全过自动核赔（APPROVED → 结算）并打快赔统计标记）
+     *
+     * @param claimId 理赔案件ID
+     * @param tenantId 租户ID
+     * @return 空响应
+     */
+    @PostMapping("/{claimId}/quick-pay")
+    ApiResponse<Void> quickPay(@PathVariable("claimId") String claimId,
+                               @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
      * 拒赔（核赔否决，PENDING/PROCESSING → REJECTED）
