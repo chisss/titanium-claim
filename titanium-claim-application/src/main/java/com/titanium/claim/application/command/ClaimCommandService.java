@@ -12,17 +12,21 @@ import com.titanium.claim.application.model.assessment.SubmitLossAssessmentReque
 import com.titanium.claim.application.model.assessment.SubmitSurveyRequest;
 import com.titanium.claim.application.model.issuance.CreateClaimRequest;
 import com.titanium.claim.application.model.maintenance.ChangeClaimStatusRequest;
+import com.titanium.claim.application.model.maintenance.RejectClaimRequest;
 import com.titanium.claim.application.model.maintenance.UpdateClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest;
 import com.titanium.claim.application.orchestration.assessment.ClaimSettlementOrchestrator;
 import com.titanium.claim.application.orchestration.issuance.ClaimRegistrationOrchestrator;
 import com.titanium.claim.command.ChangeClaimStatusCommand;
+import com.titanium.claim.command.CloseClaimCommand;
+import com.titanium.claim.command.RejectClaimCommand;
 import com.titanium.claim.command.SettleClaimCommand;
 import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
+import com.titanium.claim.common.enums.RejectReason;
 import com.titanium.claim.service.ClaimService;
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
@@ -139,5 +143,25 @@ public class ClaimCommandService {
     @Transactional
     public void settleDeathBenefit(String claimId, SettleDeathBenefitRequest request) {
         claimSettlementOrchestrator.settleDeathBenefit(claimId, request);
+    }
+
+    /**
+     * 拒赔（核赔否决）：拒赔原因 code 还原枚举后直发 {@link RejectClaimCommand}（单聚合单命令，KISS）。
+     * 仅 PENDING/PROCESSING 可拒赔，状态流转合法性由聚合根守护，通过后发布 {@code ClaimRejectedEvent}。
+     */
+    @Transactional
+    public void rejectClaim(String claimId, RejectClaimRequest request) {
+        RejectClaimCommand command = new RejectClaimCommand(ClaimId.of(claimId),
+                RejectReason.fromCode(request.getReasonCode()), request.getComment());
+        commandGateway.sendAndWait(command);
+    }
+
+    /**
+     * 结案（归档）：直发 {@link CloseClaimCommand}，仅 PAID/REJECTED 终态可结案（聚合根守护），
+     * 通过后发布 {@code ClaimClosedEvent}。
+     */
+    @Transactional
+    public void closeClaim(String claimId) {
+        commandGateway.sendAndWait(new CloseClaimCommand(ClaimId.of(claimId)));
     }
 }

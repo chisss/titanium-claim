@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.titanium.claim.api.request.ClaimRequest;
+import com.titanium.claim.api.request.RejectClaimRequest;
 import com.titanium.claim.api.request.SettleClaimRequest;
+import com.titanium.claim.api.request.SettleDeathBenefitRequest;
 import com.titanium.claim.api.request.SubmitLossAssessmentRequest;
 import com.titanium.claim.api.request.SubmitSurveyRequest;
 import com.titanium.claim.api.response.ClaimResponse;
@@ -164,4 +166,45 @@ public interface ClaimApi {
     ApiResponse<Void> settleClaim(@PathVariable("claimId") String claimId,
                                   @RequestBody @Valid SettleClaimRequest requestDTO,
                                   @RequestHeader("X-Tenant-Id") String tenantId);
+
+    /**
+     * 身故给付结算（寿险专属，APPROVED → PAID，按受益人份额一次性给付）
+     * <p>
+     * 给付总额由下游按保单基本保额精算（CLAIM-2），入参只承载保单定位键与受益人份额规格，
+     * 禁止调用方透传金额。
+     * </p>
+     *
+     * @param claimId 理赔案件ID
+     * @param requestDTO 身故给付结算请求
+     * @param tenantId 租户ID
+     * @return 空响应
+     */
+    @PostMapping("/{claimId}/death-benefit")
+    ApiResponse<Void> settleDeathBenefit(@PathVariable("claimId") String claimId,
+                                         @RequestBody @Valid SettleDeathBenefitRequest requestDTO,
+                                         @RequestHeader("X-Tenant-Id") String tenantId);
+
+    /**
+     * 拒赔（核赔否决，PENDING/PROCESSING → REJECTED）
+     *
+     * @param claimId 理赔案件ID
+     * @param requestDTO 拒赔请求（原因按枚举 code 承载）
+     * @param tenantId 租户ID
+     * @return 空响应
+     */
+    @PostMapping("/{claimId}/reject")
+    ApiResponse<Void> rejectClaim(@PathVariable("claimId") String claimId,
+                                  @RequestBody @Valid RejectClaimRequest requestDTO,
+                                  @RequestHeader("X-Tenant-Id") String tenantId);
+
+    /**
+     * 结案（归档，PAID/REJECTED → CLOSED）
+     *
+     * @param claimId 理赔案件ID
+     * @param tenantId 租户ID
+     * @return 空响应
+     */
+    @PostMapping("/{claimId}/close")
+    ApiResponse<Void> closeClaim(@PathVariable("claimId") String claimId,
+                                 @RequestHeader("X-Tenant-Id") String tenantId);
 }

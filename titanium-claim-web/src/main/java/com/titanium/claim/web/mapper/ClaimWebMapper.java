@@ -9,12 +9,14 @@ import com.titanium.claim.api.response.ClaimResponse;
 import com.titanium.claim.application.model.assessment.SubmitLossAssessmentRequest;
 import com.titanium.claim.application.model.assessment.SubmitSurveyRequest;
 import com.titanium.claim.application.model.issuance.CreateClaimRequest;
+import com.titanium.claim.application.model.maintenance.RejectClaimRequest;
 import com.titanium.claim.application.model.maintenance.UpdateClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest;
 import com.titanium.claim.application.query.ClaimReadModel;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.web.dto.CreateClaimDTO;
+import com.titanium.claim.web.dto.RejectClaimDTO;
 import com.titanium.claim.web.dto.SettleClaimDTO;
 import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
 import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
@@ -70,6 +72,11 @@ public interface ClaimWebMapper {
     SettleDeathBenefitRequest toDeathBenefitRequest(SettleDeathBenefitDTO dto);
 
     /**
+     * 后台拒赔 DTO → 应用层拒赔入参
+     */
+    RejectClaimRequest toRejectRequest(RejectClaimDTO dto);
+
+    /**
      * 应用层读模型 → 展示 VO（Controller 用，状态/理赔类型 code 还原为枚举）
      */
     @Mapping(target = "status", source = "status", qualifiedByName = "toStatus")
@@ -103,6 +110,17 @@ public interface ClaimWebMapper {
      * 对外结算请求 → 应用层结算入参
      */
     SettleClaimRequest toSettleRequest(com.titanium.claim.api.request.SettleClaimRequest request);
+
+    /**
+     * 对外拒赔请求 → 应用层拒赔入参
+     */
+    RejectClaimRequest toRejectRequest(com.titanium.claim.api.request.RejectClaimRequest request);
+
+    /**
+     * 对外身故给付结算请求 → 应用层身故给付结算入参
+     */
+    SettleDeathBenefitRequest toDeathBenefitRequest(
+            com.titanium.claim.api.request.SettleDeathBenefitRequest request);
 
     /**
      * 应用层读模型 → 对外响应（Provider 用，同名字段结构映射）

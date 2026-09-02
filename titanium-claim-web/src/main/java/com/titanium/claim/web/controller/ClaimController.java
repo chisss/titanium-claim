@@ -19,6 +19,7 @@ import com.titanium.claim.application.command.ClaimCommandService;
 import com.titanium.claim.application.query.ClaimAppQueryService;
 import com.titanium.claim.query.query.SearchClaimSummariesQuery;
 import com.titanium.claim.web.dto.CreateClaimDTO;
+import com.titanium.claim.web.dto.RejectClaimDTO;
 import com.titanium.claim.web.dto.SettleClaimDTO;
 import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
 import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
@@ -188,6 +189,25 @@ public class ClaimController {
     public ResponseEntity<Void> settleDeathBenefit(@PathVariable("claimId") String claimId,
                                                    @RequestBody @Valid SettleDeathBenefitDTO requestVO) {
         claimCommandService.settleDeathBenefit(claimId, claimWebMapper.toDeathBenefitRequest(requestVO));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 拒赔（核赔否决，PENDING/PROCESSING → REJECTED）
+     */
+    @PostMapping("/{claimId}/reject")
+    public ResponseEntity<Void> rejectClaim(@PathVariable("claimId") String claimId,
+                                            @RequestBody @Valid RejectClaimDTO requestVO) {
+        claimCommandService.rejectClaim(claimId, claimWebMapper.toRejectRequest(requestVO));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 结案（归档，PAID/REJECTED → CLOSED）
+     */
+    @PostMapping("/{claimId}/close")
+    public ResponseEntity<Void> closeClaim(@PathVariable("claimId") String claimId) {
+        claimCommandService.closeClaim(claimId);
         return ResponseEntity.noContent().build();
     }
 

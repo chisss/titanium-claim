@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.titanium.claim.api.ClaimApi;
 import com.titanium.claim.api.request.ClaimRequest;
+import com.titanium.claim.api.request.RejectClaimRequest;
 import com.titanium.claim.api.request.SettleClaimRequest;
+import com.titanium.claim.api.request.SettleDeathBenefitRequest;
 import com.titanium.claim.api.request.SubmitLossAssessmentRequest;
 import com.titanium.claim.api.request.SubmitSurveyRequest;
 import com.titanium.claim.api.response.ClaimResponse;
@@ -108,6 +110,25 @@ public class ClaimApiProvider implements ClaimApi {
     @Override
     public ApiResponse<Void> settleClaim(String claimId, SettleClaimRequest requestDTO, String tenantId) {
         claimCommandService.settleClaim(claimId, claimWebMapper.toSettleRequest(requestDTO));
+        return ApiResponse.success();
+    }
+
+    @Override
+    public ApiResponse<Void> settleDeathBenefit(String claimId, SettleDeathBenefitRequest requestDTO,
+                                                String tenantId) {
+        claimCommandService.settleDeathBenefit(claimId, claimWebMapper.toDeathBenefitRequest(requestDTO));
+        return ApiResponse.success();
+    }
+
+    @Override
+    public ApiResponse<Void> rejectClaim(String claimId, RejectClaimRequest requestDTO, String tenantId) {
+        claimCommandService.rejectClaim(claimId, claimWebMapper.toRejectRequest(requestDTO));
+        return ApiResponse.success();
+    }
+
+    @Override
+    public ApiResponse<Void> closeClaim(String claimId, String tenantId) {
+        claimCommandService.closeClaim(claimId);
         return ApiResponse.success();
     }
 }
