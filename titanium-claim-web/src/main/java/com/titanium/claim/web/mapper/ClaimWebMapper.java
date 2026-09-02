@@ -6,6 +6,7 @@ import org.mapstruct.Named;
 
 import com.titanium.claim.api.request.ClaimRequest;
 import com.titanium.claim.api.response.ClaimResponse;
+import com.titanium.claim.application.model.assessment.ReimbursementSettlementRequest;
 import com.titanium.claim.application.model.assessment.SubmitLossAssessmentRequest;
 import com.titanium.claim.application.model.assessment.SubmitSurveyRequest;
 import com.titanium.claim.application.model.issuance.CreateClaimRequest;
@@ -15,6 +16,9 @@ import com.titanium.claim.application.model.settlement.SettleClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest;
 import com.titanium.claim.application.query.ClaimReadModel;
 import com.titanium.claim.common.enums.ClaimStatus;
+import com.titanium.claim.common.enums.config.SettlementChannel;
+import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
+import com.titanium.claim.valueobject.ReimbursementCalculation;
 import com.titanium.claim.web.dto.CreateClaimDTO;
 import com.titanium.claim.web.dto.RejectClaimDTO;
 import com.titanium.claim.web.dto.SettleClaimDTO;
@@ -22,7 +26,9 @@ import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
 import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
 import com.titanium.claim.web.dto.SubmitSurveyDTO;
 import com.titanium.claim.web.dto.UpdateClaimDTO;
+import com.titanium.claim.web.dto.assessment.ReimbursementAdjustmentDTO;
 import com.titanium.claim.web.response.ClaimResponseVO;
+import com.titanium.claim.web.response.assessment.ReimbursementAdjustmentVO;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 /**
@@ -127,6 +133,20 @@ public interface ClaimWebMapper {
      */
     ClaimResponse toApiResponse(ClaimReadModel readModel);
 
+    /**
+     * 报销理算 DTO → 应用层理算入参（同名字段映射）
+     */
+    ReimbursementSettlementRequest toReimbursementRequest(ReimbursementAdjustmentDTO dto);
+
+    /**
+     * 报销理算结果 → 展示 VO（应付金额/实际比例/结算渠道 code/限额截断标记）
+     */
+    @Mapping(target = "payableAmount", source = "calculation.payableAmount")
+    @Mapping(target = "payoutRatio", source = "payoutRatioUsed")
+    @Mapping(target = "settlementChannel", source = "settlementChannel", qualifiedByName = "channelToCode")
+    @Mapping(target = "cappedByLimit", source = "calculation", qualifiedByName = "isCappedByLimit")
+    ReimbursementAdjustmentVO toReimbursementVO(ReimbursementAdjustmentResult result);
+
     // ==================== 类型转换辅助（空安全） ====================
 
     /**
@@ -143,5 +163,21 @@ public interface ClaimWebMapper {
     @Named("toClaimType")
     default ClaimEnum.ClaimType toClaimType(String code) {
         return code != null ? ClaimEnum.ClaimType.fromCode(code) : null;
+    }
+
+    /**
+     * 结算渠道枚举 → code（空安全）
+     */
+    @Named("channelToCode")
+    default String channelToCode(SettlementChannel channel) {
+        return channel != null ? channel.getCode() : null;
+    }
+
+    /**
+     * 理算产物 → 是否触发单次限额封顶（空安全）
+     */
+    @Named("isCappedByLimit")
+    default Boolean isCappedByLimit(ReimbursementCalculation calculation) {
+        return calculation != null && calculation.cappedByLimit();
     }
 }

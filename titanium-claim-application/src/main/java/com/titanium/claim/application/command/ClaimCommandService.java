@@ -116,7 +116,7 @@ public class ClaimCommandService {
                         .map(i -> new LossAssessment.LossItem(i.getItemName(), i.getAmount()))
                         .collect(Collectors.toList());
         LossAssessment lossAssessment = new LossAssessment(request.getAssessedAmount(), items,
-                request.getLiabilityRatio(), request.getAssessorId());
+                request.getSalvageValue(), request.getLiabilityRatio(), request.getAssessorId());
         commandGateway.sendAndWait(new SubmitLossAssessmentCommand(ClaimId.of(claimId), lossAssessment));
     }
 

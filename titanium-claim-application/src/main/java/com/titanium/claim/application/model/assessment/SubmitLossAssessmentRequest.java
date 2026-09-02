@@ -12,6 +12,8 @@ import lombok.Data;
 public class SubmitLossAssessmentRequest {
     /** 定损总金额 */
     private BigDecimal      assessedAmount;
+    /** 残值扣减（损余件残值，可为空=0） */
+    private BigDecimal      salvageValue;
     /** 责任比例（0-1） */
     private BigDecimal      liabilityRatio;
     /** 定损员ID */

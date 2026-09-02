@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.titanium.claim.api.response.ClaimStatisticsResponse;
 import com.titanium.claim.application.command.ClaimCommandService;
 import com.titanium.claim.application.query.ClaimAppQueryService;
+import com.titanium.claim.application.query.ReimbursementAdjustmentQueryService;
 import com.titanium.claim.query.query.SearchClaimSummariesQuery;
 import com.titanium.claim.web.dto.CreateClaimDTO;
 import com.titanium.claim.web.dto.RejectClaimDTO;
@@ -25,9 +26,11 @@ import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
 import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
 import com.titanium.claim.web.dto.SubmitSurveyDTO;
 import com.titanium.claim.web.dto.UpdateClaimDTO;
+import com.titanium.claim.web.dto.assessment.ReimbursementAdjustmentDTO;
 import com.titanium.claim.web.mapper.ClaimStatisticsWebMapper;
 import com.titanium.claim.web.mapper.ClaimWebMapper;
 import com.titanium.claim.web.response.ClaimResponseVO;
+import com.titanium.claim.web.response.assessment.ReimbursementAdjustmentVO;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +53,7 @@ public class ClaimController {
     private final ClaimAppQueryService claimAppQueryService;
     private final ClaimWebMapper          claimWebMapper;
     private final ClaimStatisticsWebMapper claimStatisticsWebMapper;
+    private final ReimbursementAdjustmentQueryService reimbursementAdjustmentQueryService;
 
     /**
      * 理赔统计（管理后台看板聚合）
@@ -232,5 +236,20 @@ public class ClaimController {
                 .searchClaims(new SearchClaimSummariesQuery(claimNo, policyId, customerId, status), page, size, tenantId)
                 .stream().map(claimWebMapper::toVO).toList();
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 报销理算（健康险/宠物险，核赔理算试算）
+     * <p>
+     * 系统按赔付规则配置（免赔额/比例/限额）与医院网络台账裁决定点/非定点结算渠道并计算应付金额，
+     * 金额由领域服务精算、不信任前端透传。定点医院套用台账比例、非定点套用规则非定点档位
+     * （缺省回落基础比例半数）。
+     * </p>
+     */
+    @PostMapping("/reimbursement-adjustment")
+    public ResponseEntity<ReimbursementAdjustmentVO> adjustReimbursement(
+            @RequestBody @Valid ReimbursementAdjustmentDTO dto) {
+        return ResponseEntity.ok(claimWebMapper.toReimbursementVO(
+                reimbursementAdjustmentQueryService.adjust(claimWebMapper.toReimbursementRequest(dto))));
     }
 }

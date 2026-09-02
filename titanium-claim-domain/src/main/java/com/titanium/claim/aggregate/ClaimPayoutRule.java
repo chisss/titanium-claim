@@ -1,6 +1,7 @@
 package com.titanium.claim.aggregate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,9 @@ import lombok.Getter;
  */
 @Getter
 public final class ClaimPayoutRule {
+
+    /** 医院分档键：非定点档位（宠物险出险医院不在直赔网络台账时套用的赔付比例档位） */
+    public static final String NON_DESIGNATED_TIER = "NON_DESIGNATED";
 
     private final String              ruleId;
     private final String              tenantId;
@@ -102,5 +106,22 @@ public final class ClaimPayoutRule {
                                   Map<String, Integer> hospitalTierRatios, List<String> exclusions) {
         return new ClaimPayoutRule(ruleId, tenantId, insuranceLine, claimType, deductible, payoutRatio,
                 perClaimLimit, annualLimit, hospitalTierRatios, exclusions);
+    }
+
+    /**
+     * 非定点医院赔付比例：优先取医院分档配置 {@code NON_DESIGNATED} 档位；
+     * 未配置时按保险业通行惯例回落为基础赔付比例的半数（HALF_UP 取整）。
+     *
+     * @return 非定点赔付比例（0-100）；基础比例未配置时返回 {@code null}
+     */
+    public Integer nonDesignatedRatio() {
+        Integer tierRatio = hospitalTierRatios.get(NON_DESIGNATED_TIER);
+        if (tierRatio != null) {
+            return tierRatio;
+        }
+        if (payoutRatio == null) {
+            return null;
+        }
+        return new BigDecimal(payoutRatio).divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP).intValue();
     }
 }

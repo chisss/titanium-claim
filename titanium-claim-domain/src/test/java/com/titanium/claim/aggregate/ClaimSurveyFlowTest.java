@@ -62,7 +62,8 @@ class ClaimSurveyFlowTest {
     @DisplayName("查勘后可提交定损，阶段推进至 LOSS_ASSESS")
     void shouldSubmitLossAssessmentAfterSurvey() {
         LossAssessment loss = new LossAssessment(new BigDecimal("8000"),
-                List.of(new LossAssessment.LossItem("保险杠", new BigDecimal("8000"))), new BigDecimal("1.0"), "A-1");
+                List.of(new LossAssessment.LossItem("保险杠", new BigDecimal("8000"))), null,
+                new BigDecimal("1.0"), "A-1");
         fixture.given(createdEvent(),
                         new ClaimSurveySubmittedEvent(ClaimId.of("CLAIM-1"),
                                 new Survey("S-1", "报告", List.of(), "属实", LocalDateTime.now().minusHours(1)),
