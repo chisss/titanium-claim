@@ -1,4 +1,4 @@
-package com.titanium.claim.application.model;
+package com.titanium.claim.application.model.assessment;
 
 import java.util.List;
 

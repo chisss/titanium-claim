@@ -13,7 +13,7 @@ import lombok.Data;
  * 身故给付结算 DTO（web 前端入参，对应寿险身故理赔 APPROVED → PAID）
  * <p>
  * 承载死亡证明材料、受益人份额，经 {@code ClaimWebMapper#toDeathBenefitRequest} 转换为
- * 应用层 {@code SettleDeathBenefitRequest}，由 {@code ClaimApplicationService} 装配领域命令。
+ * 应用层 {@code SettleDeathBenefitRequest}，由 {@code ClaimCommandService} 装配领域命令。
  * </p>
  */
 @Data

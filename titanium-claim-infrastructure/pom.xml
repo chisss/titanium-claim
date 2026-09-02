@@ -36,6 +36,13 @@
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- Application Module（入站适配器委托 application 编排器发命令，infra→application 合规依赖方向） -->
+        <dependency>
+            <groupId>com.titanium</groupId>
+            <artifactId>titanium-claim-application</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

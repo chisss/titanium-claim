@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-import com.titanium.claim.application.model.ClaimReadModel;
+import com.titanium.claim.application.query.ClaimReadModel;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.query.result.ClaimQueryResult;
 import com.titanium.metadata.enums.claim.ClaimEnum;

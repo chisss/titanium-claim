@@ -1,4 +1,4 @@
-package com.titanium.claim.application.model;
+package com.titanium.claim.application.model.maintenance;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

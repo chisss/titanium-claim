@@ -20,7 +20,7 @@ class ClaimArchitectureTest extends AbstractArchitectureGuardTest {
      * 启用「application 层不得依赖 api 的 DTO」。
      * <p>
      * 理赔域 api/web 已按《API层与Web层职责边界及协作规范》整改：DTO→应用层入参的翻译在 web 完成，
-     * {@code ClaimApplicationService} 只依赖本层入参 DTO 与读侧结果，不依赖 {@code claim.api} 契约细节。
+     * {@code ClaimCommandService} 与 {@code ClaimAppQueryService} 只依赖本层入参 DTO 与读侧结果，不依赖 {@code claim.api} 契约细节。
      * </p>
      */
     @Test

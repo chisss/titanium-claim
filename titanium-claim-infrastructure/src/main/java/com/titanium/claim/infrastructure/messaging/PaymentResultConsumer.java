@@ -1,26 +1,29 @@
 package com.titanium.claim.infrastructure.messaging;
 
-import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import com.alibaba.fastjson2.JSONObject;
 
-import com.titanium.claim.command.CompletePaymentCommand;
+import com.titanium.claim.application.orchestration.payment.PaymentCompletionOrchestrator;
 import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.infrastructure.messaging.inbound.PaymentOrderPaidMessage;
-import com.titanium.claim.valueobject.ClaimId;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 支付结果入站消费者（对端域：payment）
+ * 支付结果入站消费者（对端域：payment，Kafka 入站适配器 / 防腐层）
  * <p>
  * 防腐消费 {@code payment-order-paid} 主题：一次反序列化入站防腐 record
- * {@link PaymentOrderPaidMessage}（不依赖对端域类型），据 businessId 派发
- * {@link CompletePaymentCommand} 回写赔案至 PAID。与赔付 Saga 的派发职责互补
+ * {@link PaymentOrderPaidMessage}（不依赖对端域类型），据 businessId 委托应用层
+ * {@link PaymentCompletionOrchestrator} 回写赔案至 PAID。与赔付 Saga 的派发职责互补
  * （Saga 发出站、本消费者收回写），共同构成结算→支付的异步闭环。
+ * </p>
+ * <p>
+ * <b>归属 infrastructure（driving adapter）</b>：{@code @KafkaListener} 只做消息接入与防腐翻译，
+ * 发命令的编排逻辑下沉 application（{@link PaymentCompletionOrchestrator}），
+ * infrastructure 不持有 CommandGateway（ArchUnit 固化）。
  * </p>
  */
 @Slf4j
@@ -28,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PaymentResultConsumer {
 
-    private final CommandGateway commandGateway;
+    private final PaymentCompletionOrchestrator paymentCompletionOrchestrator;
 
     /**
      * 监听支付出账成功消息并回写赔案赔付完成。
@@ -45,8 +48,7 @@ public class PaymentResultConsumer {
             }
             log.info("[支付回写-入站] 回写赔案赔付完成: claimId={}, paymentNo={}", message.businessId(),
                     message.paymentNo());
-            commandGateway.sendAndWait(new CompletePaymentCommand(ClaimId.of(message.businessId()),
-                    message.paymentNo()));
+            paymentCompletionOrchestrator.completePayment(message.businessId(), message.paymentNo());
         } catch (Exception e) {
             // 聚合根前置校验（非 APPROVED+已结算）会抛异常，属业务性拒绝；消费失败交由 Kafka 重试/DLQ 兜底
             log.error("[支付回写-入站] 回写失败（由 Kafka 重试兜底）: payload={}", payload, e);

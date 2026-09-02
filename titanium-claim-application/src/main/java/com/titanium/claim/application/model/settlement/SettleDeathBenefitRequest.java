@@ -1,4 +1,4 @@
-package com.titanium.claim.application.model;
+package com.titanium.claim.application.model.settlement;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
