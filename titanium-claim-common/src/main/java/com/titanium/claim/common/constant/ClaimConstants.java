@@ -27,5 +27,7 @@ public class ClaimConstants {
         public static final String CLAIM_REJECTED = "claim-rejected";
         /** 理赔赔付支付单主题：供 payment 域防腐消费创建 CLAIM_PAYOUT 支付单 */
         public static final String PAYMENT_ORDER_CREATED = "payment-order-created";
+        /** 支付出账成功主题：payment 域发布，claim 域防腐消费回写 CompletePaymentCommand */
+        public static final String PAYMENT_ORDER_PAID = "payment-order-paid";
     }
 }

@@ -8,9 +8,11 @@ import com.alibaba.fastjson2.JSON;
 
 import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.event.ClaimCreatedEvent;
+import com.titanium.claim.event.ClaimRejectedEvent;
 import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
+import com.titanium.claim.port.notification.NotificationServicePort;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,5 +61,20 @@ public class KafkaEventPublisher {
         log.info("[身故给付-出站] 发布身故给付结算事件: claimId={}, policyId={}", event.claimId(), event.policyId());
         kafkaTemplate.send(ClaimConstants.KafkaTopic.DEATH_BENEFIT_SETTLED,
                            event.policyId(), eventJson);
+    }
+
+    /**
+     * 发布理赔拒赔事件到 Kafka（claim-rejected 主题），载荷为拒赔通知出站契约
+     * {@link com.titanium.claim.port.notification.NotificationServicePort.RejectionNotice}，
+     * 供 notification 域按该契约定义入站防腐 record 消费并渲染拒赔通知书。
+     */
+    @EventHandler
+    public void handle(ClaimRejectedEvent event) {
+        NotificationServicePort.RejectionNotice notice = new NotificationServicePort.RejectionNotice(
+                event.claimId().value(), event.policyId(), event.customerId(),
+                event.reason() == null ? null : event.reason().getCode(), event.comment());
+        String noticeJson = JSON.toJSONString(notice);
+        log.info("[拒赔通知-出站] 发布拒赔通知: claimId={}, reasonCode={}", event.claimId(), notice.reasonCode());
+        kafkaTemplate.send(ClaimConstants.KafkaTopic.CLAIM_REJECTED, event.claimId().value(), noticeJson);
     }
 }

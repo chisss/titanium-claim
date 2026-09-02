@@ -36,10 +36,9 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      # 入站统一 String 反序列化：防腐监听器 JSONObject.parseObject(payload, XxxMessage.class) 一次反序列化
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       group-id: titanium-claim-group
-      properties:
-        spring.json.trusted.packages: com.titanium.claim
 
 # Axon Framework配置
 axon:

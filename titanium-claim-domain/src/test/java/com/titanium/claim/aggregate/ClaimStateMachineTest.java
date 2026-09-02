@@ -63,7 +63,7 @@ class ClaimStateMachineTest {
     }
 
     private ClaimSettledEvent settledEvent() {
-        return new ClaimSettledEvent(ClaimId.of(CLAIM_ID), ClaimSettlement.of(new BigDecimal("8000"),
+        return new ClaimSettledEvent(ClaimId.of(CLAIM_ID), "P-1", ClaimSettlement.of(new BigDecimal("8000"),
                 ClaimEnum.PayoutMethod.BANK_TRANSFER, "ACCT-1", "核赔通过"), LocalDateTime.now().minusHours(1));
     }
 
@@ -122,8 +122,8 @@ class ClaimStateMachineTest {
     @Test
     @DisplayName("已拒赔案件重复拒赔指令幂等忽略")
     void shouldIgnoreRejectWhenAlreadyRejected() {
-        fixture.given(createdEvent(), new ClaimRejectedEvent(ClaimId.of(CLAIM_ID), RejectReason.FRAUD_SUSPECTED,
-                "疑似欺诈", LocalDateTime.now().minusDays(1)))
+        fixture.given(createdEvent(), new ClaimRejectedEvent(ClaimId.of(CLAIM_ID), "P-1", "C-1",
+                RejectReason.FRAUD_SUSPECTED, "疑似欺诈", LocalDateTime.now().minusDays(1)))
                 .when(new RejectClaimCommand(ClaimId.of(CLAIM_ID), RejectReason.FRAUD_SUSPECTED, "疑似欺诈"))
                 .expectSuccessfulHandlerExecution()
                 .expectNoEvents();
@@ -152,8 +152,8 @@ class ClaimStateMachineTest {
     @Test
     @DisplayName("REJECTED 终态案件可结案归档")
     void shouldCloseClaimWhenRejected() {
-        fixture.given(createdEvent(), new ClaimRejectedEvent(ClaimId.of(CLAIM_ID), RejectReason.UNPAID_PREMIUM,
-                "保费未缴", LocalDateTime.now().minusDays(1)))
+        fixture.given(createdEvent(), new ClaimRejectedEvent(ClaimId.of(CLAIM_ID), "P-1", "C-1",
+                RejectReason.UNPAID_PREMIUM, "保费未缴", LocalDateTime.now().minusDays(1)))
                 .when(new CloseClaimCommand(ClaimId.of(CLAIM_ID)))
                 .expectSuccessfulHandlerExecution()
                 .expectState(claim -> {

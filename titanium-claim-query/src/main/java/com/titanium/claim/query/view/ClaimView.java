@@ -80,4 +80,25 @@ public class ClaimView extends BaseView {
     /** 核定赔付金额（结算后填充） */
     @Column(name = "settled_amount", precision = 15, scale = 2)
     private BigDecimal          settledAmount;
+
+    /** 赔付状态（结算后赔付中，支付域出账成功回写为成功） */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", length = 20)
+    private ClaimEnum.PaymentStatus paymentStatus;
+
+    /** 支付单号（支付域出账成功回写） */
+    @Column(name = "payment_no", length = 50)
+    private String              paymentNo;
+
+    /** 拒赔原因编码（RejectReason code，拒赔时记录） */
+    @Column(name = "rejection_reason", length = 50)
+    private String              rejectionReason;
+
+    /** 拒赔时间 */
+    @Column(name = "rejected_at")
+    private LocalDateTime       rejectedAt;
+
+    /** 结案时间 */
+    @Column(name = "closed_at")
+    private LocalDateTime       closedAt;
 }

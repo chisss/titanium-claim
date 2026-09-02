@@ -6,4 +6,5 @@
     <include file="classpath:liquibase/ddl/axon_event_store_202607091700_weisun_ddl.sql"/>
     <include file="classpath:liquibase/ddl/claim_init_202607091700_weisun_ddl.sql"/>
     <include file="classpath:liquibase/ddl/claim_view_202607091700_weisun_ddl.sql"/>
+    <include file="classpath:liquibase/ddl/claim_view_extend_202609021200_weisun_ddl.sql"/>
 </databaseChangeLog>

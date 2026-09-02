@@ -133,7 +133,8 @@ public class Claim extends BaseAggregate {
         }
         ClaimSettlement claimSettlement = ClaimSettlement.of(command.settledAmount(), command.payoutMethod(),
                 command.payeeAccount(), command.conclusion());
-        AggregateLifecycle.apply(new ClaimSettledEvent(command.claimId(), claimSettlement, LocalDateTime.now()));
+        AggregateLifecycle.apply(new ClaimSettledEvent(command.claimId(), this.policyId.value(), claimSettlement,
+                LocalDateTime.now()));
     }
 
     /**
@@ -176,8 +177,9 @@ public class Claim extends BaseAggregate {
         if (status != ClaimStatus.PENDING && status != ClaimStatus.PROCESSING) {
             throw new ClaimStatusPreconditionException(command.claimId(), status, "拒赔", "PENDING/PROCESSING");
         }
-        AggregateLifecycle
-                .apply(new ClaimRejectedEvent(command.claimId(), command.reason(), command.comment(), LocalDateTime.now()));
+        AggregateLifecycle.apply(new ClaimRejectedEvent(command.claimId(), this.policyId == null ? null
+                : this.policyId.value(), this.customerId == null ? null : this.customerId.value(), command.reason(),
+                command.comment(), LocalDateTime.now()));
     }
 
     /**

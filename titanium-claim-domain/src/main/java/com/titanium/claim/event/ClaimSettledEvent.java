@@ -8,8 +8,8 @@ import com.titanium.claim.valueobject.ClaimSettlement;
 /**
  * 理赔核赔结算事件
  * <p>
- * 核赔通过并完成赔付核定时发布，携带核赔结论（赔付金额/给付方式/收款方）。 应用层监听此事件触发支付域
- * CreatePaymentOrderCommand(paymentType=CLAIM_PAYOUT)。
+ * 核赔通过并完成赔付核定时发布，携带核赔结论（赔付金额/给付方式/收款方）与关联保单标识。
+ * 应用层监听此事件触发支付域 CreatePaymentOrderCommand(paymentType=CLAIM_PAYOUT)。
  * </p>
  * <p>
  * 用于车险/医疗等「即付即了、不终止保单」的通用赔付；身故给付走独立的
@@ -18,6 +18,7 @@ import com.titanium.claim.valueobject.ClaimSettlement;
  */
 public record ClaimSettledEvent(
         ClaimId claimId,
+        String policyId,
         ClaimSettlement settlement,
         LocalDateTime settledAt
 ) {

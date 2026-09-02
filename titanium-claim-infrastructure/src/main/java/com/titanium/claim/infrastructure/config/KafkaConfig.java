@@ -67,6 +67,16 @@ public class KafkaConfig {
         return new NewTopic("claim-paid", 3, (short) 1);
     }
 
+    @Bean
+    public NewTopic paymentOrderCreatedTopic() {
+        return new NewTopic("payment-order-created", 3, (short) 1);
+    }
+
+    @Bean
+    public NewTopic paymentOrderPaidTopic() {
+        return new NewTopic("payment-order-paid", 3, (short) 1);
+    }
+
     /**
      * Kafka生产者工厂配置
      */
