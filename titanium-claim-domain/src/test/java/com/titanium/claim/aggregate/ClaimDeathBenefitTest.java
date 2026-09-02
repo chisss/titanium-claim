@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.titanium.claim.command.CompletePaymentCommand;
 import com.titanium.claim.command.SettleDeathBenefitCommand;
+import com.titanium.claim.common.enums.BenefitSource;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimStatusChangedEvent;
@@ -74,7 +75,7 @@ class ClaimDeathBenefitTest {
                 List.of(new BenefitCalculation.BeneficiaryShare("B-1", "配偶", new BigDecimal("0.6"),
                                 new BigDecimal("300000")),
                         new BenefitCalculation.BeneficiaryShare("B-2", "子女", new BigDecimal("0.4"),
-                                new BigDecimal("200000"))));
+                                new BigDecimal("200000"))), BenefitSource.BASIC_SUM_INSURED);
     }
 
     /** 身故给付结算命令（APPROVED + 材料齐备前提） */

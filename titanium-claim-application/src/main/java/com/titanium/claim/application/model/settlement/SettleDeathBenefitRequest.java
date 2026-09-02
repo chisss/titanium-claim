@@ -9,13 +9,16 @@ import lombok.Data;
 /**
  * 身故给付结算请求（application 写用例入参，寿险身故理赔 APPROVED → PAID）
  * <p>
- * 承载身故证据材料与受益人份额核算，应用层据此装配领域值对象 {@code DeathClaimEvidence} 与
- * {@code BenefitCalculation}，构造 {@code SettleDeathBenefitCommand}。区别于通用核赔结算：身故给付
- * 按受益人份额一次性给付，给付后触发保单终止。
+ * 承载身故证据材料与受益人份额规格，应用层编排器据此取保单基本保额精算给付金额（CLAIM-2：
+ * 给付总额由系统按条款计算，禁止调用方透传金额），构造 {@code SettleDeathBenefitCommand}。
+ * 区别于通用核赔结算：身故给付按受益人份额一次性给付，给付后触发保单终止。
  * </p>
  */
 @Data
 public class SettleDeathBenefitRequest {
+
+    /** 保单ID（精算取基本保额的定位键） */
+    private String policyId;
 
     /** 死亡证明编号 */
     private String deathCertificateNo;
@@ -28,18 +31,16 @@ public class SettleDeathBenefitRequest {
     /** 受益人关系证明编号 */
     private String beneficiaryProofNo;
 
-    /** 身故给付总额（须等于各受益人份额之和） */
-    private BigDecimal totalBenefit;
     /** 给付方式：BANK_TRANSFER/CASH/CHECK/OFFSET_PREMIUM */
     private String payoutMethod;
     /** 核赔意见 */
     private String conclusion;
 
-    /** 受益人份额明细 */
+    /** 受益人份额规格（应得金额由系统按比例精算，禁止调用方传金额） */
     private List<BeneficiaryShare> shares;
 
     /**
-     * 受益人份额明细
+     * 受益人份额规格
      */
     @Data
     public static class BeneficiaryShare {
@@ -47,9 +48,7 @@ public class SettleDeathBenefitRequest {
         private String beneficiaryId;
         /** 受益人姓名 */
         private String beneficiaryName;
-        /** 受益比例（0-1） */
+        /** 受益比例（0-1，各受益人比例之和为1） */
         private BigDecimal benefitRatio;
-        /** 应得给付额（= 给付总额 × 受益比例） */
-        private BigDecimal amount;
     }
 }

@@ -77,7 +77,7 @@ class ClaimRegistrationOrchestratorTest {
     @Test
     @DisplayName("校验链全过 → 生成编号并发送创建命令，返回理赔 ID")
     void shouldRegisterClaimWhenValidationPasses() {
-        when(policyServicePort.getPolicy("POL-1", "default-tenant")).thenReturn(new PolicyInfo("POL-1", "ACTIVE"));
+        when(policyServicePort.getPolicy("POL-1", "default-tenant")).thenReturn(new PolicyInfo("POL-1", "ACTIVE", new BigDecimal("100000")));
         when(claimService.generateClaimNumber()).thenReturn("CLAIM-20260902-000001");
 
         String claimId = orchestrator.registerClaim(request());
@@ -105,7 +105,7 @@ class ClaimRegistrationOrchestratorTest {
     @Test
     @DisplayName("保单非 ACTIVE → 抛 PolicyNotActiveException 且不发命令")
     void shouldRejectWhenPolicyInactive() {
-        when(policyServicePort.getPolicy("POL-1", "default-tenant")).thenReturn(new PolicyInfo("POL-1", "EXPIRED"));
+        when(policyServicePort.getPolicy("POL-1", "default-tenant")).thenReturn(new PolicyInfo("POL-1", "EXPIRED", new BigDecimal("100000")));
 
         assertThrows(PolicyNotActiveException.class, () -> orchestrator.registerClaim(request()));
         verify(commandGateway, never()).sendAndWait(any());

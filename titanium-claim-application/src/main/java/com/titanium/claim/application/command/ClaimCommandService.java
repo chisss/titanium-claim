@@ -15,19 +15,17 @@ import com.titanium.claim.application.model.maintenance.ChangeClaimStatusRequest
 import com.titanium.claim.application.model.maintenance.UpdateClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest;
+import com.titanium.claim.application.orchestration.assessment.ClaimSettlementOrchestrator;
 import com.titanium.claim.application.orchestration.issuance.ClaimRegistrationOrchestrator;
 import com.titanium.claim.command.ChangeClaimStatusCommand;
 import com.titanium.claim.command.SettleClaimCommand;
-import com.titanium.claim.command.SettleDeathBenefitCommand;
 import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.service.ClaimService;
-import com.titanium.claim.valueobject.BenefitCalculation;
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
-import com.titanium.claim.valueobject.DeathClaimEvidence;
 import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.Survey;
 import com.titanium.metadata.enums.claim.ClaimEnum;
@@ -51,6 +49,7 @@ public class ClaimCommandService {
     private final CommandGateway               commandGateway;
     private final ClaimService                 claimService;
     private final ClaimRegistrationOrchestrator claimRegistrationOrchestrator;
+    private final ClaimSettlementOrchestrator   claimSettlementOrchestrator;
 
     /**
      * 创建理赔案件（报案）：委托报案校验链编排器，返回理赔 ID。
@@ -129,26 +128,16 @@ public class ClaimCommandService {
     }
 
     /**
-     * 身故给付结算（寿险身故理赔专属）。
+     * 身故给付结算（寿险身故理赔专属）：委托理算编排器。
      * <p>
-     * 组装身故证据与受益人份额核算，派发 {@link SettleDeathBenefitCommand}。给付后由 claim 域发布
+     * {@link ClaimSettlementOrchestrator} 取保单基本保额精算给付总额（CLAIM-2，禁止透传金额），
+     * 按受益人比例分配（比例之和与份额之和双重守恒由 {@code BenefitCalculation} 值对象守护），
+     * 装配身故证据并派发 {@code SettleDeathBenefitCommand}。给付后由 claim 域发布
      * {@code DeathBenefitSettledEvent}，policy 域防腐监听器据此终止保单（给付后保单责任终结）。
-     * 受益人份额之和须等于给付总额的不变量由 {@code BenefitCalculation} 值对象守护。
      * </p>
      */
     @Transactional
     public void settleDeathBenefit(String claimId, SettleDeathBenefitRequest request) {
-        DeathClaimEvidence evidence = new DeathClaimEvidence(request.getDeathCertificateNo(), request.getDeathDate(),
-                request.getDeathCause(), request.isHouseholdCancelled(), request.getBeneficiaryProofNo(),
-                LocalDateTime.now());
-        List<BenefitCalculation.BeneficiaryShare> shares = request.getShares() == null ? List.of()
-                : request.getShares().stream()
-                        .map(s -> new BenefitCalculation.BeneficiaryShare(s.getBeneficiaryId(), s.getBeneficiaryName(),
-                                s.getBenefitRatio(), s.getAmount()))
-                        .collect(Collectors.toList());
-        BenefitCalculation benefitCalculation = new BenefitCalculation(request.getTotalBenefit(), shares);
-        SettleDeathBenefitCommand command = new SettleDeathBenefitCommand(ClaimId.of(claimId), evidence,
-                benefitCalculation, ClaimEnum.PayoutMethod.fromCode(request.getPayoutMethod()), request.getConclusion());
-        commandGateway.sendAndWait(command);
+        claimSettlementOrchestrator.settleDeathBenefit(claimId, request);
     }
 }

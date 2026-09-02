@@ -1,5 +1,7 @@
 package com.titanium.claim.infrastructure.adapter.policy;
 
+import java.math.BigDecimal;
+
 import org.springframework.stereotype.Component;
 
 import com.titanium.claim.common.exception.BusinessException;
@@ -41,6 +43,7 @@ public class PolicyServiceAdapter implements PolicyServicePort {
             return null;
         }
         return new PolicyInfo(policy.getPolicyId(),
-                policy.getStatus() == null ? null : policy.getStatus().getCode());
+                policy.getStatus() == null ? null : policy.getStatus().getCode(),
+                policy.getSumInsured() == null ? null : BigDecimal.valueOf(policy.getSumInsured()));
     }
 }

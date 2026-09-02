@@ -17,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.titanium.claim.common.enums.BenefitSource;
 import com.titanium.claim.event.ClaimSettledEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
 import com.titanium.claim.port.payment.PaymentServicePort;
@@ -72,7 +73,7 @@ class ClaimSettlementPaymentSagaTest {
                 List.of(new BenefitCalculation.BeneficiaryShare("B-1", "配偶", new BigDecimal("0.6"),
                                 new BigDecimal("300000")),
                         new BenefitCalculation.BeneficiaryShare("B-2", "子女", new BigDecimal("0.4"),
-                                new BigDecimal("200000"))));
+                                new BigDecimal("200000"))), BenefitSource.BASIC_SUM_INSURED);
         ClaimSettlement settlement = ClaimSettlement.of(new BigDecimal("500000"),
                 ClaimEnum.PayoutMethod.BANK_TRANSFER, null, "身故给付核准");
         saga.on(new DeathBenefitSettledEvent(ClaimId.of("CLAIM-2"), "POL-2",
