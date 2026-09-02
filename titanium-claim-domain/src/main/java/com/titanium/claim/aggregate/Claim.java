@@ -9,15 +9,22 @@ import org.axonframework.modelling.command.AggregateLifecycle;
 import org.axonframework.spring.stereotype.Aggregate;
 
 import com.titanium.claim.command.ChangeClaimStatusCommand;
+import com.titanium.claim.command.CloseClaimCommand;
+import com.titanium.claim.command.CompletePaymentCommand;
 import com.titanium.claim.command.CreateClaimCommand;
+import com.titanium.claim.command.RejectClaimCommand;
 import com.titanium.claim.command.SettleClaimCommand;
 import com.titanium.claim.command.SettleDeathBenefitCommand;
 import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
+import com.titanium.claim.common.enums.RejectReason;
+import com.titanium.claim.event.ClaimClosedEvent;
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimLossAssessedEvent;
+import com.titanium.claim.event.ClaimPaymentCompletedEvent;
+import com.titanium.claim.event.ClaimRejectedEvent;
 import com.titanium.claim.event.ClaimSettledEvent;
 import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimSurveySubmittedEvent;
@@ -47,8 +54,10 @@ import lombok.experimental.SuperBuilder;
 /**
  * 理赔聚合根
  * <p>
- * 管理理赔案件全生命周期：报案(PENDING) → 处理(PROCESSING) → 核赔通过(APPROVED) → 赔付(PAID)，
- * 任意阶段可拒赔(REJECTED)。核赔结算(settle)记录赔付结论并流转至 PAID。
+ * 管理理赔案件全生命周期：报案(PENDING) → 处理(PROCESSING) → 核赔通过(APPROVED) →
+ * 结算(赔付中) → 赔付(PAID) → 结案(CLOSED)；PENDING/PROCESSING 阶段可拒赔(REJECTED)，
+ * 终态(PAID/REJECTED)可结案归档。核赔结算(settle)记录赔付结论并进入赔付中，
+ * 由支付域出账成功回写 {@link CompletePaymentCommand} 后流转至 PAID。
  * </p>
  */
 @Aggregate
@@ -68,6 +77,16 @@ public class Claim extends BaseAggregate {
     private ClaimAmount         claimAmount;
     private ClaimStatus         status;
     private ClaimSettlement     settlement;
+    /** 赔付状态（结算后进入赔付中，支付域出账成功回写为成功） */
+    private ClaimEnum.PaymentStatus paymentStatus;
+    /** 支付单号（支付域回写，供对账） */
+    private String              paymentNo;
+    /** 拒赔原因（拒赔时记录） */
+    private RejectReason        rejectionReason;
+    /** 拒赔时间 */
+    private LocalDateTime       rejectedAt;
+    /** 结案时间 */
+    private LocalDateTime       closedAt;
     /** 理赔处理阶段（报案→查勘→定损→核赔→结算→赔付） */
     private ClaimPhase          phase;
     /** 查勘记录（车险/调查类案件） */
@@ -97,14 +116,15 @@ public class Claim extends BaseAggregate {
         if (status == null || status == command.newStatus()) {
             return;
         }
-        // 状态机合法性校验：禁止非法跳转（PAID/REJECTED 为终态）
+        // 状态机合法性校验：禁止非法跳转（拒赔/赔付/结案走专用命令，不经此通用通道）
         validateTransition(status, command.newStatus());
         AggregateLifecycle.apply(new ClaimStatusChangedEvent(command.claimId(), status, command.newStatus(),
                 command.reason(), LocalDateTime.now()));
     }
 
     /**
-     * 核赔结算：仅 APPROVED 状态可结算，记录赔付结论并流转至 PAID。
+     * 核赔结算：仅 APPROVED 状态可结算，记录赔付结论并进入赔付中，
+     * 待支付域出账成功回写 {@link CompletePaymentCommand} 后流转至 PAID。
      */
     @CommandHandler
     public void handle(SettleClaimCommand command) {
@@ -118,7 +138,7 @@ public class Claim extends BaseAggregate {
 
     /**
      * 身故给付结算（寿险身故理赔专属）：仅 APPROVED 状态可给付，须身故材料齐备，
-     * 记录身故证据/受益人核算并流转至 PAID，发布 {@link DeathBenefitSettledEvent} 触发下游保单终止。
+     * 记录身故证据/受益人核算并进入赔付中，发布 {@link DeathBenefitSettledEvent} 触发下游保单终止。
      * <p>
      * 区别于通用核赔结算：以身故金核算总额为给付额，给付后保单责任终止（被保险人身故）。
      * </p>
@@ -142,6 +162,46 @@ public class Claim extends BaseAggregate {
                 command.payoutMethod(), null, command.conclusion());
         AggregateLifecycle.apply(new DeathBenefitSettledEvent(command.claimId(), this.policyId.value(),
                 command.evidence(), command.benefitCalculation(), deathSettlement, LocalDateTime.now()));
+    }
+
+    /**
+     * 拒赔：仅 PENDING/PROCESSING 阶段可拒赔（已核赔通过的 APPROVED 不可反悔，终态不可拒赔），
+     * 记录拒赔原因并发布 {@link ClaimRejectedEvent} 触发拒赔通知书发送。
+     */
+    @CommandHandler
+    public void handle(RejectClaimCommand command) {
+        if (status == ClaimStatus.REJECTED) {
+            return; // 幂等：已拒赔案件重复指令直接忽略
+        }
+        if (status != ClaimStatus.PENDING && status != ClaimStatus.PROCESSING) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "拒赔", "PENDING/PROCESSING");
+        }
+        AggregateLifecycle
+                .apply(new ClaimRejectedEvent(command.claimId(), command.reason(), command.comment(), LocalDateTime.now()));
+    }
+
+    /**
+     * 赔付完成回写：仅 APPROVED 且已结算（赔付中）的案件可回写，
+     * 支付域出账成功后置 PAID 并记录支付单号。
+     */
+    @CommandHandler
+    public void handle(CompletePaymentCommand command) {
+        if (status != ClaimStatus.APPROVED || settlement == null) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "赔付完成回写", "APPROVED 且已结算");
+        }
+        AggregateLifecycle
+                .apply(new ClaimPaymentCompletedEvent(command.claimId(), command.paymentNo(), LocalDateTime.now()));
+    }
+
+    /**
+     * 结案归档：仅终态（PAID/REJECTED）案件可结案，流转至 CLOSED。
+     */
+    @CommandHandler
+    public void handle(CloseClaimCommand command) {
+        if (status != ClaimStatus.PAID && status != ClaimStatus.REJECTED) {
+            throw new ClaimStatusPreconditionException(command.claimId(), status, "结案归档", "PAID/REJECTED");
+        }
+        AggregateLifecycle.apply(new ClaimClosedEvent(command.claimId(), LocalDateTime.now()));
     }
 
     /**
@@ -181,18 +241,19 @@ public class Claim extends BaseAggregate {
     }
 
     /**
-     * 理赔状态流转合法性校验。
+     * 理赔状态流转合法性校验（通用状态变更通道专用）。
      * <p>
-     * 合法流转：PENDING→PROCESSING/REJECTED；PROCESSING→APPROVED/REJECTED；APPROVED→PAID。
-     * PAID/REJECTED 为终态，不可再流转。
+     * 合法流转：PENDING→PROCESSING；PROCESSING→APPROVED。
+     * 拒赔(PENDING/PROCESSING→REJECTED)走 {@link RejectClaimCommand}、
+     * 赔付(APPROVED+已结算→PAID)走 {@link CompletePaymentCommand}、
+     * 结案(PAID/REJECTED→CLOSED)走 {@link CloseClaimCommand}，均不经此通用通道。
      * </p>
      */
     private void validateTransition(ClaimStatus from, ClaimStatus to) {
         boolean legal = switch (from) {
-            case PENDING -> to == ClaimStatus.PROCESSING || to == ClaimStatus.REJECTED;
-            case PROCESSING -> to == ClaimStatus.APPROVED || to == ClaimStatus.REJECTED;
-            case APPROVED -> to == ClaimStatus.PAID;
-            case PAID, REJECTED -> false;
+            case PENDING -> to == ClaimStatus.PROCESSING;
+            case PROCESSING -> to == ClaimStatus.APPROVED;
+            case APPROVED, PAID, REJECTED, CLOSED -> false;
         };
         if (!legal) {
             throw new ClaimStatusTransitionException(this.claimId, from, to);
@@ -247,7 +308,8 @@ public class Claim extends BaseAggregate {
     @EventSourcingHandler
     protected void on(ClaimSettledEvent event) {
         this.settlement = event.settlement();
-        this.status = ClaimStatus.PAID;
+        // 结算后进入赔付中，保持 APPROVED 待支付域出账回写，不再直接置 PAID
+        this.paymentStatus = ClaimEnum.PaymentStatus.PROCESSING;
         this.updateTime = event.settledAt();
     }
 
@@ -256,7 +318,32 @@ public class Claim extends BaseAggregate {
         this.deathEvidence = event.evidence();
         this.benefitCalculation = event.benefitCalculation();
         this.settlement = event.settlement();
-        this.status = ClaimStatus.PAID;
+        // 身故给付结算后进入赔付中，保持 APPROVED 待支付域出账回写，不再直接置 PAID
+        this.paymentStatus = ClaimEnum.PaymentStatus.PROCESSING;
         this.updateTime = event.settledAt();
+    }
+
+    @EventSourcingHandler
+    protected void on(ClaimRejectedEvent event) {
+        this.status = ClaimStatus.REJECTED;
+        this.rejectionReason = event.reason();
+        this.rejectedAt = event.rejectedAt();
+        this.paymentStatus = ClaimEnum.PaymentStatus.REJECTED_CLOSED;
+        this.updateTime = event.rejectedAt();
+    }
+
+    @EventSourcingHandler
+    protected void on(ClaimPaymentCompletedEvent event) {
+        this.status = ClaimStatus.PAID;
+        this.paymentStatus = ClaimEnum.PaymentStatus.SUCCESS;
+        this.paymentNo = event.paymentNo();
+        this.updateTime = event.paidAt();
+    }
+
+    @EventSourcingHandler
+    protected void on(ClaimClosedEvent event) {
+        this.status = ClaimStatus.CLOSED;
+        this.closedAt = event.closedAt();
+        this.updateTime = event.closedAt();
     }
 }

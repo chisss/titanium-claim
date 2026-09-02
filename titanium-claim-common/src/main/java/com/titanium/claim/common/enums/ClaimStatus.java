@@ -15,7 +15,8 @@ public enum ClaimStatus implements BaseEnum {
     PROCESSING(2, ClaimConstants.CLAIM_STATUS_PROCESSING, "处理中"),
     APPROVED(3, ClaimConstants.CLAIM_STATUS_APPROVED, "已批准"),
     REJECTED(4, ClaimConstants.CLAIM_STATUS_REJECTED, "已拒绝"),
-    PAID(5, ClaimConstants.CLAIM_STATUS_PAID, "已支付");
+    PAID(5, ClaimConstants.CLAIM_STATUS_PAID, "已支付"),
+    CLOSED(6, ClaimConstants.CLAIM_STATUS_CLOSED, "已结案");
 
     /**
      * 持久化数字码
