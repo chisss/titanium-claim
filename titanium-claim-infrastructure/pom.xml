@@ -64,6 +64,13 @@
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- 条款系统API（ClauseServiceAdapter 调 ClauseApi Feign，责任校验 CLAIM-4） -->
+        <dependency>
+            <groupId>com.titanium</groupId>
+            <artifactId>titanium-clause-api</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- OpenFeign（跨域 Feign 客户端） -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
