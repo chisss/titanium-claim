@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import com.titanium.claim.application.model.issuance.CreateClaimRequest;
 import com.titanium.claim.application.orchestration.issuance.validator.ClaimRegistrationValidator;
 import com.titanium.claim.command.CreateClaimCommand;
+import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.service.ClaimService;
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
@@ -35,6 +36,7 @@ public class ClaimRegistrationOrchestrator {
     private final List<ClaimRegistrationValidator> validators;
     private final ClaimService                     claimService;
     private final CommandGateway                   commandGateway;
+    private final TenantContext                    tenantContext;
 
     /**
      * 报案登记：校验链 → 生成理赔 ID 与理赔编号 → 装配并发送 {@link CreateClaimCommand}。
@@ -50,7 +52,7 @@ public class ClaimRegistrationOrchestrator {
         ClaimId claimId = ClaimId.generate();
         String claimNumber = claimService.generateClaimNumber();
 
-        // 3. 装配并发命令
+        // 3. 装配并发命令（租户 ID 贯穿事件，供读模型投影落库）
         CreateClaimCommand command = new CreateClaimCommand(
                 claimId,
                 CustomerId.of(request.getCustomerId()),
@@ -59,7 +61,8 @@ public class ClaimRegistrationOrchestrator {
                 ClaimEnum.ClaimType.fromCode(request.getClaimType()),
                 request.getIncidentDate(),
                 request.getIncidentDescription(),
-                ClaimAmount.of(request.getClaimAmount()));
+                ClaimAmount.of(request.getClaimAmount()),
+                tenantContext.getCurrentTenantId());
         commandGateway.sendAndWait(command);
 
         log.info("[报案编排] 理赔创建命令已发送, claimId={}, claimNumber={}", claimId.value(), claimNumber);

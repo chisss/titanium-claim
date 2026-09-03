@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimQuickPayRule;
+import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.infrastructure.entity.ClaimQuickPayRuleDO;
 import com.titanium.claim.infrastructure.mapper.ClaimConfigPersistenceMapper;
 import com.titanium.claim.infrastructure.repository.jpa.JpaClaimQuickPayRuleRepository;
@@ -40,13 +41,18 @@ public class JpaClaimQuickPayRuleRepositoryAdapter implements ClaimQuickPayRuleR
         if (existing.isPresent()) {
             ClaimQuickPayRuleDO old = existing.get();
             fresh.setRuleId(old.getRuleId());
+            fresh.setId(old.getId());
             fresh.setCreateTime(old.getCreateTime());
+            fresh.setCreatedBy(old.getCreatedBy());
             fresh.setIsDeleted(0);
         } else {
+            fresh.setId(rule.getRuleId());
             fresh.setCreateTime(LocalDateTime.now());
+            fresh.setCreatedBy(ClaimConstants.SYSTEM_OPERATOR);
             fresh.setIsDeleted(0);
         }
         fresh.setUpdateTime(LocalDateTime.now());
+        fresh.setUpdatedBy(ClaimConstants.SYSTEM_OPERATOR);
         jpaRepository.save(fresh);
     }
 
@@ -80,6 +86,7 @@ public class JpaClaimQuickPayRuleRepositoryAdapter implements ClaimQuickPayRuleR
         jpaRepository.findByRuleIdAndTenantIdAndIsDeleted(ruleId, tenantId, 0).ifPresent(dataObject -> {
             dataObject.setIsDeleted(1);
             dataObject.setUpdateTime(LocalDateTime.now());
+            dataObject.setUpdatedBy(ClaimConstants.SYSTEM_OPERATOR);
             jpaRepository.save(dataObject);
             log.info("逻辑删除快赔规则, tenantId={}, ruleId={}", tenantId, ruleId);
         });

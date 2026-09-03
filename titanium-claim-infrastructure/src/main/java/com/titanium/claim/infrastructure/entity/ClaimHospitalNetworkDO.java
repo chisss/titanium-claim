@@ -28,10 +28,14 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class ClaimHospitalNetworkDO extends BaseEntity {
+    /** 主键（雪花，独立于业务ID列） */
+    @Id
+    @Column(name = "id", nullable = false, length = 32)
+    private String id;
+
 
     /** 医院ID（雪花，主键） */
-    @Id
-    @Column(name = "hospital_id", nullable = false, length = 32)
+        @Column(name = "hospital_id", nullable = false, length = 32)
     private String hospitalId;
 
     /** 医院名称 */

@@ -88,33 +88,52 @@ public final class ClaimHospitalNetwork {
     }
 
     /**
-     * 协议暂停：资格冻结，恢复前不按定点比例赔付
+     * 协议暂停：资格冻结，恢复前不按定点比例赔付。仅 ACTIVE 态可暂停。
      *
      * @return 暂停后的医院网络聚合
      */
     public ClaimHospitalNetwork suspend() {
+        ensureStatusIn("暂停协议", HospitalAgreementStatus.ACTIVE);
         return new ClaimHospitalNetwork(hospitalId, tenantId, hospitalName, hospitalLevel,
                 HospitalAgreementStatus.SUSPENDED, payoutRatio, directSettlement, address, contactPhone);
     }
 
     /**
-     * 协议恢复：重新具备定点资格
+     * 协议恢复：重新具备定点资格。仅 SUSPENDED 态可恢复。
      *
      * @return 恢复后的医院网络聚合
      */
     public ClaimHospitalNetwork activate() {
+        ensureStatusIn("恢复协议", HospitalAgreementStatus.SUSPENDED);
         return new ClaimHospitalNetwork(hospitalId, tenantId, hospitalName, hospitalLevel,
                 HospitalAgreementStatus.ACTIVE, payoutRatio, directSettlement, address, contactPhone);
     }
 
     /**
-     * 协议终止：台账留存，不再参与资格校验
+     * 协议终止：台账留存，不再参与资格校验。仅 ACTIVE/SUSPENDED 态可终止（终态不可逆）。
      *
      * @return 终止后的医院网络聚合
      */
     public ClaimHospitalNetwork terminate() {
+        ensureStatusIn("终止协议", HospitalAgreementStatus.ACTIVE, HospitalAgreementStatus.SUSPENDED);
         return new ClaimHospitalNetwork(hospitalId, tenantId, hospitalName, hospitalLevel,
                 HospitalAgreementStatus.TERMINATED, payoutRatio, directSettlement, address, contactPhone);
+    }
+
+    /**
+     * 状态前置校验：协议状态机仅允许合法流转，非法流转抛业务异常。
+     *
+     * @param operation 操作名称
+     * @param allowed   允许执行该操作的当前状态
+     */
+    private void ensureStatusIn(String operation, HospitalAgreementStatus... allowed) {
+        for (HospitalAgreementStatus status : allowed) {
+            if (agreementStatus == status) {
+                return;
+            }
+        }
+        throw new BusinessException(ClaimErrorCode.CLAIM_STATUS_TRANSITION_INVALID,
+                String.format("医院[%s] 当前协议状态为 %s，禁止执行「%s」", hospitalName, agreementStatus, operation));
     }
 
     /**

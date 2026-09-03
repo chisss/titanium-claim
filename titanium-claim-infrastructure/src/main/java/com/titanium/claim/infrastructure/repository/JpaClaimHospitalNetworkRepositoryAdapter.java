@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
+import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
 import com.titanium.claim.infrastructure.entity.ClaimHospitalNetworkDO;
 import com.titanium.claim.infrastructure.mapper.ClaimConfigPersistenceMapper;
@@ -38,12 +39,17 @@ public class JpaClaimHospitalNetworkRepositoryAdapter implements ClaimHospitalNe
         Optional<ClaimHospitalNetworkDO> existing = jpaRepository.findById(hospital.getHospitalId());
         ClaimHospitalNetworkDO fresh = mapper.toDO(hospital);
         if (existing.isPresent()) {
+            fresh.setId(existing.get().getId());
             fresh.setCreateTime(existing.get().getCreateTime());
+            fresh.setCreatedBy(existing.get().getCreatedBy());
         } else {
+            fresh.setId(hospital.getHospitalId());
             fresh.setCreateTime(LocalDateTime.now());
+            fresh.setCreatedBy(ClaimConstants.SYSTEM_OPERATOR);
         }
         fresh.setIsDeleted(0);
         fresh.setUpdateTime(LocalDateTime.now());
+        fresh.setUpdatedBy(ClaimConstants.SYSTEM_OPERATOR);
         jpaRepository.save(fresh);
     }
 
@@ -72,6 +78,7 @@ public class JpaClaimHospitalNetworkRepositoryAdapter implements ClaimHospitalNe
         jpaRepository.findByHospitalIdAndTenantIdAndIsDeleted(hospitalId, tenantId, 0).ifPresent(dataObject -> {
             dataObject.setIsDeleted(1);
             dataObject.setUpdateTime(LocalDateTime.now());
+            dataObject.setUpdatedBy(ClaimConstants.SYSTEM_OPERATOR);
             jpaRepository.save(dataObject);
             log.info("逻辑删除医院台账, tenantId={}, hospitalId={}", tenantId, hospitalId);
         });

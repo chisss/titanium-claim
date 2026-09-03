@@ -49,7 +49,7 @@ class ClaimStateMachineTest {
     private ClaimCreatedEvent createdEvent() {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of("P-1"), "CLM-SM-001",
                 ClaimEnum.ClaimType.MEDICAL, LocalDateTime.now().minusDays(3), "住院医疗", ClaimAmount.of("8000"),
-                LocalDateTime.now().minusDays(3));
+                LocalDateTime.now().minusDays(3), "T-1");
     }
 
     private ClaimStatusChangedEvent toProcessing() {

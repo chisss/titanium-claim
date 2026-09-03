@@ -12,6 +12,10 @@ import com.titanium.metadata.enums.claim.ClaimEnum;
 
 /**
  * 创建理赔命令（领域层）
+ * <p>
+ * {@code tenantId} 贯穿事件（{@link com.titanium.claim.event.ClaimCreatedEvent} 携带），
+ * 供读模型投影落库（{@code t_claim_view.tenant_id} 非空约束），多租户隔离贯穿全链路。
+ * </p>
  */
 public record CreateClaimCommand(
         @TargetAggregateIdentifier ClaimId claimId,
@@ -21,6 +25,7 @@ public record CreateClaimCommand(
         ClaimEnum.ClaimType claimType,
         LocalDateTime incidentDate,
         String incidentDescription,
-        ClaimAmount claimAmount
+        ClaimAmount claimAmount,
+        String tenantId
 ) {
 }

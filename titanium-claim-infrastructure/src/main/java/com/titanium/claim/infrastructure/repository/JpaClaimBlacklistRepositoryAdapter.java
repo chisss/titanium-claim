@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimBlacklist;
+import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.common.enums.config.BlacklistStatus;
 import com.titanium.claim.common.enums.config.BlacklistSubjectType;
 import com.titanium.claim.infrastructure.entity.ClaimBlacklistDO;
@@ -39,12 +40,17 @@ public class JpaClaimBlacklistRepositoryAdapter implements ClaimBlacklistReposit
         Optional<ClaimBlacklistDO> existing = jpaRepository.findById(blacklist.getBlacklistId());
         ClaimBlacklistDO fresh = mapper.toDO(blacklist);
         if (existing.isPresent()) {
+            fresh.setId(existing.get().getId());
             fresh.setCreateTime(existing.get().getCreateTime());
+            fresh.setCreatedBy(existing.get().getCreatedBy());
         } else {
+            fresh.setId(blacklist.getBlacklistId());
             fresh.setCreateTime(LocalDateTime.now());
+            fresh.setCreatedBy(ClaimConstants.SYSTEM_OPERATOR);
         }
         fresh.setIsDeleted(0);
         fresh.setUpdateTime(LocalDateTime.now());
+        fresh.setUpdatedBy(ClaimConstants.SYSTEM_OPERATOR);
         jpaRepository.save(fresh);
     }
 
@@ -75,6 +81,7 @@ public class JpaClaimBlacklistRepositoryAdapter implements ClaimBlacklistReposit
         jpaRepository.findByBlacklistIdAndTenantIdAndIsDeleted(blacklistId, tenantId, 0).ifPresent(dataObject -> {
             dataObject.setIsDeleted(1);
             dataObject.setUpdateTime(LocalDateTime.now());
+            dataObject.setUpdatedBy(ClaimConstants.SYSTEM_OPERATOR);
             jpaRepository.save(dataObject);
             log.info("逻辑删除黑名单, tenantId={}, blacklistId={}", tenantId, blacklistId);
         });

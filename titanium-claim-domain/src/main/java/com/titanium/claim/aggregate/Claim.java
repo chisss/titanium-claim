@@ -116,7 +116,7 @@ public class Claim extends BaseAggregate {
     public Claim(CreateClaimCommand command) {
         AggregateLifecycle.apply(new ClaimCreatedEvent(command.claimId(), command.customerId(), command.policyId(),
                 command.claimNumber(), command.claimType(), command.incidentDate(), command.incidentDescription(),
-                command.claimAmount(), LocalDateTime.now()));
+                command.claimAmount(), LocalDateTime.now(), command.tenantId()));
     }
 
     @CommandHandler
@@ -175,6 +175,10 @@ public class Claim extends BaseAggregate {
         if (status != ClaimStatus.APPROVED) {
             throw new ClaimStatusPreconditionException(command.claimId(), status, "核赔结算", "APPROVED");
         }
+        if (paymentStatus == ClaimEnum.PaymentStatus.PROCESSING) {
+            // 结算后状态保持 APPROVED 待支付域回写，须以赔付状态挡住重复结算
+            throw ClaimStatusPreconditionException.alreadySettled(command.claimId(), "核赔结算");
+        }
         ClaimSettlement claimSettlement = ClaimSettlement.of(command.settledAmount(), command.payoutMethod(),
                 command.payeeAccount(), command.conclusion());
         AggregateLifecycle.apply(new ClaimSettledEvent(command.claimId(), this.policyId.value(), claimSettlement,
@@ -192,6 +196,10 @@ public class Claim extends BaseAggregate {
     public void handle(SettleDeathBenefitCommand command) {
         if (status != ClaimStatus.APPROVED) {
             throw new ClaimStatusPreconditionException(command.claimId(), status, "身故给付结算", "APPROVED");
+        }
+        if (paymentStatus == ClaimEnum.PaymentStatus.PROCESSING) {
+            // 结算后状态保持 APPROVED 待支付域回写，须以赔付状态挡住重复给付
+            throw ClaimStatusPreconditionException.alreadySettled(command.claimId(), "身故给付结算");
         }
         if (this.claimType != ClaimEnum.ClaimType.DEATH) {
             throw new ClaimStatusPreconditionException(command.claimId(), status, "身故给付结算", "DEATH 类型案件");
@@ -221,6 +229,10 @@ public class Claim extends BaseAggregate {
     public void handle(SettleDisabilityBenefitCommand command) {
         if (status != ClaimStatus.APPROVED) {
             throw new ClaimStatusPreconditionException(command.claimId(), status, "全残给付结算", "APPROVED");
+        }
+        if (paymentStatus == ClaimEnum.PaymentStatus.PROCESSING) {
+            // 结算后状态保持 APPROVED 待支付域回写，须以赔付状态挡住重复给付
+            throw ClaimStatusPreconditionException.alreadySettled(command.claimId(), "全残给付结算");
         }
         if (this.claimType != ClaimEnum.ClaimType.DISABILITY) {
             throw new ClaimStatusPreconditionException(command.claimId(), status, "全残给付结算", "DISABILITY 类型案件");

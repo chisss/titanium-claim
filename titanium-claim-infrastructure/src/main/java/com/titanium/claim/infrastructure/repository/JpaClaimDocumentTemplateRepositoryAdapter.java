@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimDocumentTemplate;
+import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.infrastructure.entity.ClaimDocumentTemplateDO;
 import com.titanium.claim.infrastructure.mapper.ClaimConfigPersistenceMapper;
 import com.titanium.claim.infrastructure.repository.jpa.JpaClaimDocumentTemplateRepository;
@@ -40,13 +41,18 @@ public class JpaClaimDocumentTemplateRepositoryAdapter implements ClaimDocumentT
         if (existing.isPresent()) {
             ClaimDocumentTemplateDO old = existing.get();
             fresh.setTemplateId(old.getTemplateId());
+            fresh.setId(old.getId());
             fresh.setCreateTime(old.getCreateTime());
+            fresh.setCreatedBy(old.getCreatedBy());
             fresh.setIsDeleted(0);
         } else {
+            fresh.setId(template.getTemplateId());
             fresh.setCreateTime(LocalDateTime.now());
+            fresh.setCreatedBy(ClaimConstants.SYSTEM_OPERATOR);
             fresh.setIsDeleted(0);
         }
         fresh.setUpdateTime(LocalDateTime.now());
+        fresh.setUpdatedBy(ClaimConstants.SYSTEM_OPERATOR);
         jpaRepository.save(fresh);
     }
 
@@ -81,6 +87,7 @@ public class JpaClaimDocumentTemplateRepositoryAdapter implements ClaimDocumentT
         jpaRepository.findByTemplateIdAndTenantIdAndIsDeleted(templateId, tenantId, 0).ifPresent(dataObject -> {
             dataObject.setIsDeleted(1);
             dataObject.setUpdateTime(LocalDateTime.now());
+            dataObject.setUpdatedBy(ClaimConstants.SYSTEM_OPERATOR);
             jpaRepository.save(dataObject);
             log.info("逻辑删除单证模板, tenantId={}, templateId={}", tenantId, templateId);
         });

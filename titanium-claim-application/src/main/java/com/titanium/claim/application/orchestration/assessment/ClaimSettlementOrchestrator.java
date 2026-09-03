@@ -56,7 +56,7 @@ public class ClaimSettlementOrchestrator {
         String tenantId = tenantContext.getCurrentTenantId();
         // 1. Port 取数：保单须有效且携带基本保额（定额给付精算依据）
         PolicyInfo policy = policyServicePort.getPolicy(request.getPolicyId(), tenantId);
-        if (policy == null || !"ACTIVE".equals(policy.statusCode())) {
+        if (policy == null || !policy.isEffective()) {
             log.error("[身故给付编排] 保单无效或不存在, policyId={}, status={}", request.getPolicyId(),
                     policy == null ? null : policy.statusCode());
             throw new PolicyNotActiveException();
@@ -99,7 +99,7 @@ public class ClaimSettlementOrchestrator {
         String tenantId = tenantContext.getCurrentTenantId();
         // 1. Port 取数：保单须有效且携带基本保额（全残给付精算依据）
         PolicyInfo policy = policyServicePort.getPolicy(request.getPolicyId(), tenantId);
-        if (policy == null || !"ACTIVE".equals(policy.statusCode())) {
+        if (policy == null || !policy.isEffective()) {
             log.error("[全残给付编排] 保单无效或不存在, policyId={}, status={}", request.getPolicyId(),
                     policy == null ? null : policy.statusCode());
             throw new PolicyNotActiveException();

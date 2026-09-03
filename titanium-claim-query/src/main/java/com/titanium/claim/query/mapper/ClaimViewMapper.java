@@ -39,6 +39,7 @@ public interface ClaimViewMapper {
     @Mapping(target = "customerId", source = "customerId", qualifiedByName = "customerIdValue")
     @Mapping(target = "policyId", source = "policyId", qualifiedByName = "policyIdValue")
     @Mapping(target = "claimAmount", source = "claimAmount", qualifiedByName = "claimAmountValue")
+    @Mapping(target = "tenantId", source = "tenantId")
     @Mapping(target = "status", constant = "PENDING")
     @Mapping(target = "phase", constant = "REPORT")
     @Mapping(target = "createTime", ignore = true)

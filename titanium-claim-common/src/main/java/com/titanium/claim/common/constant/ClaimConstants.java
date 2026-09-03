@@ -14,6 +14,9 @@ public class ClaimConstants {
     public static final String CLAIM_STATUS_PAID = "PAID";
     public static final String CLAIM_STATUS_CLOSED = "CLOSED";
 
+    /** 系统操作人标识（管理后台配置操作等无用户上下文的场景，填充审计字段 created_by/updated_by） */
+    public static final String SYSTEM_OPERATOR = "system";
+
     // 反欺诈警示规则常量（自动打标判据：命中规则标识 ruleCode，落库供审计追溯「哪个规则打的标」）
     public static class AlertRule {
         /** 延迟报案判据：报案时间距出险时间超过 30 天 */

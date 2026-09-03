@@ -201,6 +201,11 @@ class ClaimConfigServiceTest {
                     HospitalAgreementStatus.ACTIVE, 90, true, "地址", "13800000000");
         }
 
+        private ClaimHospitalNetwork suspendedHospital() {
+            return ClaimHospitalNetwork.create("hosp-1", TENANT_ID, "宠物医院", "三级",
+                    HospitalAgreementStatus.SUSPENDED, 90, true, "地址", "13800000000");
+        }
+
         @Test
         @DisplayName("暂停：ACTIVE → SUSPENDED 落库")
         void shouldSuspend() {
@@ -218,7 +223,7 @@ class ClaimConfigServiceTest {
         @Test
         @DisplayName("恢复：SUSPENDED → ACTIVE 落库")
         void shouldActivate() {
-            when(hospitalRepository.findById(TENANT_ID, "hosp-1")).thenReturn(Optional.of(activeHospital()));
+            when(hospitalRepository.findById(TENANT_ID, "hosp-1")).thenReturn(Optional.of(suspendedHospital()));
 
             HospitalNetworkConfigService service =
                     new HospitalNetworkConfigService(hospitalRepository, tenantContext);
@@ -227,6 +232,37 @@ class ClaimConfigServiceTest {
             ArgumentCaptor<ClaimHospitalNetwork> captor = ArgumentCaptor.forClass(ClaimHospitalNetwork.class);
             verify(hospitalRepository).save(captor.capture());
             assertThat(captor.getValue().getAgreementStatus()).isEqualTo(HospitalAgreementStatus.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("状态机守卫：TERMINATED 后禁止 suspend/activate（终态不可逆）")
+        void shouldRejectStateOperationAfterTerminated() {
+            ClaimHospitalNetwork terminated = ClaimHospitalNetwork.create("hosp-1", TENANT_ID, "宠物医院", "三级",
+                    HospitalAgreementStatus.TERMINATED, 90, true, "地址", "13800000000");
+            when(hospitalRepository.findById(TENANT_ID, "hosp-1")).thenReturn(Optional.of(terminated));
+
+            HospitalNetworkConfigService service =
+                    new HospitalNetworkConfigService(hospitalRepository, tenantContext);
+            assertThatThrownBy(() -> service.suspendHospital("hosp-1"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("禁止执行「暂停协议」");
+            assertThatThrownBy(() -> service.activateHospital("hosp-1"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("禁止执行「恢复协议」");
+            verify(hospitalRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("状态机守卫：ACTIVE 重复恢复被拒绝")
+        void shouldRejectRedundantActivate() {
+            when(hospitalRepository.findById(TENANT_ID, "hosp-1")).thenReturn(Optional.of(activeHospital()));
+
+            HospitalNetworkConfigService service =
+                    new HospitalNetworkConfigService(hospitalRepository, tenantContext);
+            assertThatThrownBy(() -> service.activateHospital("hosp-1"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("禁止执行「恢复协议」");
+            verify(hospitalRepository, never()).save(any());
         }
 
         @Test

@@ -50,7 +50,7 @@ class ClaimAlertFlagTest {
     private ClaimCreatedEvent claimCreated() {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of(POLICY_ID), "CLM-ALERT-001",
                 ClaimEnum.ClaimType.DEATH, LocalDateTime.now().minusDays(3), "被保险人身故",
-                ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3));
+                ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), "T-1");
     }
 
     private ClaimAlertFlaggedEvent flagged(AlertType type) {

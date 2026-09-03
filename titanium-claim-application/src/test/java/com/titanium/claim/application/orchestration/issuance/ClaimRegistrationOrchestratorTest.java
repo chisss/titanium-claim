@@ -59,7 +59,7 @@ class ClaimRegistrationOrchestratorTest {
         orchestrator = new ClaimRegistrationOrchestrator(
                 List.of(new ClaimAmountValidator(claimService), new PolicyActiveValidator(policyServicePort,
                         tenantContext)),
-                claimService, commandGateway);
+                claimService, commandGateway, tenantContext);
         lenient().when(tenantContext.getCurrentTenantId()).thenReturn("default-tenant");
     }
 
@@ -77,7 +77,7 @@ class ClaimRegistrationOrchestratorTest {
     @Test
     @DisplayName("校验链全过 → 生成编号并发送创建命令，返回理赔 ID")
     void shouldRegisterClaimWhenValidationPasses() {
-        when(policyServicePort.getPolicy("POL-1", "default-tenant")).thenReturn(new PolicyInfo("POL-1", "ACTIVE", new BigDecimal("100000"), null, LocalDateTime.now().minusDays(30)));
+        when(policyServicePort.getPolicy("POL-1", "default-tenant")).thenReturn(new PolicyInfo("POL-1", "EFFECTIVE", new BigDecimal("100000"), null, LocalDateTime.now().minusDays(30)));
         when(claimService.generateClaimNumber()).thenReturn("CLAIM-20260902-000001");
 
         String claimId = orchestrator.registerClaim(request());
@@ -91,6 +91,7 @@ class ClaimRegistrationOrchestratorTest {
         assertEquals("POL-1", command.policyId().value());
         assertEquals("MEDICAL", command.claimType().getCode());
         assertEquals(new BigDecimal("8000"), command.claimAmount().value());
+        assertEquals("default-tenant", command.tenantId());
     }
 
     @Test

@@ -1,5 +1,8 @@
 package com.titanium.claim.valueobject;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import com.titanium.claim.common.enums.AlertType;
 
 /**
@@ -10,10 +13,15 @@ import com.titanium.claim.common.enums.AlertType;
  * {@code ruleCode} 引用 {@code ClaimConstants} 定义的稳定规则 key（如 30 天窗口规则），
  * 供审计追溯「哪个规则打上了这个标记」。
  * </p>
+ * <p>
+ * {@code @JsonIgnoreProperties(ignoreUnknown = true)}：历史事件序列化含派生属性 {@code fraudAlert}
+ * （{@code isFraudAlert()} 被 Jackson 视为 getter），事件重放须忽略该未知字段，否则反序列化失败阻塞投影。
+ * </p>
  *
  * @param type     警示标记类型（枚举）
  * @param ruleCode 命中规则标识（稳定规则 key，可空=人工标记）
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record AlertFlag(
         AlertType type,
         String ruleCode) {
@@ -33,6 +41,7 @@ public record AlertFlag(
      *
      * @return 欺诈警示类返回 {@code true}
      */
+    @JsonIgnore
     public boolean isFraudAlert() {
         return type == AlertType.LATE_REPORT || type == AlertType.MULTIPLE_REPORTS || type == AlertType.RISK_SCORE;
     }

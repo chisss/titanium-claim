@@ -8,6 +8,7 @@ import com.titanium.claim.application.query.ClaimReadModel;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.query.result.ClaimQueryResult;
 import com.titanium.metadata.enums.claim.ClaimEnum;
+import com.titanium.metadata.enums.claim.ClaimPhase;
 
 /**
  * 理赔查询结果 → 应用层读模型映射器（MapStruct）
@@ -25,6 +26,9 @@ public interface ClaimReadModelMapper {
     @Mapping(target = "status", source = "status", qualifiedByName = "statusCode")
     @Mapping(target = "statusDescription", source = "status", qualifiedByName = "statusDescription")
     @Mapping(target = "claimType", source = "claimType", qualifiedByName = "claimTypeCode")
+    @Mapping(target = "phase", source = "phase", qualifiedByName = "phaseCode")
+    @Mapping(target = "paymentStatus", source = "paymentStatus", qualifiedByName = "paymentStatusCode")
+    @Mapping(target = "paymentStatusDescription", source = "paymentStatus", qualifiedByName = "paymentStatusDescription")
     ClaimReadModel toReadModel(ClaimQueryResult result);
 
     /**
@@ -49,5 +53,29 @@ public interface ClaimReadModelMapper {
     @Named("claimTypeCode")
     default String claimTypeCode(ClaimEnum.ClaimType claimType) {
         return claimType != null ? claimType.getCode() : null;
+    }
+
+    /**
+     * 理赔阶段枚举 → 阶段码（空安全）
+     */
+    @Named("phaseCode")
+    default String phaseCode(ClaimPhase phase) {
+        return phase != null ? phase.getCode() : null;
+    }
+
+    /**
+     * 赔付状态枚举 → 状态码（空安全）
+     */
+    @Named("paymentStatusCode")
+    default String paymentStatusCode(ClaimEnum.PaymentStatus paymentStatus) {
+        return paymentStatus != null ? paymentStatus.getCode() : null;
+    }
+
+    /**
+     * 赔付状态枚举 → 中文描述（空安全）
+     */
+    @Named("paymentStatusDescription")
+    default String paymentStatusDescription(ClaimEnum.PaymentStatus paymentStatus) {
+        return paymentStatus != null ? paymentStatus.getName() : null;
     }
 }

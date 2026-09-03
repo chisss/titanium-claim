@@ -85,7 +85,7 @@ class ClaimSettlementOrchestratorTest {
     }
 
     private PolicyInfo activePolicy() {
-        return new PolicyInfo("POL-1", "ACTIVE", new BigDecimal("500000"), null, LocalDateTime.now().minusDays(30));
+        return new PolicyInfo("POL-1", "EFFECTIVE", new BigDecimal("500000"), null, LocalDateTime.now().minusDays(30));
     }
 
     private List<BeneficiaryInfo> masterBeneficiaries() {
@@ -214,7 +214,7 @@ class ClaimSettlementOrchestratorTest {
     @DisplayName("基本保额缺失抛金额无效错误码，不发命令")
     void shouldRejectMissingBasicSumInsured() {
         when(policyServicePort.getPolicy("POL-1", "T-1"))
-                .thenReturn(new PolicyInfo("POL-1", "ACTIVE", null, null, LocalDateTime.now().minusDays(30)));
+                .thenReturn(new PolicyInfo("POL-1", "EFFECTIVE", null, null, LocalDateTime.now().minusDays(30)));
 
         BenefitCalculationException ex = assertThrows(BenefitCalculationException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
@@ -293,7 +293,7 @@ class ClaimSettlementOrchestratorTest {
     @Test
     @DisplayName("全残给付：账户价值高于基本保额取账户价值")
     void shouldSettleDisabilityByAccountValueMax() {
-        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(new PolicyInfo("POL-1", "ACTIVE",
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(new PolicyInfo("POL-1", "EFFECTIVE",
                 new BigDecimal("500000"), new BigDecimal("600000"), LocalDateTime.now().minusDays(30)));
         when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
 

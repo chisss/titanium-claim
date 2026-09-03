@@ -29,6 +29,22 @@ public class ClaimReadModel {
     private String        status;
     /** 理赔状态中文描述 */
     private String        statusDescription;
+    /** 理赔处理阶段码 */
+    private String        phase;
+    /** 核定赔付金额（结算后填充） */
+    private BigDecimal    settledAmount;
+    /** 赔付状态码（枚举收敛为 code） */
+    private String        paymentStatus;
+    /** 赔付状态中文描述 */
+    private String        paymentStatusDescription;
+    /** 支付单号（支付域出账成功回写） */
+    private String        paymentNo;
+    /** 拒赔原因编码（RejectReason code，拒赔时记录） */
+    private String        rejectionReason;
+    /** 拒赔时间 */
+    private LocalDateTime rejectedAt;
+    /** 结案时间 */
+    private LocalDateTime closedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

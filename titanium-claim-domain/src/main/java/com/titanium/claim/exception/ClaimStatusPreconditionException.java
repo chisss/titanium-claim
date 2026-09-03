@@ -26,4 +26,18 @@ public class ClaimStatusPreconditionException extends DomainException {
               String.format("理赔案件[%s] 操作 %s 要求状态为 %s，当前状态: %s",
                             claimId.value(), operation, requiredStatus, currentStatus.name()));
     }
+
+    /**
+     * 防重复操作工厂：案件已进入赔付流程时禁止重复结算/给付（结算后状态保持 APPROVED
+     * 待支付域回写，须以赔付状态而非案件状态拦截重复指令）。
+     */
+    public static ClaimStatusPreconditionException alreadySettled(ClaimId claimId, String operation) {
+        return new ClaimStatusPreconditionException(String.format(
+                "理赔案件[%s] 已进入赔付流程，禁止重复执行「%s」", claimId.value(), operation));
+    }
+
+    /** 携带自定义消息的构造器（用于防重复等非「状态不满足」场景） */
+    private ClaimStatusPreconditionException(String message) {
+        super(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET, message);
+    }
 }

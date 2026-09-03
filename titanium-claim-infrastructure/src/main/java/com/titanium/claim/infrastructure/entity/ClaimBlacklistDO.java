@@ -31,10 +31,14 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class ClaimBlacklistDO extends BaseEntity {
+    /** 主键（雪花，独立于业务ID列） */
+    @Id
+    @Column(name = "id", nullable = false, length = 32)
+    private String id;
+
 
     /** 黑名单ID（雪花，主键） */
-    @Id
-    @Column(name = "blacklist_id", nullable = false, length = 32)
+        @Column(name = "blacklist_id", nullable = false, length = 32)
     private String blacklistId;
 
     /** 标的类型 code（BlacklistSubjectType） */

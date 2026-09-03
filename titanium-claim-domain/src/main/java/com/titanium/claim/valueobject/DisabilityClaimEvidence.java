@@ -2,6 +2,9 @@ package com.titanium.claim.valueobject;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * 全残理赔证据值对象（寿险/意外险全残给付材料集）
  * <p>
@@ -13,6 +16,10 @@ import java.time.LocalDateTime;
  * 充血不可变值对象：{@link #isComplete()} 内聚「材料是否齐备」的领域规则——残疾鉴定证明编号、
  * 残疾等级与受益人关系证明为全残给付的必备要件，三者齐备方可进入核赔给付。
  * </p>
+ * <p>
+ * {@code @JsonIgnoreProperties(ignoreUnknown = true)}：历史事件序列化含派生属性 {@code complete}
+ * （{@code isComplete()} 被 Jackson 视为 getter），事件重放须忽略该未知字段，否则反序列化失败阻塞投影。
+ * </p>
  *
  * @param disabilityCertificateNo 残疾鉴定证明编号（司法鉴定机构/医疗鉴定机构出具）
  * @param disabilityGrade         残疾等级（如「一级伤残」，供给付比例条款判定）
@@ -21,6 +28,7 @@ import java.time.LocalDateTime;
  * @param beneficiaryProofNo      受益人关系证明编号（受益人身份与关系凭证）
  * @param submittedAt             材料提交时间
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record DisabilityClaimEvidence(
         String disabilityCertificateNo,
         String disabilityGrade,
@@ -37,6 +45,7 @@ public record DisabilityClaimEvidence(
      *
      * @return 材料齐备返回 {@code true}
      */
+    @JsonIgnore
     public boolean isComplete() {
         return disabilityCertificateNo != null && !disabilityCertificateNo.isBlank()
                 && disabilityGrade != null && !disabilityGrade.isBlank()

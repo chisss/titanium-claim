@@ -25,6 +25,11 @@ public class ClaimQueryResult {
     private ClaimStatus         status;
     private ClaimPhase          phase;
     private BigDecimal          settledAmount;
+    private ClaimEnum.PaymentStatus paymentStatus;
+    private String              paymentNo;
+    private String              rejectionReason;
+    private LocalDateTime       rejectedAt;
+    private LocalDateTime       closedAt;
     private LocalDateTime       createdAt;
     private LocalDateTime       updatedAt;
 }

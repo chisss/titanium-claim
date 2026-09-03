@@ -65,6 +65,10 @@ public class ClaimProjectionEventHandler {
 
         // 事件字段 → 读模型的结构映射收敛到 MapStruct（值对象拆解 + 初始状态常量），消除逐字段 set
         claimViewMapper.applyCreated(view, event);
+        // 租户兜底：历史事件（tenantId 字段引入前产生）回落默认租户，避免投影重试队列卡死
+        if (view.getTenantId() == null) {
+            view.setTenantId(event.tenantId() != null ? event.tenantId() : "default-tenant");
+        }
         stampAuditTime(view, event.createdAt());
 
         claimViewRepository.save(view);
