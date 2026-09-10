@@ -146,12 +146,12 @@ PENDING("待处理") → PROCESSING("处理中") → APPROVED("已批准") / REJ
 ```bash
 export JAVA_HOME=/Users/sunwei/Library/Java/JavaVirtualMachines/corretto-21.0.4/Contents/Home
 
-# 模块构建（在仓库根目录）
-cd /Users/sunwei/titanium-project
-mvn -pl titanium-claim -am clean install -DskipTests
+# 构建理赔域（域目录即 Maven reactor，一次构建全部子模块）
+cd /Users/sunwei/titanium-project/titanium-claim
+mvn clean install -DskipTests
 
 # 启动理赔服务（端口 8083，访问前缀 /claim）
-cd titanium-claim/titanium-claim-bootstrap
+cd titanium-claim-bootstrap
 mvn spring-boot:run
 ```
 
