@@ -6,7 +6,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:8066/titanium_claim?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: 123456
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
     
   # JPA配置
@@ -16,7 +16,7 @@ spring:
       naming:
         physical-strategy: com.titanium.common.jpa.AxonTablePrefixPhysicalNamingStrategy
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -78,6 +78,9 @@ management:
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 # 多租户配置
 multi-tenant:
