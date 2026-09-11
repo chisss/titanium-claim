@@ -14,6 +14,7 @@ import com.titanium.claim.event.ClaimClosedEvent;
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimLossAssessedEvent;
 import com.titanium.claim.event.ClaimPaymentCompletedEvent;
+import com.titanium.claim.event.ClaimPaymentFailedEvent;
 import com.titanium.claim.event.ClaimRejectedEvent;
 import com.titanium.claim.event.ClaimSettledEvent;
 import com.titanium.claim.event.ClaimStatusChangedEvent;
@@ -246,6 +247,29 @@ public class ClaimProjectionEventHandler {
             view.setUpdateTime(event.paidAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 赔付完成失败：未找到读模型记录 claimId={}", event.claimId()));
+    }
+
+    /**
+     * 投影赔付失败事件（支付域出账未成功回写：赔付状态置 FAILED，记录失败类型/原因/时间）
+     * <p>
+     * 注意**不动案件状态**（保持 APPROVED）：赔付决定不因出款受阻而改变，案件仍待人工重派，
+     * 重派出款成功后再经 {@code ClaimPaymentCompletedEvent} 投影至 PAID。
+     * </p>
+     */
+    @EventHandler
+    @Transactional
+    public void on(ClaimPaymentFailedEvent event) {
+        log.info("[读模型投影] 赔付失败: claimId={}, paymentNo={}, failureType={}", event.claimId(), event.paymentNo(),
+                event.failureType());
+
+        claimViewRepository.findByClaimId(event.claimId().value()).ifPresentOrElse(view -> {
+            view.setPaymentStatus(ClaimEnum.PaymentStatus.FAILED);
+            view.setPaymentFailureType(event.failureType() == null ? null : event.failureType().name());
+            view.setPaymentFailureReason(event.failureReason());
+            view.setPaymentFailedAt(event.failedAt());
+            view.setUpdateTime(event.failedAt());
+            claimViewRepository.save(view);
+        }, () -> log.warn("[读模型投影] 赔付失败回写失败：未找到读模型记录 claimId={}", event.claimId()));
     }
 
     /**

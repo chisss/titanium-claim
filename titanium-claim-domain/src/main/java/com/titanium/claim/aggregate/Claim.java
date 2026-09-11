@@ -15,6 +15,7 @@ import com.titanium.claim.command.CloseClaimCommand;
 import com.titanium.claim.command.CompletePaymentCommand;
 import com.titanium.claim.command.CreateClaimCommand;
 import com.titanium.claim.command.FlagClaimAlertCommand;
+import com.titanium.claim.command.RecordPaymentFailureCommand;
 import com.titanium.claim.command.RejectClaimCommand;
 import com.titanium.claim.command.SettleClaimCommand;
 import com.titanium.claim.command.SettleDeathBenefitCommand;
@@ -23,12 +24,14 @@ import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
+import com.titanium.claim.common.enums.PaymentFailureType;
 import com.titanium.claim.common.enums.RejectReason;
 import com.titanium.claim.event.ClaimAlertFlaggedEvent;
 import com.titanium.claim.event.ClaimClosedEvent;
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimLossAssessedEvent;
 import com.titanium.claim.event.ClaimPaymentCompletedEvent;
+import com.titanium.claim.event.ClaimPaymentFailedEvent;
 import com.titanium.claim.event.ClaimRejectedEvent;
 import com.titanium.claim.event.ClaimSettledEvent;
 import com.titanium.claim.event.ClaimStatusChangedEvent;
@@ -89,6 +92,12 @@ public class Claim extends BaseAggregate {
     private ClaimEnum.PaymentStatus paymentStatus;
     /** 支付单号（支付域回写，供对账） */
     private String              paymentNo;
+    /** 赔付失败类型（支付域出账未成功回写；对端 code 无法识别时为 null） */
+    private PaymentFailureType  paymentFailureType;
+    /** 赔付失败原因（支付域出账未成功回写：渠道失败原因或人工取消原因） */
+    private String              paymentFailureReason;
+    /** 赔付失败时间 */
+    private LocalDateTime       paymentFailedAt;
     /** 拒赔原因（拒赔时记录） */
     private RejectReason        rejectionReason;
     /** 拒赔时间 */
@@ -290,6 +299,28 @@ public class Claim extends BaseAggregate {
     }
 
     /**
+     * 赔付失败回写：支付域出账未成功（渠道确认失败 / 人工取消）后标记赔付失败。
+     * <p>
+     * 🔴 <b>幂等且容忍乱序</b>：成功与未成功分属两个 Kafka 主题，跨主题**无保序保证**——人工重派出款时，
+     * 「后一类消息」可能先于「更早的未成功消息」到达。故仅「已结算赔付中」的案件可标记失败，
+     * 其余一律静默忽略：**不抛异常**，否则 Kafka 会无限重投一条永远不可能成功的消息。
+     * </p>
+     * <p>
+     * 案件状态**保持 APPROVED**：赔付决定不因出款受阻而改变，赔案仍待人工重派；
+     * 重派成功后 {@link CompletePaymentCommand} 照常回写至 PAID。
+     * </p>
+     */
+    @CommandHandler
+    public void handle(RecordPaymentFailureCommand command) {
+        if (status != ClaimStatus.APPROVED || settlement == null
+                || paymentStatus != ClaimEnum.PaymentStatus.PROCESSING) {
+            return;
+        }
+        AggregateLifecycle.apply(new ClaimPaymentFailedEvent(command.claimId(), command.paymentNo(),
+                PaymentFailureType.fromCode(command.failureType()), command.failureReason(), LocalDateTime.now()));
+    }
+
+    /**
      * 结案归档：仅终态（PAID/REJECTED）案件可结案，流转至 CLOSED。
      */
     @CommandHandler
@@ -451,6 +482,23 @@ public class Claim extends BaseAggregate {
         this.paymentStatus = ClaimEnum.PaymentStatus.SUCCESS;
         this.paymentNo = event.paymentNo();
         this.updateTime = event.paidAt();
+    }
+
+    /**
+     * 赔付失败回放：置赔付状态为 FAILED 并记录失败类型/原因/时间。
+     * <p>
+     * 注意**不动 {@code status}**（保持 APPROVED）——这是「可重派」的前提：
+     * 若把案件状态也改成失败态，重派出款成功后的 {@code CompletePaymentCommand} 会因
+     * {@code status != APPROVED} 被前置校验拒绝，赔案永久卡死。
+     * </p>
+     */
+    @EventSourcingHandler
+    protected void on(ClaimPaymentFailedEvent event) {
+        this.paymentStatus = ClaimEnum.PaymentStatus.FAILED;
+        this.paymentFailureType = event.failureType();
+        this.paymentFailureReason = event.failureReason();
+        this.paymentFailedAt = event.failedAt();
+        this.updateTime = event.failedAt();
     }
 
     @EventSourcingHandler

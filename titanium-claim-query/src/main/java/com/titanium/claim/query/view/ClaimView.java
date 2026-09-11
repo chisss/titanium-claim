@@ -90,6 +90,18 @@ public class ClaimView extends BaseView {
     @Column(name = "payment_no", length = 50)
     private String              paymentNo;
 
+    /** 赔付失败类型（支付域出账未成功回写，PaymentFailureType code） */
+    @Column(name = "payment_failure_type", length = 20)
+    private String              paymentFailureType;
+
+    /** 赔付失败原因（支付域出账未成功回写：渠道失败原因或人工取消原因） */
+    @Column(name = "payment_failure_reason", length = 500)
+    private String              paymentFailureReason;
+
+    /** 赔付失败时间 */
+    @Column(name = "payment_failed_at")
+    private LocalDateTime       paymentFailedAt;
+
     /** 拒赔原因编码（RejectReason code，拒赔时记录） */
     @Column(name = "rejection_reason", length = 50)
     private String              rejectionReason;

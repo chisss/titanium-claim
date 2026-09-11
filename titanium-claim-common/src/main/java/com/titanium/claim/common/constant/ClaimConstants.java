@@ -52,5 +52,7 @@ public class ClaimConstants {
         public static final String PAYMENT_ORDER_CREATED = "payment-order-created";
         /** 支付出账成功主题：payment 域发布，claim 域防腐消费回写 CompletePaymentCommand */
         public static final String PAYMENT_ORDER_PAID = "payment-order-paid";
+        /** 支付出账未成功主题：payment 域发布（渠道确认失败 / 人工取消），claim 域防腐消费标记赔付失败 */
+        public static final String PAYMENT_ORDER_FAILED = "payment-order-failed";
     }
 }

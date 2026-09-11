@@ -74,6 +74,45 @@ class PaymentResultConsumerTest {
     }
 
     /**
+     * 出账未成功消息同样须按 businessType 过滤：本主题是支付域对**所有**业务域出款未成功的统一出口，
+     * 不过滤则保费/退费业务的 businessId（保单ID/保全单ID）会被当作赔案ID 回写。
+     */
+    @Test
+    void shouldRecordPaymentFailureWhenBusinessTypeIsClaim() {
+        consumer.onPaymentFailed(failedPayload("CLAIM-001", "CLAIM"));
+
+        verify(paymentCompletionOrchestrator).recordPaymentFailure("CLAIM-001", "PAY-NO-001", "FAILED",
+                "渠道返回账户异常");
+    }
+
+    @Test
+    void shouldSkipFailedMessageFromOtherBusinessDomain() {
+        consumer.onPaymentFailed(failedPayload("POLICY-001", "POLICY"));
+
+        verifyNoInteractions(paymentCompletionOrchestrator);
+    }
+
+    @Test
+    void shouldSkipFailedMessageMissingRequiredFields() {
+        consumer.onPaymentFailed("{\"businessType\":\"CLAIM\",\"resultType\":\"FAILED\"}");
+
+        verify(paymentCompletionOrchestrator, never()).recordPaymentFailure(anyString(), anyString(), anyString(),
+                anyString());
+    }
+
+    /**
+     * 失败回写异常必须重抛（同成功路径）：聚合层已对「重复消息 / 跨主题乱序」做幂等静默，
+     * 能抛到这里的只应是基础设施故障，重试是合理语义。
+     */
+    @Test
+    void shouldRethrowWhenFailureWriteBackFails() {
+        doThrow(new IllegalStateException("数据库不可达")).when(paymentCompletionOrchestrator)
+                .recordPaymentFailure(anyString(), anyString(), anyString(), anyString());
+
+        assertThrows(IllegalStateException.class, () -> consumer.onPaymentFailed(failedPayload("CLAIM-002", "CLAIM")));
+    }
+
+    /**
      * 支付域 {@code PaymentProcessedEvent} 经 fastjson2 序列化后的载荷形态（字段名与对端一致）。
      */
     private String payload(String businessId, String businessType) {
@@ -82,6 +121,18 @@ class PaymentResultConsumerTest {
                  "paidAt":"2026-09-11T10:00:00","processedBy":"tester","tenantId":"TENANT-001",
                  "paymentNo":"PAY-NO-001","businessId":"%s","businessType":"%s",
                  "amount":8888.00,"currency":"CNY"}
+                """.formatted(businessId, businessType);
+    }
+
+    /**
+     * 支付域 {@code PaymentOrderFailedMessage} 经 fastjson2 序列化后的载荷形态。
+     * {@code occurredAt} 按对端实际形态（空格分隔，非 ISO 的 {@code T} 分隔）书写——
+     * 入站 record 若按 ISO 认知接收，此用例会直接反序列化失败。
+     */
+    private String failedPayload(String businessId, String businessType) {
+        return """
+                {"paymentNo":"PAY-NO-001","businessId":"%s","businessType":"%s","resultType":"FAILED",
+                 "reason":"渠道返回账户异常","occurredAt":"2026-09-11 10:00:00"}
                 """.formatted(businessId, businessType);
     }
 }
