@@ -8,6 +8,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.titanium.claim.application.orchestration.payment.PaymentCompletionOrchestrator;
 import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.infrastructure.messaging.inbound.PaymentOrderPaidMessage;
+import com.titanium.metadata.enums.BusinessDomainType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,12 @@ public class PaymentResultConsumer {
 
     /**
      * 监听支付出账成功消息并回写赔案赔付完成。
+     * <p>
+     * 🔴 <b>必须按 {@code businessType} 过滤本域消息</b>：{@code payment-order-paid} 是支付域对
+     * **所有**业务域出账成功的统一出口（保单域保费收取、保全域退费同样发布到本主题）。不过滤则
+     * 保费支付成功的 {@code businessId}（保单ID）会被当作赔案ID 回写，赔案不存在 → 抛异常重抛 →
+     * 消息被无限重放。域外消息静默跳过，不记 ERROR（属正常流量，非故障）。
+     * </p>
      */
     @KafkaListener(topics = ClaimConstants.KafkaTopic.PAYMENT_ORDER_PAID,
             groupId = "${spring.kafka.consumer.group-id}")
@@ -44,6 +51,11 @@ public class PaymentResultConsumer {
             PaymentOrderPaidMessage message = JSONObject.parseObject(payload, PaymentOrderPaidMessage.class);
             if (message == null || message.businessId() == null || message.paymentNo() == null) {
                 log.warn("[支付回写-入站] 消息字段缺失，忽略: {}", payload);
+                return;
+            }
+            if (!BusinessDomainType.CLAIM.getCode().equals(message.businessType())) {
+                log.debug("[支付回写-入站] 非本域支付消息，跳过: businessType={}, businessId={}", message.businessType(),
+                        message.businessId());
                 return;
             }
             log.info("[支付回写-入站] 回写赔案赔付完成: claimId={}, paymentNo={}", message.businessId(),

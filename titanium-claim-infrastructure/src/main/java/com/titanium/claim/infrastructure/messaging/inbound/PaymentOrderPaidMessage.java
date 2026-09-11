@@ -19,6 +19,8 @@ public record PaymentOrderPaidMessage(
         /** 支付金额 */
         BigDecimal amount,
         /** 出账成功时间 */
-        LocalDateTime paidAt
+        LocalDateTime paidAt,
+        /** 关联业务域：消费方据此过滤本域消息 */
+        String businessType
 ) {
 }

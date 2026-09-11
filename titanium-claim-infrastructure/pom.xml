@@ -102,6 +102,13 @@
             <artifactId>mapstruct</artifactId>
             <scope>provided</scope>
         </dependency>
+
+        <!-- 测试：入站适配器的防腐翻译与跨域过滤需独立于 Spring 容器验证 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
