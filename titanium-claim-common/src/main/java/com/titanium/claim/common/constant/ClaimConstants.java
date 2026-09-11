@@ -40,8 +40,9 @@ public class ClaimConstants {
         public static final String CLAIM_CREATED = "claim-created";
         public static final String CLAIM_UPDATED = "claim-updated";
         public static final String CLAIM_STATUS_CHANGED = "claim-status-changed";
-        public static final String POLICY_VALIDATED = "policy-validated";
-        public static final String PAYMENT_PROCESSED = "payment-processed";
+        // 原 POLICY_VALIDATED（policy-validated）/ PAYMENT_PROCESSED（payment-processed）自声明起从无发布点，
+        // 已删除（m5-903）。保单校验自始走 Feign 同步调用（PolicyService）而非事件；支付结果回写由
+        // PAYMENT_ORDER_PAID / PAYMENT_ORDER_FAILED 两个成对闭环的主题承载。
         /** 身故给付结算主题：供 policy 域防腐监听器消费以终止保单（给付后保单责任终结） */
         public static final String DEATH_BENEFIT_SETTLED = "claim-death-benefit-settled";
         /** 全残给付结算主题：供 policy 域防腐监听器消费以终止保单（给付后保单责任终结，同身故） */
