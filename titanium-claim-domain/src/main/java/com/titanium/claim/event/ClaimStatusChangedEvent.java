@@ -10,6 +10,7 @@ public record ClaimStatusChangedEvent(
         ClaimStatus oldStatus,
         ClaimStatus newStatus,
         String reason,
-        LocalDateTime changedAt
+        LocalDateTime changedAt,
+        String tenantId
 ) {
 }

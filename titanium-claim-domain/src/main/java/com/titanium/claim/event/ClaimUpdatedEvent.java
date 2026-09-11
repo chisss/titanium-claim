@@ -12,6 +12,7 @@ public record ClaimUpdatedEvent(
         LocalDateTime incidentDate,
         String incidentDescription,
         ClaimAmount claimAmount,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        String tenantId
 ) {
 }

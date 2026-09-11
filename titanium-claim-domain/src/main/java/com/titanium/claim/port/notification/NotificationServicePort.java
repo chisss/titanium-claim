@@ -31,7 +31,8 @@ public interface NotificationServicePort {
             String policyId,
             String customerId,
             String reasonCode,
-            String comment
+            String comment,
+            String tenantId
     ) {
     }
 }

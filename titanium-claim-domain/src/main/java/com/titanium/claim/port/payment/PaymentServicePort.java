@@ -39,7 +39,8 @@ public interface PaymentServicePort {
             BigDecimal amount,
             String payoutMethodCode,
             String payeeAccount,
-            List<BenefitCalculation.BeneficiaryShare> beneficiaryShares
+            List<BenefitCalculation.BeneficiaryShare> beneficiaryShares,
+            String tenantId
     ) {
     }
 }

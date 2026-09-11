@@ -28,6 +28,7 @@ public record DeathBenefitSettledEvent(
         DeathClaimEvidence evidence,
         BenefitCalculation benefitCalculation,
         ClaimSettlement settlement,
-        LocalDateTime settledAt
+        LocalDateTime settledAt,
+        String tenantId
 ) {
 }

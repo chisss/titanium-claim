@@ -40,6 +40,7 @@ class ClaimDisabilityBenefitTest {
     private FixtureConfiguration<Claim> fixture;
 
     private static final String CLAIM_ID = "CLAIM-DIS-1";
+    private static final String TENANT_ID = "T-1";
     private static final String POLICY_ID = "POL-DIS-1";
 
     @BeforeEach
@@ -51,18 +52,18 @@ class ClaimDisabilityBenefitTest {
     private ClaimCreatedEvent disabilityClaimCreated() {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of(POLICY_ID), "CLM-DIS-001",
                 ClaimEnum.ClaimType.DISABILITY, LocalDateTime.now().minusDays(3), "被保险人全残",
-                ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), "T-1");
+                ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), TENANT_ID);
     }
 
     /** 流转至 APPROVED（PENDING→PROCESSING→APPROVED） */
     private ClaimStatusChangedEvent toProcessing() {
         return new ClaimStatusChangedEvent(ClaimId.of(CLAIM_ID), ClaimStatus.PENDING, ClaimStatus.PROCESSING, "受理",
-                LocalDateTime.now().minusDays(2));
+                LocalDateTime.now().minusDays(2), TENANT_ID);
     }
 
     private ClaimStatusChangedEvent toApproved() {
         return new ClaimStatusChangedEvent(ClaimId.of(CLAIM_ID), ClaimStatus.PROCESSING, ClaimStatus.APPROVED, "核赔通过",
-                LocalDateTime.now().minusDays(1));
+                LocalDateTime.now().minusDays(1), TENANT_ID);
     }
 
     private DisabilityClaimEvidence completeEvidence() {
@@ -123,7 +124,8 @@ class ClaimDisabilityBenefitTest {
                 ClaimId.of(CLAIM_ID), POLICY_ID, completeEvidence(), benefit(),
                 com.titanium.claim.valueobject.ClaimSettlement.of(new BigDecimal("500000"),
                         ClaimEnum.PayoutMethod.BANK_TRANSFER, null, "全残给付核准"),
-                LocalDateTime.now().minusHours(1)))
+                LocalDateTime.now().minusHours(1),
+                TENANT_ID))
                 .when(new CompletePaymentCommand(ClaimId.of(CLAIM_ID), "PAY-DIS-1"))
                 .expectSuccessfulHandlerExecution()
                 .expectState(claim -> {
@@ -160,7 +162,7 @@ class ClaimDisabilityBenefitTest {
     void shouldRejectSettleForNonDisabilityClaim() {
         ClaimCreatedEvent deathCreated = new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"),
                 PolicyId.of(POLICY_ID), "CLM-D-001", ClaimEnum.ClaimType.DEATH, LocalDateTime.now().minusDays(3),
-                "身故", ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), "T-1");
+                "身故", ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), TENANT_ID);
         fixture.given(deathCreated, toProcessing(), toApproved())
                 .when(settleCommand())
                 .expectException(ClaimStatusPreconditionException.class);

@@ -29,6 +29,7 @@ public record DisabilityBenefitSettledEvent(
         DisabilityClaimEvidence evidence,
         BenefitCalculation benefitCalculation,
         ClaimSettlement settlement,
-        LocalDateTime settledAt
+        LocalDateTime settledAt,
+        String tenantId
 ) {
 }

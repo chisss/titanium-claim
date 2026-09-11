@@ -38,6 +38,9 @@ import com.titanium.metadata.enums.claim.ClaimEnum;
 @ExtendWith(MockitoExtension.class)
 class ClaimSettlementPaymentSagaTest {
 
+    /** 租户ID：验证跨域支付载荷的租户贯穿 */
+    private static final String TENANT_ID = "T-1";
+
     @Mock
     private PaymentServicePort paymentServicePort;
 
@@ -53,7 +56,7 @@ class ClaimSettlementPaymentSagaTest {
     void shouldDispatchPayoutOnClaimSettled() {
         ClaimSettlement settlement = ClaimSettlement.of(new BigDecimal("8000"),
                 ClaimEnum.PayoutMethod.BANK_TRANSFER, "ACCT-1", "核赔通过");
-        saga.on(new ClaimSettledEvent(ClaimId.of("CLAIM-1"), "POL-1", settlement, LocalDateTime.now()));
+        saga.on(new ClaimSettledEvent(ClaimId.of("CLAIM-1"), "POL-1", settlement, LocalDateTime.now(), TENANT_ID));
 
         ArgumentCaptor<ClaimPayoutInstruction> captor = ArgumentCaptor.forClass(ClaimPayoutInstruction.class);
         verify(paymentServicePort).createClaimPayout(captor.capture());
@@ -64,6 +67,7 @@ class ClaimSettlementPaymentSagaTest {
         assertEquals(ClaimEnum.PayoutMethod.BANK_TRANSFER.getCode(), instruction.payoutMethodCode());
         assertEquals("ACCT-1", instruction.payeeAccount());
         assertNull(instruction.beneficiaryShares(), "普通赔付不应携带分账明细");
+        assertEquals(TENANT_ID, instruction.tenantId(), "跨域支付载荷须携带租户，否则支付域无法判定归属租户");
     }
 
     @Test
@@ -78,7 +82,7 @@ class ClaimSettlementPaymentSagaTest {
                 ClaimEnum.PayoutMethod.BANK_TRANSFER, null, "身故给付核准");
         saga.on(new DeathBenefitSettledEvent(ClaimId.of("CLAIM-2"), "POL-2",
                 new DeathClaimEvidence("DC-1", LocalDateTime.now(), "疾病", true, "BP-1", LocalDateTime.now()),
-                calculation, settlement, LocalDateTime.now()));
+                calculation, settlement, LocalDateTime.now(), TENANT_ID));
 
         ArgumentCaptor<ClaimPayoutInstruction> captor = ArgumentCaptor.forClass(ClaimPayoutInstruction.class);
         verify(paymentServicePort).createClaimPayout(captor.capture());

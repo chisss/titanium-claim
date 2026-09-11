@@ -84,7 +84,7 @@ public class KafkaEventPublisher {
     public void handle(ClaimRejectedEvent event) {
         NotificationServicePort.RejectionNotice notice = new NotificationServicePort.RejectionNotice(
                 event.claimId().value(), event.policyId(), event.customerId(),
-                event.reason() == null ? null : event.reason().getCode(), event.comment());
+                event.reason() == null ? null : event.reason().getCode(), event.comment(), event.tenantId());
         String noticeJson = JSON.toJSONString(notice);
         log.info("[拒赔通知-出站] 发布拒赔通知: claimId={}, reasonCode={}", event.claimId(), notice.reasonCode());
         kafkaTemplate.send(ClaimConstants.KafkaTopic.CLAIM_REJECTED, event.claimId().value(), noticeJson);

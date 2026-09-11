@@ -18,6 +18,7 @@ public record ClaimRejectedEvent(
         String customerId,
         RejectReason reason,
         String comment,
-        LocalDateTime rejectedAt
+        LocalDateTime rejectedAt,
+        String tenantId
 ) {
 }

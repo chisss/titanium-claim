@@ -111,6 +111,14 @@ public class Claim extends BaseAggregate {
     private BenefitCalculation  disabilityBenefitCalculation;
     /** 反欺诈警示与统计口径标记（延迟报案/多次报案/风险评分/快赔，快赔通道判据的数据来源） */
     private List<AlertFlag>     alertFlags = new ArrayList<>();
+    /**
+     * 租户ID（由 {@link ClaimCreatedEvent} 回放填充）
+     * <p>
+     * 聚合自身不做租户决策，持有它是为了<b>把租户贯穿进后续所有对外事件</b>：消费端（policy 域保单终止、
+     * 通知域拒赔通知）据此判定事件归属租户。历史事件流无此字段时回放为 null，消费端须容忍。
+     * </p>
+     */
+    private String              tenantId;
 
     @CommandHandler
     public Claim(CreateClaimCommand command) {
@@ -122,7 +130,7 @@ public class Claim extends BaseAggregate {
     @CommandHandler
     public void handle(UpdateClaimCommand command) {
         AggregateLifecycle.apply(new ClaimUpdatedEvent(command.claimId(), command.claimType(), command.incidentDate(),
-                command.incidentDescription(), command.claimAmount(), LocalDateTime.now()));
+                command.incidentDescription(), command.claimAmount(), LocalDateTime.now(), this.tenantId));
     }
 
     /**
@@ -163,7 +171,7 @@ public class Claim extends BaseAggregate {
         // 状态机合法性校验：禁止非法跳转（拒赔/赔付/结案走专用命令，不经此通用通道）
         validateTransition(status, command.newStatus());
         AggregateLifecycle.apply(new ClaimStatusChangedEvent(command.claimId(), status, command.newStatus(),
-                command.reason(), LocalDateTime.now()));
+                command.reason(), LocalDateTime.now(), this.tenantId));
     }
 
     /**
@@ -182,7 +190,7 @@ public class Claim extends BaseAggregate {
         ClaimSettlement claimSettlement = ClaimSettlement.of(command.settledAmount(), command.payoutMethod(),
                 command.payeeAccount(), command.conclusion());
         AggregateLifecycle.apply(new ClaimSettledEvent(command.claimId(), this.policyId.value(), claimSettlement,
-                LocalDateTime.now()));
+                LocalDateTime.now(), this.tenantId));
     }
 
     /**
@@ -214,7 +222,7 @@ public class Claim extends BaseAggregate {
         ClaimSettlement deathSettlement = ClaimSettlement.of(command.benefitCalculation().totalBenefit(),
                 command.payoutMethod(), null, command.conclusion());
         AggregateLifecycle.apply(new DeathBenefitSettledEvent(command.claimId(), this.policyId.value(),
-                command.evidence(), command.benefitCalculation(), deathSettlement, LocalDateTime.now()));
+                command.evidence(), command.benefitCalculation(), deathSettlement, LocalDateTime.now(), this.tenantId));
     }
 
     /**
@@ -247,7 +255,8 @@ public class Claim extends BaseAggregate {
         ClaimSettlement disabilitySettlement = ClaimSettlement.of(command.benefitCalculation().totalBenefit(),
                 command.payoutMethod(), null, command.conclusion());
         AggregateLifecycle.apply(new DisabilityBenefitSettledEvent(command.claimId(), this.policyId.value(),
-                command.evidence(), command.benefitCalculation(), disabilitySettlement, LocalDateTime.now()));
+                command.evidence(), command.benefitCalculation(), disabilitySettlement, LocalDateTime.now(),
+                this.tenantId));
     }
 
     /**
@@ -264,7 +273,7 @@ public class Claim extends BaseAggregate {
         }
         AggregateLifecycle.apply(new ClaimRejectedEvent(command.claimId(), this.policyId == null ? null
                 : this.policyId.value(), this.customerId == null ? null : this.customerId.value(), command.reason(),
-                command.comment(), LocalDateTime.now()));
+                command.comment(), LocalDateTime.now(), this.tenantId));
     }
 
     /**
@@ -349,6 +358,7 @@ public class Claim extends BaseAggregate {
 
     @EventSourcingHandler
     protected void on(ClaimCreatedEvent event) {
+        this.tenantId = event.tenantId();
         this.claimId = event.claimId();
         this.customerId = event.customerId();
         this.policyId = event.policyId();

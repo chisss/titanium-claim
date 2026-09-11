@@ -40,6 +40,7 @@ class ClaimStateMachineTest {
     private FixtureConfiguration<Claim> fixture;
 
     private static final String CLAIM_ID = "CLAIM-SM-1";
+    private static final String TENANT_ID = "T-1";
 
     @BeforeEach
     void setUp() {
@@ -49,22 +50,23 @@ class ClaimStateMachineTest {
     private ClaimCreatedEvent createdEvent() {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of("P-1"), "CLM-SM-001",
                 ClaimEnum.ClaimType.MEDICAL, LocalDateTime.now().minusDays(3), "住院医疗", ClaimAmount.of("8000"),
-                LocalDateTime.now().minusDays(3), "T-1");
+                LocalDateTime.now().minusDays(3), TENANT_ID);
     }
 
     private ClaimStatusChangedEvent toProcessing() {
         return new ClaimStatusChangedEvent(ClaimId.of(CLAIM_ID), ClaimStatus.PENDING, ClaimStatus.PROCESSING, "受理",
-                LocalDateTime.now().minusDays(2));
+                LocalDateTime.now().minusDays(2), TENANT_ID);
     }
 
     private ClaimStatusChangedEvent toApproved() {
         return new ClaimStatusChangedEvent(ClaimId.of(CLAIM_ID), ClaimStatus.PROCESSING, ClaimStatus.APPROVED, "核赔通过",
-                LocalDateTime.now().minusDays(1));
+                LocalDateTime.now().minusDays(1), TENANT_ID);
     }
 
     private ClaimSettledEvent settledEvent() {
         return new ClaimSettledEvent(ClaimId.of(CLAIM_ID), "P-1", ClaimSettlement.of(new BigDecimal("8000"),
-                ClaimEnum.PayoutMethod.BANK_TRANSFER, "ACCT-1", "核赔通过"), LocalDateTime.now().minusHours(1));
+                ClaimEnum.PayoutMethod.BANK_TRANSFER, "ACCT-1", "核赔通过"), LocalDateTime.now().minusHours(1),
+                TENANT_ID);
     }
 
     // ---------- 拒赔 ----------
@@ -123,7 +125,7 @@ class ClaimStateMachineTest {
     @DisplayName("已拒赔案件重复拒赔指令幂等忽略")
     void shouldIgnoreRejectWhenAlreadyRejected() {
         fixture.given(createdEvent(), new ClaimRejectedEvent(ClaimId.of(CLAIM_ID), "P-1", "C-1",
-                RejectReason.FRAUD_SUSPECTED, "疑似欺诈", LocalDateTime.now().minusDays(1)))
+                RejectReason.FRAUD_SUSPECTED, "疑似欺诈", LocalDateTime.now().minusDays(1), TENANT_ID))
                 .when(new RejectClaimCommand(ClaimId.of(CLAIM_ID), RejectReason.FRAUD_SUSPECTED, "疑似欺诈"))
                 .expectSuccessfulHandlerExecution()
                 .expectNoEvents();
@@ -153,7 +155,7 @@ class ClaimStateMachineTest {
     @DisplayName("REJECTED 终态案件可结案归档")
     void shouldCloseClaimWhenRejected() {
         fixture.given(createdEvent(), new ClaimRejectedEvent(ClaimId.of(CLAIM_ID), "P-1", "C-1",
-                RejectReason.UNPAID_PREMIUM, "保费未缴", LocalDateTime.now().minusDays(1)))
+                RejectReason.UNPAID_PREMIUM, "保费未缴", LocalDateTime.now().minusDays(1), TENANT_ID))
                 .when(new CloseClaimCommand(ClaimId.of(CLAIM_ID)))
                 .expectSuccessfulHandlerExecution()
                 .expectState(claim -> {

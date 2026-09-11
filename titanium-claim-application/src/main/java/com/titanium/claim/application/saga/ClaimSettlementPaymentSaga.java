@@ -46,7 +46,7 @@ public class ClaimSettlementPaymentSaga {
                 event.settlement().settledAmount());
         ClaimPayoutInstruction instruction = new ClaimPayoutInstruction(event.claimId().value(), event.policyId(),
                 event.settlement().settledAmount(), event.settlement().payoutMethod().getCode(),
-                event.settlement().payeeAccount(), null);
+                event.settlement().payeeAccount(), null, event.tenantId());
         paymentServicePort.createClaimPayout(instruction);
     }
 
@@ -65,7 +65,8 @@ public class ClaimSettlementPaymentSaga {
                 : event.benefitCalculation().shares();
         BigDecimal total = event.settlement() == null ? null : event.settlement().settledAmount();
         ClaimPayoutInstruction instruction = new ClaimPayoutInstruction(event.claimId().value(), event.policyId(),
-                total, event.settlement() == null ? null : event.settlement().payoutMethod().getCode(), null, shares);
+                total, event.settlement() == null ? null : event.settlement().payoutMethod().getCode(), null, shares,
+                event.tenantId());
         paymentServicePort.createClaimPayout(instruction);
     }
 }

@@ -20,6 +20,7 @@ public record ClaimSettledEvent(
         ClaimId claimId,
         String policyId,
         ClaimSettlement settlement,
-        LocalDateTime settledAt
+        LocalDateTime settledAt,
+        String tenantId
 ) {
 }
