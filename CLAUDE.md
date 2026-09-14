@@ -173,6 +173,7 @@ mvn spring-boot:run
 | 🟡 低 | **端口 8083 冲突风险** | `application.yml:53` | 多模块本地并行启动时确认端口唯一 |
 | 🟡 低 | `ClaimProjection` 使用 `@Autowired` 字段注入 | `ClaimProjection:31/34` | 改构造器注入 |
 | 🟡 低 | 完成度 50%，查勘定损/赔付计算未实现 | 全模块 | 按业务生命周期补齐 |
+| 🟡 低 | **两个 Port 接口已定义，但实现与调用方从未落地**（m10-1303 登记，2026-09-14）：`CustomerServicePort`（客户信息/受益人身份核验，javadoc 标注 CLAIM-4 受益人顺位核验）与 `DocumentServicePort`（理赔单证归档，javadoc 标注 M2 单证管理）全仓**零实现、零调用方**——`infrastructure/adapter` 下只有 `clause`/`payment`/`policy` 三子包，无 `customer`/`document` | `domain/port/customer/`、`domain/port/document/` | 🔴 **保留并登记，勿删**：属**规划占位（能力未建、接口先行）**，删了会抹掉已设计的能力契约与需求编号；**接通前勿在应用层注入**——无实现 Bean，注入即运行期 `NoSuchBeanDefinitionException`。对照：policy 域同类扫描命中的 `UnderwritingServicePort` 是「能力已有、接口冗余」（被取代的死壳）→ 已删除，两者判据相反 |
 
 ---
 
