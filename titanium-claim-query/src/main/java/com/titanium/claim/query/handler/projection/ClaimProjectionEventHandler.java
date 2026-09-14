@@ -26,6 +26,7 @@ import com.titanium.claim.query.mapper.ClaimViewMapper;
 import com.titanium.claim.query.repository.ClaimViewRepository;
 import com.titanium.claim.query.view.ClaimView;
 import com.titanium.metadata.enums.claim.ClaimEnum;
+import com.titanium.metadata.enums.claim.ClaimPhase;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -106,6 +107,10 @@ public class ClaimProjectionEventHandler {
 
         claimViewRepository.findByClaimId(event.claimId().value()).ifPresentOrElse(view -> {
             view.setStatus(event.newStatus());
+            // 核赔通过 → 阶段推进至 APPROVAL（与写侧 @EventSourcingHandler 同判据）
+            if (event.newStatus() == ClaimStatus.APPROVED) {
+                view.setPhase(ClaimPhase.APPROVAL);
+            }
             view.setUpdateTime(event.changedAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 理赔状态变更失败：未找到读模型记录 claimId={}", event.claimId()));
@@ -154,6 +159,7 @@ public class ClaimProjectionEventHandler {
                 view.setSettledAmount(event.settlement().settledAmount());
             }
             view.setPaymentStatus(ClaimEnum.PaymentStatus.PROCESSING);
+            view.setPhase(ClaimPhase.SETTLEMENT);
             view.setUpdateTime(event.settledAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 核赔结算失败：未找到读模型记录 claimId={}", event.claimId()));
@@ -172,6 +178,7 @@ public class ClaimProjectionEventHandler {
                 view.setSettledAmount(event.settlement().settledAmount());
             }
             view.setPaymentStatus(ClaimEnum.PaymentStatus.PROCESSING);
+            view.setPhase(ClaimPhase.SETTLEMENT);
             view.setUpdateTime(event.settledAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 身故给付结算失败：未找到读模型记录 claimId={}", event.claimId()));
@@ -190,6 +197,7 @@ public class ClaimProjectionEventHandler {
                 view.setSettledAmount(event.settlement().settledAmount());
             }
             view.setPaymentStatus(ClaimEnum.PaymentStatus.PROCESSING);
+            view.setPhase(ClaimPhase.SETTLEMENT);
             view.setUpdateTime(event.settledAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 全残给付结算失败：未找到读模型记录 claimId={}", event.claimId()));
@@ -227,6 +235,7 @@ public class ClaimProjectionEventHandler {
             view.setRejectionReason(event.reason() == null ? null : event.reason().getCode());
             view.setRejectedAt(event.rejectedAt());
             view.setPaymentStatus(ClaimEnum.PaymentStatus.REJECTED_CLOSED);
+            view.setPhase(ClaimPhase.REJECTED);
             view.setUpdateTime(event.rejectedAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 理赔拒赔失败：未找到读模型记录 claimId={}", event.claimId()));
@@ -244,6 +253,7 @@ public class ClaimProjectionEventHandler {
             view.setStatus(ClaimStatus.PAID);
             view.setPaymentStatus(ClaimEnum.PaymentStatus.SUCCESS);
             view.setPaymentNo(event.paymentNo());
+            view.setPhase(ClaimPhase.PAID);
             view.setUpdateTime(event.paidAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 赔付完成失败：未找到读模型记录 claimId={}", event.claimId()));

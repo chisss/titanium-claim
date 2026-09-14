@@ -436,6 +436,11 @@ public class Claim extends BaseAggregate {
     @EventSourcingHandler
     protected void on(ClaimStatusChangedEvent event) {
         this.status = event.newStatus();
+        // 核赔通过即进入 APPROVAL 阶段——通用状态通道是 APPROVED 的唯一入口
+        // （validateTransition: PROCESSING -> APPROVED），阶段自此不再回退
+        if (event.newStatus() == ClaimStatus.APPROVED) {
+            this.phase = ClaimPhase.APPROVAL;
+        }
         this.updateTime = event.changedAt();
     }
 
@@ -444,6 +449,7 @@ public class Claim extends BaseAggregate {
         this.settlement = event.settlement();
         // 结算后进入赔付中，保持 APPROVED 待支付域出账回写，不再直接置 PAID
         this.paymentStatus = ClaimEnum.PaymentStatus.PROCESSING;
+        this.phase = ClaimPhase.SETTLEMENT;
         this.updateTime = event.settledAt();
     }
 
@@ -454,6 +460,7 @@ public class Claim extends BaseAggregate {
         this.settlement = event.settlement();
         // 身故给付结算后进入赔付中，保持 APPROVED 待支付域出账回写，不再直接置 PAID
         this.paymentStatus = ClaimEnum.PaymentStatus.PROCESSING;
+        this.phase = ClaimPhase.SETTLEMENT;
         this.updateTime = event.settledAt();
     }
 
@@ -464,6 +471,7 @@ public class Claim extends BaseAggregate {
         this.settlement = event.settlement();
         // 全残给付结算后进入赔付中，保持 APPROVED 待支付域出账回写，不再直接置 PAID
         this.paymentStatus = ClaimEnum.PaymentStatus.PROCESSING;
+        this.phase = ClaimPhase.SETTLEMENT;
         this.updateTime = event.settledAt();
     }
 
@@ -473,6 +481,8 @@ public class Claim extends BaseAggregate {
         this.rejectionReason = event.reason();
         this.rejectedAt = event.rejectedAt();
         this.paymentStatus = ClaimEnum.PaymentStatus.REJECTED_CLOSED;
+        // 拒赔是终态分支：阶段直接落到 REJECTED，与 SETTLEMENT/PAID 主链互斥
+        this.phase = ClaimPhase.REJECTED;
         this.updateTime = event.rejectedAt();
     }
 
@@ -481,6 +491,7 @@ public class Claim extends BaseAggregate {
         this.status = ClaimStatus.PAID;
         this.paymentStatus = ClaimEnum.PaymentStatus.SUCCESS;
         this.paymentNo = event.paymentNo();
+        this.phase = ClaimPhase.PAID;
         this.updateTime = event.paidAt();
     }
 
