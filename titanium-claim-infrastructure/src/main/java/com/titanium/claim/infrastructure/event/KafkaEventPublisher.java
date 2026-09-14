@@ -1,5 +1,6 @@
 package com.titanium.claim.infrastructure.event;
 
+import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,7 @@ import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
 import com.titanium.claim.event.DisabilityBenefitSettledEvent;
+import com.titanium.common.kafka.KafkaPublishSupport;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,54 +26,60 @@ import lombok.extern.slf4j.Slf4j;
  * {@link DeathBenefitSettledEvent} 发布到 {@code claim-death-benefit-settled} 主题，
  * 由 policy 域防腐监听器据 policyId 派发保单终止命令（纯 Axon Saga 无法跨微服务监听别域事件）。
  * </p>
+ * <p>
+ * <b>处理组形态</b>：{@link #PROCESSING_GROUP} 以 {@code mode: tracking} + {@code dlq.enabled: true}
+ * 装配（见 application.yml）。tracking 是死信队列的前提；DLQ 让发布失败的事件由
+ * {@code DeadLetterQueueService} 定时重投而非静默丢失。
+ * </p>
  */
 @Slf4j
 @Component
 @AllArgsConstructor
+@ProcessingGroup(KafkaEventPublisher.PROCESSING_GROUP)
 public class KafkaEventPublisher {
+
+    /**
+     * 跨域出站处理组名。
+     * <p>🔴 必须与 application.yml 的 {@code axon.eventhandling.processors.<name>} 键一致：二者漂移时
+     * Axon 会为本组退回默认处理器且丢失 DLQ 配置，处理器仍存在（故不报错）但失去重投能力。</p>
+     */
+    public static final String PROCESSING_GROUP = "claim-kafka-group";
+
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     @EventHandler
     public void handle(ClaimCreatedEvent event) {
-        String eventJson = JSON.toJSONString(event);
-        kafkaTemplate.send(ClaimConstants.KafkaTopic.CLAIM_CREATED,
-                           event.claimId().toString(), eventJson);
+        publish(ClaimConstants.KafkaTopic.CLAIM_CREATED, event.claimId().toString(), event);
     }
 
     @EventHandler
     public void handle(ClaimUpdatedEvent event) {
-        String eventJson = JSON.toJSONString(event);
-        kafkaTemplate.send(ClaimConstants.KafkaTopic.CLAIM_UPDATED,
-                           event.claimId().toString(), eventJson);
+        publish(ClaimConstants.KafkaTopic.CLAIM_UPDATED, event.claimId().toString(), event);
     }
 
     @EventHandler
     public void handle(ClaimStatusChangedEvent event) {
-        String eventJson = JSON.toJSONString(event);
-        kafkaTemplate.send(ClaimConstants.KafkaTopic.CLAIM_STATUS_CHANGED,
-                           event.claimId().toString(), eventJson);
+        publish(ClaimConstants.KafkaTopic.CLAIM_STATUS_CHANGED, event.claimId().toString(), event);
     }
 
     /**
      * 发布身故给付结算事件到 Kafka，供 policy 域防腐监听器据 policyId 终止保单（给付后保单责任终结）。
+     * <p>🔴 分区键取 <b>policyId</b>（非 claimId）：消费端写单元是「保单」，须同保单保序。</p>
      */
     @EventHandler
     public void handle(DeathBenefitSettledEvent event) {
-        String eventJson = JSON.toJSONString(event);
         log.info("[身故给付-出站] 发布身故给付结算事件: claimId={}, policyId={}", event.claimId(), event.policyId());
-        kafkaTemplate.send(ClaimConstants.KafkaTopic.DEATH_BENEFIT_SETTLED,
-                           event.policyId(), eventJson);
+        publish(ClaimConstants.KafkaTopic.DEATH_BENEFIT_SETTLED, event.policyId(), event);
     }
 
     /**
      * 发布全残给付结算事件到 Kafka，供 policy 域防腐监听器据 policyId 终止保单（给付后保单责任终结，同身故）。
+     * <p>🔴 分区键取 <b>policyId</b>（非 claimId）：消费端写单元是「保单」，须同保单保序。</p>
      */
     @EventHandler
     public void handle(DisabilityBenefitSettledEvent event) {
-        String eventJson = JSON.toJSONString(event);
         log.info("[全残给付-出站] 发布全残给付结算事件: claimId={}, policyId={}", event.claimId(), event.policyId());
-        kafkaTemplate.send(ClaimConstants.KafkaTopic.DISABILITY_BENEFIT_SETTLED,
-                           event.policyId(), eventJson);
+        publish(ClaimConstants.KafkaTopic.DISABILITY_BENEFIT_SETTLED, event.policyId(), event);
     }
 
     /**
@@ -91,9 +99,25 @@ public class KafkaEventPublisher {
      */
     @EventHandler
     public void handle(ClaimRejectedEvent event) {
-        String eventJson = JSON.toJSONString(event);
         log.info("[拒赔通知-出站] 发布拒赔事件: claimId={}, reason={}",
                  event.claimId(), event.reason() == null ? null : event.reason().getCode());
-        kafkaTemplate.send(ClaimConstants.KafkaTopic.CLAIM_REJECTED, event.claimId().value(), eventJson);
+        publish(ClaimConstants.KafkaTopic.CLAIM_REJECTED, event.claimId().value(), event);
+    }
+
+    /**
+     * 序列化并发布到 Kafka，等待 broker 确认。
+     * <p>
+     * 🔴 <b>失败会抛出</b>（broker 不可达、确认超时、主题无权限）→ 抛 {@code KafkaPublishException}，
+     * 这是「失败可见 → 入 DLQ → 定时重投」链路的触发点。原先发后即弃 future 的写法会让失败静默丢失：
+     * 既不重试、也不留痕、也无从对账。
+     * </p>
+     * <p>
+     * 🔴 载荷是 fastjson2 产出的 JSON **字符串**，由 {@code StringSerializer} 逐字节透传；不得改为直接
+     * 发事件 POJO——那会改变线上时间字段线格式（详见 {@code KafkaEventPublisherTest} 的逐字断言）。
+     * </p>
+     */
+    private void publish(String topic, String key, Object payload) {
+        String eventJson = JSON.toJSONString(payload);
+        KafkaPublishSupport.awaitSent(() -> kafkaTemplate.send(topic, key, eventJson), topic, key);
     }
 }

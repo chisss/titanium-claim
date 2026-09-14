@@ -99,6 +99,17 @@ public class KafkaConfig {
 
     /**
      * Kafka生产者工厂配置
+     * <p>
+     * 🔴 <b>可靠性参数必须在此显式声明</b>：本域依赖裸 {@code spring-kafka}，Boot 的 Kafka 自动配置
+     * 不激活，yml 里的 {@code spring.kafka.producer.*} <b>没有任何消费者</b>——写了也不生效，
+     * 读配置的人却会以为已配好。故生产者参数以本方法为唯一事实来源。
+     * </p>
+     * <ul>
+     *   <li>{@code acks=all}：leader 需等全部同步副本确认，防 leader 切换时丢消息（Kafka 默认
+     *       {@code acks=1} 只等 leader 本地写入，leader 随即崩溃即丢）；</li>
+     *   <li>{@code enable.idempotence=true}：生产者幂等，重试不会产生重复消息（配合 acks=all 才可开启）；</li>
+     *   <li>{@code retries}：瞬时故障（网络抖动、leader 选举）自动重试，避免直接落入死信队列。</li>
+     * </ul>
      */
     @Bean
     public ProducerFactory<String, String> producerFactory() {
@@ -109,6 +120,9 @@ public class KafkaConfig {
         // 避免 JsonSerializer 对已是 String 的 payload 二次 JSON 编码（外层再套引号），
         // 使下游 StringDeserializer + JSONObject.parseObject 解析出转义字符串、字段取值恒 null。
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.ACKS_CONFIG, "all");
+        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        configProps.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 

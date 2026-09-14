@@ -29,6 +29,9 @@ spring:
     change-log: classpath:liquibase/changelog-master.xml
 
   # Kafka配置
+  # ⚠️ producer 段不被 Spring 消费：本域依赖裸 spring-kafka（无 spring-boot-starter-kafka），
+  #    Boot 的 Kafka 自动配置不激活，这里的 serializer 一律不生效。生产者参数的唯一事实来源是
+  #    KafkaConfig#producerFactory（已显式置 acks=all / enable.idempotence / retries）。
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -48,9 +51,22 @@ axon:
     messages: jackson
   eventhandling:
     processors:
+      # ⚠️ 死配置（m6-909 实读登记，未改）：全仓无任何处理器声明组名 claim-group，亦不存在名为
+      #    claimCreatedEventSource 的 Bean，故本段不生效。真实的读侧组名是 claim-query-group
+      #    （见 ClaimProjectionEventHandler / ClaimQueryHandler 的 @ProcessingGroup）。
       claim-group:
         mode: subscribing
         source: claimCreatedEventSource
+      # 跨域出站组：tracking + DLQ，发布失败的事件由 DeadLetterQueueService 定时重投
+      claim-kafka-group:
+        mode: tracking
+        dlq:
+          enabled: true
+          max-size: 1000
+          cache:
+            enabled: true
+            size: 2048
+        batchSize: 1
   persistence:
     event-store:
       emf-provider: axonConfiguration
@@ -86,3 +102,11 @@ management:
 multi-tenant:
   enabled: true
   default-tenant: default-tenant
+
+# 跨域出站中继：声明哪些处理组按「事件存储即 Outbox」形态装配为 tracking + DLQ，
+# 并令其首启位点取事件流末端（避免首次部署重放全量历史事件）。
+titanium:
+  axon:
+    outbound-relay:
+      groups:
+        - claim-kafka-group
