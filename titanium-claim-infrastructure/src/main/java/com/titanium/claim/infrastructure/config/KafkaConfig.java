@@ -23,6 +23,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 
+import com.titanium.claim.common.constant.ClaimConstants;
+
 /**
  * Kafka配置类
  * <p>
@@ -54,45 +56,45 @@ public class KafkaConfig {
 
     /**
      * 创建Kafka主题
+     * <p>
+     * 🔴 主题名一律引用 {@link ClaimConstants.KafkaTopic}，不再写字面量——该常量的值来自 metadata 的
+     * {@code CrossDomainTopics}（跨域主题名唯一事实来源），改主题名因此退化为单点修改；字面量则由
+     * {@code CrossDomainEventCatalogTest} 在构建期禁止。
+     * </p>
+     * <p>
+     * 原 {@code claimApprovedTopic}/{@code claimPaidTopic} 两个 Bean 建的主题自建起既无发布点也无消费者
+     * （全仓检索「claim-approved」/「claim-paid」仅命中此处建 Bean 自身），属死主题，已删除——只删常量不删
+     * Bean 等于把问题从代码挪到 broker（多出两个永不产生消息的主题），判据同 m5-903。
+     * </p>
      */
     @Bean
     public NewTopic claimCreatedTopic() {
-        return new NewTopic("claim-created", 3, (short) 1);
+        return new NewTopic(ClaimConstants.KafkaTopic.CLAIM_CREATED, 3, (short) 1);
     }
 
     @Bean
     public NewTopic claimUpdatedTopic() {
-        return new NewTopic("claim-updated", 3, (short) 1);
+        return new NewTopic(ClaimConstants.KafkaTopic.CLAIM_UPDATED, 3, (short) 1);
     }
 
     @Bean
     public NewTopic claimStatusChangedTopic() {
-        return new NewTopic("claim-status-changed", 3, (short) 1);
-    }
-
-    @Bean
-    public NewTopic claimApprovedTopic() {
-        return new NewTopic("claim-approved", 3, (short) 1);
+        return new NewTopic(ClaimConstants.KafkaTopic.CLAIM_STATUS_CHANGED, 3, (short) 1);
     }
 
     @Bean
     public NewTopic claimRejectedTopic() {
-        return new NewTopic("claim-rejected", 3, (short) 1);
-    }
-
-    @Bean
-    public NewTopic claimPaidTopic() {
-        return new NewTopic("claim-paid", 3, (short) 1);
+        return new NewTopic(ClaimConstants.KafkaTopic.CLAIM_REJECTED, 3, (short) 1);
     }
 
     @Bean
     public NewTopic paymentOrderCreatedTopic() {
-        return new NewTopic("payment-order-created", 3, (short) 1);
+        return new NewTopic(ClaimConstants.KafkaTopic.PAYMENT_ORDER_CREATED, 3, (short) 1);
     }
 
     @Bean
     public NewTopic paymentOrderPaidTopic() {
-        return new NewTopic("payment-order-paid", 3, (short) 1);
+        return new NewTopic(ClaimConstants.KafkaTopic.PAYMENT_ORDER_PAID, 3, (short) 1);
     }
 
     /**

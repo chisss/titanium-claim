@@ -1,5 +1,7 @@
 package com.titanium.claim.common.constant;
 
+import com.titanium.metadata.topic.CrossDomainTopics;
+
 public class ClaimConstants {
 
     private ClaimConstants() {
@@ -37,23 +39,23 @@ public class ClaimConstants {
 
     // Kafka主题常量
     public static class KafkaTopic {
-        public static final String CLAIM_CREATED = "claim-created";
-        public static final String CLAIM_UPDATED = "claim-updated";
-        public static final String CLAIM_STATUS_CHANGED = "claim-status-changed";
+        public static final String CLAIM_CREATED = CrossDomainTopics.CLAIM_CREATED;
+        public static final String CLAIM_UPDATED = CrossDomainTopics.CLAIM_UPDATED;
+        public static final String CLAIM_STATUS_CHANGED = CrossDomainTopics.CLAIM_STATUS_CHANGED;
         // 原 POLICY_VALIDATED（policy-validated）/ PAYMENT_PROCESSED（payment-processed）自声明起从无发布点，
         // 已删除（m5-903）。保单校验自始走 Feign 同步调用（PolicyService）而非事件；支付结果回写由
         // PAYMENT_ORDER_PAID / PAYMENT_ORDER_FAILED 两个成对闭环的主题承载。
         /** 身故给付结算主题：供 policy 域防腐监听器消费以终止保单（给付后保单责任终结） */
-        public static final String DEATH_BENEFIT_SETTLED = "claim-death-benefit-settled";
+        public static final String DEATH_BENEFIT_SETTLED = CrossDomainTopics.CLAIM_DEATH_BENEFIT_SETTLED;
         /** 全残给付结算主题：供 policy 域防腐监听器消费以终止保单（给付后保单责任终结，同身故） */
-        public static final String DISABILITY_BENEFIT_SETTLED = "claim-disability-benefit-settled";
+        public static final String DISABILITY_BENEFIT_SETTLED = CrossDomainTopics.CLAIM_DISABILITY_BENEFIT_SETTLED;
         /** 理赔拒赔主题：供 notification 域/下游消费触发拒赔通知书发送 */
-        public static final String CLAIM_REJECTED = "claim-rejected";
+        public static final String CLAIM_REJECTED = CrossDomainTopics.CLAIM_REJECTED;
         /** 理赔赔付支付单主题：供 payment 域防腐消费创建 CLAIM_PAYOUT 支付单 */
-        public static final String PAYMENT_ORDER_CREATED = "payment-order-created";
+        public static final String PAYMENT_ORDER_CREATED = CrossDomainTopics.PAYMENT_ORDER_CREATED;
         /** 支付出账成功主题：payment 域发布，claim 域防腐消费回写 CompletePaymentCommand */
-        public static final String PAYMENT_ORDER_PAID = "payment-order-paid";
+        public static final String PAYMENT_ORDER_PAID = CrossDomainTopics.PAYMENT_ORDER_PAID;
         /** 支付出账未成功主题：payment 域发布（渠道确认失败 / 人工取消），claim 域防腐消费标记赔付失败 */
-        public static final String PAYMENT_ORDER_FAILED = "payment-order-failed";
+        public static final String PAYMENT_ORDER_FAILED = CrossDomainTopics.PAYMENT_ORDER_FAILED;
     }
 }
