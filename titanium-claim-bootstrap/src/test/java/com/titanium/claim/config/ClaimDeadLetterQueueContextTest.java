@@ -14,6 +14,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.titanium.claim.bootstrap.ClaimApplication;
 import com.titanium.claim.infrastructure.event.KafkaEventPublisher;
 import com.titanium.clause.api.ClauseApi;
+import com.titanium.customer.api.CustomerApi;
 import com.titanium.policy.api.InsuranceApi;
 import com.titanium.policy.api.PolicyApi;
 import com.titanium.policy.api.PolicyCashValueApi;
@@ -75,6 +76,7 @@ import com.titanium.policy.api.ProposalApi;
         })
 @MockitoBean(types = {
         ClauseApi.class,
+        CustomerApi.class,
         InsuranceApi.class,
         PolicyApi.class,
         PolicyCashValueApi.class,

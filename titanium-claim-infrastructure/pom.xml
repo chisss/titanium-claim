@@ -71,6 +71,13 @@
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- 客户系统API（CustomerServiceAdapter 调 CustomerApi Feign，受益人身份核验 CLAIM-4） -->
+        <dependency>
+            <groupId>com.titanium</groupId>
+            <artifactId>titanium-customer-api</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- OpenFeign（跨域 Feign 客户端） -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

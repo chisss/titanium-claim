@@ -2,6 +2,7 @@ package com.titanium.claim.application.orchestration.assessment;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BenefitCalculationException;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
+import com.titanium.claim.port.customer.CustomerServicePort;
 import com.titanium.claim.port.policy.BeneficiaryInfo;
 import com.titanium.claim.port.policy.PolicyInfo;
 import com.titanium.claim.port.policy.PolicyServicePort;
@@ -22,6 +24,7 @@ import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.DeathClaimEvidence;
 import com.titanium.claim.valueobject.DisabilityClaimEvidence;
 import com.titanium.metadata.enums.claim.ClaimEnum;
+import com.titanium.metadata.enums.customer.CustomerEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -30,10 +33,11 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 理算/给付编排器（application/orchestration/assessment）
  * <p>
- * 身故给付结算的同步命令式编排（CLAIM-2 + CLAIM-4）：<b>受益人核验 → Port 取基本保额 →
- * 值对象精算分配 → 发命令</b>。受益人须登记于保单受益人主数据（拒绝未知受益人），
- * 分配顺序按主数据受益顺位（第一顺位优先）；给付金额由系统按条款精算
- * （定额给付 = 保单基本保额，来源规则 {@code BASIC_SUM_INSURED}），不再信任 HTTP 透传金额。
+ * 身故给付结算的同步命令式编排（CLAIM-2 + CLAIM-4）：<b>受益人核验（保单主数据登记 + 客户身份取证）→
+ * Port 取基本保额 → 值对象精算分配 → 发命令</b>。受益人须登记于保单受益人主数据（拒绝未知受益人），
+ * 且其客户身份在客户域须存在且状态有效（受益人不存在/已销户时阻断给付）；分配顺序按主数据受益顺位
+ * （第一顺位优先）；给付金额由系统按条款精算（定额给付 = 保单基本保额，来源规则 {@code BASIC_SUM_INSURED}），
+ * 不再信任 HTTP 透传金额。
  * 取数是跨微服务 Port 调用、发命令是编排职责，均属 application（非领域服务，§3.4.4 三无判据）。
  * </p>
  */
@@ -42,9 +46,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClaimSettlementOrchestrator {
 
-    private final PolicyServicePort policyServicePort;
-    private final TenantContext     tenantContext;
-    private final CommandGateway    commandGateway;
+    private final PolicyServicePort   policyServicePort;
+    private final CustomerServicePort customerServicePort;
+    private final TenantContext       tenantContext;
+    private final CommandGateway      commandGateway;
 
     /**
      * 身故给付结算：受益人主数据核验 → 取保单基本保额精算给付总额并按顺位份额分配 → 发命令。
@@ -73,7 +78,7 @@ public class ClaimSettlementOrchestrator {
                 : request.getShares().stream().map(share -> new ShareInput(share.getBeneficiaryId(),
                         share.getBeneficiaryName(), share.getBenefitRatio())).toList();
         List<BenefitCalculation.BeneficiaryShareSpec> specs = buildShareSpecs(request.getPolicyId(),
-                requestShares, masterBeneficiaries);
+                requestShares, masterBeneficiaries, tenantId);
 
         // 3. 值对象精算：给付总额 = 基本保额，按受益人比例分配（比例之和=1 与份额守恒由值对象守护）
         BenefitCalculation calculation = BenefitCalculation.ofBasicSumInsured(policy.basicSumInsured(), specs);
@@ -116,7 +121,7 @@ public class ClaimSettlementOrchestrator {
                 : request.getShares().stream().map(share -> new ShareInput(share.getBeneficiaryId(),
                         share.getBeneficiaryName(), share.getBenefitRatio())).toList();
         List<BenefitCalculation.BeneficiaryShareSpec> specs = buildShareSpecs(request.getPolicyId(),
-                requestShares, masterBeneficiaries);
+                requestShares, masterBeneficiaries, tenantId);
 
         // 3. 值对象精算：给付总额 = max(账户价值, 基本保额)（账户价值未取到回落基本保额），按受益人比例分配
         BenefitCalculation calculation = BenefitCalculation.ofAccountValueMax(policy.cashValue(),
@@ -136,11 +141,17 @@ public class ClaimSettlementOrchestrator {
 
     /**
      * 受益人核验与份额规格装配：请求受益人必须在主数据中（拒绝未知受益人），
+     * 其客户身份须在客户域存在且状态有效（CLAIM-4 第二道，见
+     * {@link #verifyBeneficiaryCustomers(String, List, List, String)}），
      * 并按主数据受益顺位（orderNo 升序）排序后装配精算规格。
+     * <p>
+     * 身故给付与全残给付共用本方法，两道核验对两条给付链路同时生效——不因给付形态不同而松紧不一。
+     * </p>
      */
     private List<BenefitCalculation.BeneficiaryShareSpec> buildShareSpecs(String policyId,
                                                                           List<ShareInput> requestShares,
-                                                                          List<BeneficiaryInfo> masterBeneficiaries) {
+                                                                          List<BeneficiaryInfo> masterBeneficiaries,
+                                                                          String tenantId) {
         if (requestShares == null || requestShares.isEmpty()) {
             log.error("[给付编排] 给付未指定受益人, policyId={}", policyId);
             throw new BusinessException(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID, "给付必须指定受益人");
@@ -160,6 +171,8 @@ public class ClaimSettlementOrchestrator {
                         "受益人不在保单受益人主数据中: " + share.beneficiaryId());
             }
         }
+        // 第二道核验：受益人客户身份（客户域存在且状态有效），拒绝「受益人不存在/已销户」的给付
+        verifyBeneficiaryCustomers(policyId, requestShares, masterBeneficiaries, tenantId);
         // 按主数据顺位排序（第一顺位优先分配）
         List<ShareInput> orderedShares = requestShares.stream()
                 .sorted(java.util.Comparator.comparingInt(share -> orderOf(share.beneficiaryId(),
@@ -169,6 +182,62 @@ public class ClaimSettlementOrchestrator {
                 .map(share -> new BenefitCalculation.BeneficiaryShareSpec(share.beneficiaryId(),
                         share.beneficiaryName(), share.benefitRatio()))
                 .toList();
+    }
+
+    /**
+     * 受益人客户身份核验（CLAIM-4 第二道）：逐受益人回客户域取证，客户不存在或状态非有效即阻断给付
+     * <p>
+     * 与第一道「登记于保单受益人主数据」互补：主数据证明<b>受益权成立</b>，客户域取证证明
+     * <b>受益主体真实且有效</b>（防已销户/虚构受益人冒领）。三类违约一律抛异常中断结算，
+     * <b>不得只记日志放行</b>——核验的意义就在于拦得住：
+     * <ul>
+     *   <li>受益人未关联客户主数据（customerId 缺失）→ 拒绝</li>
+     *   <li>客户主数据中不存在 → 拒绝</li>
+     *   <li>客户状态非 {@code ACTIVE}（不活跃/已暂停/已关闭）→ 拒绝</li>
+     * </ul>
+     * 客户域调用失败（Feign 异常）原样上抛，不通融为「查不到」：取不到证据即不得给付。
+     * </p>
+     */
+    private void verifyBeneficiaryCustomers(String policyId, List<ShareInput> requestShares,
+                                            List<BeneficiaryInfo> masterBeneficiaries, String tenantId) {
+        for (ShareInput share : requestShares) {
+            String customerId = customerIdOf(share.beneficiaryId(), masterBeneficiaries);
+            if (customerId == null || customerId.isBlank()) {
+                log.error("[给付编排] 受益人未关联客户主数据, policyId={}, beneficiaryId={}", policyId,
+                        share.beneficiaryId());
+                throw new BusinessException(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID,
+                        "受益人未关联客户主数据，无法核验身份: " + share.beneficiaryId());
+            }
+            CustomerServicePort.CustomerInfo customer = customerServicePort.getCustomer(customerId, tenantId);
+            if (customer == null) {
+                log.error("[给付编排] 受益人在客户域不存在, policyId={}, beneficiaryId={}, customerId={}", policyId,
+                        share.beneficiaryId(), customerId);
+                throw new BusinessException(ClaimErrorCode.CUSTOMER_NOT_FOUND,
+                        "受益人在客户主数据中不存在: " + customerId);
+            }
+            if (!CustomerEnum.CustomerStatus.ACTIVE.getCode().equals(customer.statusCode())) {
+                log.error("[给付编排] 受益人客户状态无效, policyId={}, customerId={}, status={}", policyId, customerId,
+                        customer.statusCode());
+                throw new BusinessException(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID,
+                        "受益人客户状态非有效: " + customerId + "，当前状态 " + customer.statusCode());
+            }
+        }
+    }
+
+    /**
+     * 取受益人在保单受益人主数据中登记的客户ID（未登记返回 null）
+     * <p>
+     * 中间映射会产出 null（未关联客户的受益人），须先滤掉再 {@code findFirst()}——
+     * {@code Optional.findFirst()} 遇到 null 元素直接抛 NPE，会把「未关联客户」这一业务判断变成运行期崩溃。
+     * </p>
+     */
+    private String customerIdOf(String beneficiaryId, List<BeneficiaryInfo> masterBeneficiaries) {
+        return masterBeneficiaries.stream()
+                .filter(master -> master.beneficiaryId().equals(beneficiaryId))
+                .map(BeneficiaryInfo::customerId)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     /**

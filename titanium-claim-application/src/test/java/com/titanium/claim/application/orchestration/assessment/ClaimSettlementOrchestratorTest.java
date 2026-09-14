@@ -3,7 +3,9 @@ package com.titanium.claim.application.orchestration.assessment;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,10 +32,12 @@ import com.titanium.claim.common.enums.BenefitSource;
 import com.titanium.claim.common.exception.BenefitCalculationException;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
+import com.titanium.claim.port.customer.CustomerServicePort;
 import com.titanium.claim.port.policy.BeneficiaryInfo;
 import com.titanium.claim.port.policy.PolicyInfo;
 import com.titanium.claim.port.policy.PolicyServicePort;
 import com.titanium.metadata.enums.claim.ClaimEnum;
+import com.titanium.metadata.enums.customer.CustomerEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 /**
@@ -48,9 +52,11 @@ import com.titanium.metadata.errorcode.ClaimErrorCode;
 class ClaimSettlementOrchestratorTest {
 
     @Mock
-    private PolicyServicePort policyServicePort;
+    private PolicyServicePort   policyServicePort;
     @Mock
-    private CommandGateway    commandGateway;
+    private CustomerServicePort customerServicePort;
+    @Mock
+    private CommandGateway      commandGateway;
 
     private ClaimSettlementOrchestrator orchestrator;
     private TenantContext              tenantContext;
@@ -59,7 +65,17 @@ class ClaimSettlementOrchestratorTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setCurrentTenantId("T-1");
-        orchestrator = new ClaimSettlementOrchestrator(policyServicePort, tenantContext, commandGateway);
+        orchestrator = new ClaimSettlementOrchestrator(policyServicePort, customerServicePort, tenantContext,
+                commandGateway);
+        // 默认：受益人客户均存在且状态有效（CLAIM-4 第二道核验的通过态），
+        // 各拒绝用例按 beneficiaryId 覆写为「不存在 / 状态无效」，lenient 避免未走到核验的用例报多余打桩
+        lenient().when(customerServicePort.getCustomer(anyString(), anyString()))
+                .thenAnswer(invocation -> activeCustomer(invocation.getArgument(0)));
+    }
+
+    private CustomerServicePort.CustomerInfo activeCustomer(String customerId) {
+        return new CustomerServicePort.CustomerInfo(customerId, "受益人-" + customerId,
+                CustomerEnum.CustomerStatus.ACTIVE.getCode());
     }
 
     private SettleDeathBenefitRequest validRequest() {
@@ -90,8 +106,8 @@ class ClaimSettlementOrchestratorTest {
 
     private List<BeneficiaryInfo> masterBeneficiaries() {
         return List.of(
-                new BeneficiaryInfo("B-1", "配偶", "DESIGNATED", 1, new BigDecimal("60")),
-                new BeneficiaryInfo("B-2", "子女", "DESIGNATED", 2, new BigDecimal("40")));
+                new BeneficiaryInfo("B-1", "C-1", "配偶", "DESIGNATED", 1, new BigDecimal("60")),
+                new BeneficiaryInfo("B-2", "C-2", "子女", "DESIGNATED", 2, new BigDecimal("40")));
     }
 
     @Test
@@ -119,9 +135,9 @@ class ClaimSettlementOrchestratorTest {
     void shouldReorderSharesByMasterOrder() {
         when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
         when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(List.of(
-                new BeneficiaryInfo("B-1", "配偶", "DESIGNATED", 1, new BigDecimal("40")),
-                new BeneficiaryInfo("B-2", "子女", "DESIGNATED", 2, new BigDecimal("30")),
-                new BeneficiaryInfo("B-3", "父母", "DESIGNATED", 3, new BigDecimal("30"))));
+                new BeneficiaryInfo("B-1", "C-1", "配偶", "DESIGNATED", 1, new BigDecimal("40")),
+                new BeneficiaryInfo("B-2", "C-2", "子女", "DESIGNATED", 2, new BigDecimal("30")),
+                new BeneficiaryInfo("B-3", "C-3", "父母", "DESIGNATED", 3, new BigDecimal("30"))));
         SettleDeathBenefitRequest request = validRequest();
         // 请求顺序 B-3 → B-1 → B-2（与主数据顺位 1,2,3 不一致），各 1/3
         SettleDeathBenefitRequest.BeneficiaryShare s1 = new SettleDeathBenefitRequest.BeneficiaryShare();
@@ -248,6 +264,77 @@ class ClaimSettlementOrchestratorTest {
         verify(policyServicePort).fetchBeneficiaries("POL-1", "T-1");
     }
 
+    // ==================== 受益人客户身份核验（CLAIM-4 第二道） ====================
+
+    @Test
+    @DisplayName("逐受益人回客户域取证：客户ID取自保单受益人主数据，租户ID贯穿透传")
+    void shouldVerifyBeneficiaryCustomerWithMasterCustomerId() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
+
+        orchestrator.settleDeathBenefit("CLAIM-1", validRequest());
+
+        verify(customerServicePort).getCustomer("C-1", "T-1");
+        verify(customerServicePort).getCustomer("C-2", "T-1");
+    }
+
+    @Test
+    @DisplayName("受益人在客户域不存在：抛客户不存在错误码，不发命令")
+    void shouldRejectBeneficiaryCustomerNotFound() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
+        when(customerServicePort.getCustomer("C-2", "T-1")).thenReturn(null);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
+        assertEquals(ClaimErrorCode.CUSTOMER_NOT_FOUND.getCode(), ex.getErrorCode());
+        verify(commandGateway, never()).sendAndWait(any());
+    }
+
+    @Test
+    @DisplayName("受益人客户已销户（状态非 ACTIVE）：抛受益人客户状态无效错误码，不发命令")
+    void shouldRejectInactiveBeneficiaryCustomer() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
+        when(customerServicePort.getCustomer("C-1", "T-1"))
+                .thenReturn(new CustomerServicePort.CustomerInfo("C-1", "配偶",
+                        CustomerEnum.CustomerStatus.CLOSED.getCode()));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCode());
+        verify(commandGateway, never()).sendAndWait(any());
+    }
+
+    @Test
+    @DisplayName("对端状态码缺失（status 为 null）同样视为无效，不放行")
+    void shouldRejectBeneficiaryCustomerWithMissingStatus() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
+        when(customerServicePort.getCustomer("C-1", "T-1"))
+                .thenReturn(new CustomerServicePort.CustomerInfo("C-1", "配偶", null));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCode());
+        verify(commandGateway, never()).sendAndWait(any());
+    }
+
+    @Test
+    @DisplayName("受益人未关联客户主数据（customerId 缺失）：拒绝而非跳过核验，不发命令")
+    void shouldRejectBeneficiaryWithoutCustomerId() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(List.of(
+                new BeneficiaryInfo("B-1", null, "配偶", "DESIGNATED", 1, new BigDecimal("60")),
+                new BeneficiaryInfo("B-2", "C-2", "子女", "DESIGNATED", 2, new BigDecimal("40"))));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCode());
+        verify(customerServicePort, never()).getCustomer(anyString(), anyString());
+        verify(commandGateway, never()).sendAndWait(any());
+    }
+
     // ==================== 全残给付（CLAIM-6） ====================
 
     private SettleDisabilityBenefitRequest validDisabilityRequest() {
@@ -316,6 +403,19 @@ class ClaimSettlementOrchestratorTest {
 
         assertThrows(BusinessException.class,
                 () -> orchestrator.settleDisabilityBenefit("CLAIM-1", request));
+        verify(commandGateway, never()).sendAndWait(any());
+    }
+
+    @Test
+    @DisplayName("全残给付：受益人客户身份核验同样生效（两条给付链路松紧一致）")
+    void shouldVerifyBeneficiaryCustomerForDisability() {
+        when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
+        when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
+        when(customerServicePort.getCustomer("C-1", "T-1")).thenReturn(null);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> orchestrator.settleDisabilityBenefit("CLAIM-1", validDisabilityRequest()));
+        assertEquals(ClaimErrorCode.CUSTOMER_NOT_FOUND.getCode(), ex.getErrorCode());
         verify(commandGateway, never()).sendAndWait(any());
     }
 }

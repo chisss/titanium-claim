@@ -9,7 +9,8 @@ import java.math.BigDecimal;
  * 给付分配按 {@code orderNo} 顺位排序（第一顺位优先），拒绝未知受益人。
  * </p>
  *
- * @param beneficiaryId   受益人ID
+ * @param beneficiaryId   受益人ID（保单受益人主数据内标识，非客户ID）
+ * @param customerId      受益人在客户主数据的客户ID（受益人身份核验用，见 {@code CustomerServicePort}）
  * @param beneficiaryName 受益人姓名
  * @param beneficiaryType 受益人类型（法定/指定）
  * @param orderNo         受益顺位（1 起，第一顺位优先）
@@ -17,6 +18,7 @@ import java.math.BigDecimal;
  */
 public record BeneficiaryInfo(
         String beneficiaryId,
+        String customerId,
         String beneficiaryName,
         String beneficiaryType,
         Integer orderNo,

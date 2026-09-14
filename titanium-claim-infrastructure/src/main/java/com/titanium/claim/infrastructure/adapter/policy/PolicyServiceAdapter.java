@@ -102,10 +102,11 @@ public class PolicyServiceAdapter implements PolicyServicePort {
     }
 
     /**
-     * 下游契约 → 领域受益人摘要
+     * 下游契约 → 领域受益人摘要（携带 customerId：受益人身份核验须回客户域取证）
      */
     private BeneficiaryInfo toBeneficiaryInfo(PolicyBeneficiaryResponse beneficiary) {
-        return new BeneficiaryInfo(beneficiary.getBeneficiaryId(), beneficiary.getBeneficiaryName(),
-                beneficiary.getBeneficiaryType(), beneficiary.getOrderNo(), beneficiary.getShareRatio());
+        return new BeneficiaryInfo(beneficiary.getBeneficiaryId(), beneficiary.getCustomerId(),
+                beneficiary.getBeneficiaryName(), beneficiary.getBeneficiaryType(), beneficiary.getOrderNo(),
+                beneficiary.getShareRatio());
     }
 }

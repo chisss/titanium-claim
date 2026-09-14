@@ -25,7 +25,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableJpaRepositories(basePackages = { "com.titanium.claim.query.repository",
         "com.titanium.claim.infrastructure.repository.jpa" })
 @EnableFeignClients(basePackages = { "com.titanium.claim.api.client", "com.titanium.policy.api",
-        "com.titanium.clause.api" })
+        "com.titanium.clause.api", "com.titanium.customer.api" })
 public class ClaimApplication {
 
     public static void main(String[] args) {
