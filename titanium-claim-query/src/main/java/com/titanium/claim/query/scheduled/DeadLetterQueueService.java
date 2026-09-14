@@ -14,12 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 死信队列监控 + 重试服务
  * <p>
- * 定时扫描各处理组的死信队列（DLQ），重试此前失败的事件序列。覆盖两条链路：
+ * 定时扫描各处理组的死信队列（DLQ），重试此前失败的事件序列。覆盖三条链路：
  * </p>
  * <ul>
  *   <li>{@code claim-query-group} —— 读侧投影组：投影失败的事件重放，保障读模型最终一致；</li>
  *   <li>{@code claim-kafka-group} —— 跨域出站组：Kafka 发布失败的事件重发，保障下游不掉单
- *       （含身故/全残给付结算这类驱动保单终止的关键事件，丢失即保单永不终止）。</li>
+ *       （含身故/全残给付结算这类驱动保单终止的关键事件，丢失即保单永不终止）；</li>
+ *   <li>{@code claim-settlement-group} —— 理赔赔付派发组：{@code payment-order-created} 发布失败重发
+ *       （m6-913 补入；丢失即赔案永不付款）。</li>
  * </ul>
  * <p>
  * 🔴 组名须与 application.yml 的 {@code axon.eventhandling.processors} 键及各类 {@code @ProcessingGroup}
@@ -32,9 +34,17 @@ public class DeadLetterQueueService {
 
     /**
      * 需重投的处理组清单。
-     * <p>两组职责不同、各自独立启停 DLQ，故须分别重投。</p>
+     * <p>各组职责不同、各自独立启停 DLQ，故须分别重投。</p>
+     * <ul>
+     *   <li>{@code claim-query-group} —— 读侧投影组；</li>
+     *   <li>{@code claim-kafka-group} —— 跨域出站组（KafkaEventPublisher）；</li>
+     *   <li>{@code claim-settlement-group} —— 理赔赔付派发组（ClaimSettlementPaymentSaga →
+     *       PaymentServicePort → {@code payment-order-created}），m6-913 补入，此前该组既无 DLQ 配置
+     *       也不在本清单，发布失败即静默丢失。</li>
+     * </ul>
      */
-    private static final List<String> PROCESSING_GROUPS = List.of("claim-query-group", "claim-kafka-group");
+    private static final List<String> PROCESSING_GROUPS = List.of(
+            "claim-query-group", "claim-kafka-group", "claim-settlement-group");
 
     private final EventProcessingConfiguration eventProcessingConfig;
 

@@ -67,6 +67,18 @@ axon:
             enabled: true
             size: 2048
         batchSize: 1
+      # 理赔赔付派发组（ClaimSettlementPaymentSaga）：调 PaymentServicePort 派发 payment-order-created，
+      # 同样需 tracking + DLQ —— SubscribingEventProcessor 拿不到 SequencedDeadLetterQueue，
+      # 发布失败只会上抛、无法重投（m6-913 补齐，此前该组未声明、无 DLQ）。
+      claim-settlement-group:
+        mode: tracking
+        dlq:
+          enabled: true
+          max-size: 1000
+          cache:
+            enabled: true
+            size: 2048
+        batchSize: 1
   persistence:
     event-store:
       emf-provider: axonConfiguration
@@ -110,3 +122,6 @@ titanium:
     outbound-relay:
       groups:
         - claim-kafka-group
+        # 理赔赔付派发组同为出站组：首启位点须取事件流末端，否则全新部署时会把本域全部历史
+        # 结算事件重放给 payment 域（虽有下游幂等兜底，但会产生大量无谓流量与日志）。
+        - claim-settlement-group

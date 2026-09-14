@@ -17,9 +17,19 @@ public interface PaymentServicePort {
 
     /**
      * 派发理赔赔付支付单。
+     * <p>
+     * 🔴 <b>失败会抛出</b>（broker 不可达、确认超时、主题无权限）→ 抛 {@code KafkaPublishException}，
+     * 这是「失败可见 → 入 DLQ → 定时重投」链路的触发点；调用方所在处理组须为 tracking + DLQ
+     * （{@code claim-settlement-group}）。实现见 {@code PaymentServiceAdapter}（m6-913）。
+     * </p>
+     * <p>
+     * 本端口为 <b>at-least-once</b>：Kafka 确认超时后重投可能造成重复投递，重复由 payment 域
+     * 双层幂等兜底（在途查重 + {@code CP-} 确定性聚合 ID），不会重复出款。
+     * </p>
      *
      * @param instruction 赔付指令（金额/给付方式/收款账户/受益人分账明细）
-     * @return 消息派发结果标识（Kafka 场景返回主题分区偏移或 null，不作为业务单号）
+     * @return 派发标识，Kafka 场景下即入参 {@code claimId}（**不是**消息偏移，也**不是**支付单号；
+     *         支付单号由 payment 域按 {@code CP- + claimId} 确定性派生）
      */
     String createClaimPayout(ClaimPayoutInstruction instruction);
 
