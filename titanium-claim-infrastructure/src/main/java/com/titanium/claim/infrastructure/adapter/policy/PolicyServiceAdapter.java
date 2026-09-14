@@ -13,9 +13,9 @@ import com.titanium.claim.port.policy.PolicyServicePort;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 import com.titanium.metadata.response.ApiResponse;
 import com.titanium.policy.api.PolicyApi;
-import com.titanium.policy.api.response.PolicyBeneficiaryResponse;
-import com.titanium.policy.api.response.PolicyClauseResponse;
-import com.titanium.policy.api.response.PolicyResponse;
+import com.titanium.policy.api.response.policy.PolicyBeneficiaryResponse;
+import com.titanium.policy.api.response.policy.PolicyClauseResponse;
+import com.titanium.policy.api.response.policy.PolicyResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
