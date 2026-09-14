@@ -1,10 +1,11 @@
 # Titanium 保险核心系统 - 理赔域(titanium-claim)模块开发规约
 
 > **版本**: V1.0
-> **最后更新**: 2026-06-23
+> **最后更新**: 2026-09-14（m14-1705 接通 `DocumentServicePort` → document 理赔结案出单证）
 > **模块类型**: DDD+CQRS+事件驱动的理赔领域微服务
 > **完成度**: 50%（开发中）
 > **上级规约**: 继承根目录 [CLAUDE.md](../CLAUDE.md) 与 [AGENTS.md](../AGENTS.md)
+> ⚠️ **本文件除 §七 末两行外，其余章节尚未按实读刷新**（如「缺独立 query 子模块」「包根为 `com.titanium.claim`」「状态流转无合法性矩阵」「`ddl-auto=update`」等记载均与现行代码不符），以根 `CLAUDE.md` 与代码实况为准，待专项刷新。
 
 ---
 
@@ -173,7 +174,8 @@ mvn spring-boot:run
 | 🟡 低 | **端口 8083 冲突风险** | `application.yml:53` | 多模块本地并行启动时确认端口唯一 |
 | 🟡 低 | `ClaimProjection` 使用 `@Autowired` 字段注入 | `ClaimProjection:31/34` | 改构造器注入 |
 | 🟡 低 | 完成度 50%，查勘定损/赔付计算未实现 | 全模块 | 按业务生命周期补齐 |
-| 🟡 低 | **两个 Port 接口已定义，但实现与调用方从未落地**（m10-1303 登记，2026-09-14）：`CustomerServicePort`（客户信息/受益人身份核验，javadoc 标注 CLAIM-4 受益人顺位核验）与 `DocumentServicePort`（理赔单证归档，javadoc 标注 M2 单证管理）全仓**零实现、零调用方**——`infrastructure/adapter` 下只有 `clause`/`payment`/`policy` 三子包，无 `customer`/`document` | `domain/port/customer/`、`domain/port/document/` | 🔴 **保留并登记，勿删**：属**规划占位（能力未建、接口先行）**，删了会抹掉已设计的能力契约与需求编号；**接通前勿在应用层注入**——无实现 Bean，注入即运行期 `NoSuchBeanDefinitionException`。对照：policy 域同类扫描命中的 `UnderwritingServicePort` 是「能力已有、接口冗余」（被取代的死壳）→ 已删除，两者判据相反 |
+| 🟡 低 | **`CustomerServicePort` 已定义但实现与调用方从未落地**（m10-1303 登记，2026-09-14 m14-1705 复核）：`CustomerServicePort`（客户信息/受益人身份核验，javadoc 标注 CLAIM-4 受益人顺位核验）全仓**零实现、零调用方**——`infrastructure/adapter` 下只有 `clause`/`document`/`payment`/`policy` 四子包，无 `customer` | `domain/port/customer/` | 🔴 **保留并登记，勿删**：属**规划占位（能力未建、接口先行）**，删了会抹掉已设计的能力契约与需求编号；**接通前勿在应用层注入**——无实现 Bean，注入即运行期 `NoSuchBeanDefinitionException`。对照：policy 域同类扫描命中的 `UnderwritingServicePort` 是「能力已有、接口冗余」（被取代的死壳）→ 已删除，两者判据相反 |
+| ✅ 已闭合 | ~~`DocumentServicePort`（理赔单证归档，javadoc 标注 M2 单证管理）零实现零调用~~ → **已全链接通（m14-1705）**：四路结案事实（普通赔付 / 身故 / 全残 / 拒赔）经 `ClaimClosureDocumentSaga`（`application/saga`）→ `DocumentServiceAdapter`（`infrastructure/adapter/document`）发 `claim-closed` → document 域防腐消费后渲染落盘并建档直达 `GENERATED`。端口契约同步瘦身（4 字段 → 7 字段：`docTypeCode`/`fileName` 归 document 自决，`contentPath` 在 Kafka 路径下语义不成立） | `domain/port/document/` | 主题登记见 [跨域事件目录 §六.18](../docs/技术文档/跨域事件目录-2026-09.md)。后续若新增结案形态，**须同批更新目录客户端列**，否则 `CrossDomainEventCatalogTest` 在其后某次全量构建报红 |
 
 ---
 

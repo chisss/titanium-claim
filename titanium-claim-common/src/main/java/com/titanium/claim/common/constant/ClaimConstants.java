@@ -51,6 +51,8 @@ public class ClaimConstants {
         public static final String DISABILITY_BENEFIT_SETTLED = CrossDomainTopics.CLAIM_DISABILITY_BENEFIT_SETTLED;
         /** 理赔拒赔主题：notification 域防腐消费后渲染拒赔通知书投递（2026-09-14 m6-905 已闭环） */
         public static final String CLAIM_REJECTED = CrossDomainTopics.CLAIM_REJECTED;
+        /** 理赔结案主题：document 域防腐消费后渲染、落盘并归档结案单证（赔付结算 / 拒赔结案共用） */
+        public static final String CLAIM_CLOSED = CrossDomainTopics.CLAIM_CLOSED;
         /** 理赔赔付支付单主题：供 payment 域防腐消费创建 CLAIM_PAYOUT 支付单 */
         public static final String PAYMENT_ORDER_CREATED = CrossDomainTopics.PAYMENT_ORDER_CREATED;
         /** 支付出账成功主题：payment 域发布，claim 域防腐消费回写 CompletePaymentCommand */
