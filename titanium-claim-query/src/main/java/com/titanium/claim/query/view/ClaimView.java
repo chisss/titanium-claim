@@ -117,4 +117,8 @@ public class ClaimView extends BaseView {
     /** 反欺诈警示与统计口径标记（AlertType code 逗号分隔，快赔通道判据的数据来源） */
     @Column(name = "alert_flags", length = 200)
     private String              alertFlags;
+
+    /** 按定损核定的应赔金额（=（定损总金额−残值）×责任比例；未定损为 null，不得以 0 冒充） */
+    @Column(name = "assessed_payable_amount", precision = 18, scale = 2)
+    private BigDecimal          assessedPayableAmount;
 }

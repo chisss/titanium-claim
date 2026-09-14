@@ -141,6 +141,9 @@ public class ClaimProjectionEventHandler {
 
         claimViewRepository.findByClaimId(event.claimId().value()).ifPresentOrElse(view -> {
             view.setPhase(event.newPhase());
+            view.setAssessedPayableAmount(event.lossAssessment() == null
+                    ? null
+                    : event.lossAssessment().payableAmount());
             view.setUpdateTime(event.assessedAt());
             claimViewRepository.save(view);
         }, () -> log.warn("[读模型投影] 定损提交失败：未找到读模型记录 claimId={}", event.claimId()));

@@ -137,6 +137,10 @@ public class ClaimCommandService {
 
     /**
      * 核赔结算：提交核赔结论，理赔流转至 APPROVED 并进入赔付中（给付方式 code 转枚举）。
+     * <p>
+     * 🔴 核定赔付金额的来源由聚合核定（{@code Claim.handle(SettleClaimCommand)}）：已定损案件取定损核定额，
+     * 调用方传空即取核定额、传值必须与核定额相等；未定损案件必须传值。本方法**不做金额判断**，只透传。
+     * </p>
      */
     @Transactional
     public void settleClaim(String claimId, SettleClaimRequest request) {

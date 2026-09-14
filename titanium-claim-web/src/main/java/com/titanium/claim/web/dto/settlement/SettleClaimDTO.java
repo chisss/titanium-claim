@@ -3,7 +3,6 @@ package com.titanium.claim.web.dto.settlement;
 import java.math.BigDecimal;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -14,8 +13,13 @@ import lombok.Data;
  */
 @Data
 public class SettleClaimDTO {
-    /** 核定赔付金额 */
-    @NotNull(message = "核定赔付金额不能为空")
+    /**
+     * 核定赔付金额
+     * <p>
+     * 🔴 已定损案件可留空——金额取定损核定额（=（定损总金额−残值）×责任比例）；若填写则必须与定损核定额相等，
+     * 人工透传改数将被拒绝。未定损案件必填。
+     * </p>
+     */
     private BigDecimal settledAmount;
     /** 给付方式：BANK_TRANSFER/CASH/CHECK/OFFSET_PREMIUM */
     @NotBlank(message = "给付方式不能为空")

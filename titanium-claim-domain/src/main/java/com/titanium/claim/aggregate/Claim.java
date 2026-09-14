@@ -1,5 +1,6 @@
 package com.titanium.claim.aggregate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,7 @@ import com.titanium.claim.event.ClaimUpdatedEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
 import com.titanium.claim.event.DisabilityBenefitSettledEvent;
 import com.titanium.claim.exception.ClaimPhaseTransitionException;
+import com.titanium.claim.exception.ClaimSettlementAmountException;
 import com.titanium.claim.exception.ClaimStatusPreconditionException;
 import com.titanium.claim.exception.ClaimStatusTransitionException;
 import com.titanium.claim.valueobject.AlertFlag;
@@ -186,6 +188,10 @@ public class Claim extends BaseAggregate {
     /**
      * 核赔结算：仅 APPROVED 状态可结算，记录赔付结论并进入赔付中，
      * 待支付域出账成功回写 {@link CompletePaymentCommand} 后流转至 PAID。
+     * <p>
+     * 核定赔付金额经 {@link #resolveSettledAmount(ClaimId, BigDecimal)} 核定——定损在案的案件以定损核定额为准，
+     * 调用方不得透传改数（详见 {@link SettleClaimCommand} 的来源规则）。
+     * </p>
      */
     @CommandHandler
     public void handle(SettleClaimCommand command) {
@@ -196,10 +202,48 @@ public class Claim extends BaseAggregate {
             // 结算后状态保持 APPROVED 待支付域回写，须以赔付状态挡住重复结算
             throw ClaimStatusPreconditionException.alreadySettled(command.claimId(), "核赔结算");
         }
-        ClaimSettlement claimSettlement = ClaimSettlement.of(command.settledAmount(), command.payoutMethod(),
+        BigDecimal settledAmount = resolveSettledAmount(command.claimId(), command.settledAmount());
+        ClaimSettlement claimSettlement = ClaimSettlement.of(settledAmount, command.payoutMethod(),
                 command.payeeAccount(), command.conclusion());
         AggregateLifecycle.apply(new ClaimSettledEvent(command.claimId(), this.policyId.value(), claimSettlement,
                 LocalDateTime.now(), this.tenantId));
+    }
+
+    /**
+     * 核定赔付金额：定损在案的案件取定损核定额（唯一权威来源），未定损案件取调用方指定金额。
+     *
+     * @param claimId            理赔案件ID
+     * @param providedAmount     调用方指定金额（可为 null）
+     * @return 核定后的赔付金额
+     */
+    private BigDecimal resolveSettledAmount(ClaimId claimId, BigDecimal providedAmount) {
+        if (lossAssessment == null) {
+            if (providedAmount == null) {
+                throw ClaimSettlementAmountException.required(claimId);
+            }
+            return providedAmount;
+        }
+        BigDecimal assessedAmount = lossAssessment.payableAmount();
+        if (assessedAmount == null || assessedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw ClaimSettlementAmountException.nonPositive(claimId, assessedAmount);
+        }
+        if (providedAmount != null && providedAmount.compareTo(assessedAmount) != 0) {
+            throw ClaimSettlementAmountException.mismatch(claimId, assessedAmount, providedAmount);
+        }
+        return assessedAmount;
+    }
+
+    /**
+     * 按定损核定的应赔金额（=（定损总金额−残值）×责任比例）。
+     * <p>
+     * 供结案环节带出「按定损应赔金额」——未定损案件返回 {@code null}，由调用方区分「有定损依据」与「无依据」，
+     * 不得以 0 冒充。
+     * </p>
+     *
+     * @return 定损核定额；未定损时为 {@code null}
+     */
+    public BigDecimal assessedPayableAmount() {
+        return lossAssessment == null ? null : lossAssessment.payableAmount();
     }
 
     /**

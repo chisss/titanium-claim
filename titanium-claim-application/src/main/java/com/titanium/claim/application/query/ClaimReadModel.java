@@ -33,6 +33,8 @@ public class ClaimReadModel {
     private String        phase;
     /** 核定赔付金额（结算后填充） */
     private BigDecimal    settledAmount;
+    /** 按定损核定的应赔金额（未定损为 null，不得以 0 冒充） */
+    private BigDecimal    assessedPayableAmount;
     /** 赔付状态码（枚举收敛为 code） */
     private String        paymentStatus;
     /** 赔付状态中文描述 */

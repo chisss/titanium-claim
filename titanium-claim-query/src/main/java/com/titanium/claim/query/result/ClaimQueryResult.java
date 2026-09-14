@@ -25,6 +25,7 @@ public class ClaimQueryResult {
     private ClaimStatus         status;
     private ClaimPhase          phase;
     private BigDecimal          settledAmount;
+    private BigDecimal          assessedPayableAmount;
     private ClaimEnum.PaymentStatus paymentStatus;
     private String              paymentNo;
     private String              rejectionReason;

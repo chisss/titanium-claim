@@ -72,6 +72,11 @@ public class ClaimResponseVO {
     private BigDecimal settledAmount;
 
     /**
+     * 按定损核定的应赔金额（=（定损总金额−残值）×责任比例）；未定损案件为 null，结案界面据此带出建议金额
+     */
+    private BigDecimal assessedPayableAmount;
+
+    /**
      * 赔付状态码（PROCESSING/SUCCESS/FAILED/CLOSED/REJECTED_CLOSED，结算后填充）
      */
     private String paymentStatus;
