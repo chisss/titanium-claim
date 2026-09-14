@@ -128,11 +128,16 @@ class PaymentResultConsumerTest {
      * 支付域 {@code PaymentOrderFailedMessage} 经 fastjson2 序列化后的载荷形态。
      * {@code occurredAt} 按对端实际形态（空格分隔，非 ISO 的 {@code T} 分隔）书写——
      * 入站 record 若按 ISO 认知接收，此用例会直接反序列化失败。
+     * <p>
+     * 🔴 {@code tenantId} 按对端新增后的实际载荷书写（m6-901 补齐 D16 判据）：本域入站 record
+     * **刻意不镜像该字段**（只承接本域用到的字段，与成功路径同做法），故本用例同时证明
+     * 「对端新增字段不会让本域反序列化失败」——新增可空字段的向后兼容由此锁死。
+     * </p>
      */
     private String failedPayload(String businessId, String businessType) {
         return """
-                {"paymentNo":"PAY-NO-001","businessId":"%s","businessType":"%s","resultType":"FAILED",
-                 "reason":"渠道返回账户异常","occurredAt":"2026-09-11 10:00:00"}
+                {"paymentNo":"PAY-NO-001","businessId":"%s","businessType":"%s","tenantId":"TENANT-001",
+                 "resultType":"FAILED","reason":"渠道返回账户异常","occurredAt":"2026-09-11 10:00:00"}
                 """.formatted(businessId, businessType);
     }
 }

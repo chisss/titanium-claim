@@ -10,7 +10,10 @@ import java.time.LocalDateTime;
  * {@code resultType}="FAILED"/"CANCELLED"），跨域转换在本域消费端完成。
  * </p>
  * <p>
- * 只镜像本域用到的字段（与 {@link PaymentOrderPaidMessage} 同做法），对端载荷的其余审计字段不透传。
+ * 只镜像本域用到的字段（与 {@link PaymentOrderPaidMessage} 同做法），对端载荷的其余审计字段不透传：
+ * 对端自 m6-901 起在载荷中新增 {@code tenantId}，本 record 刻意不承接——本域按 {@code businessId}
+ * （claimId）定位赔案，聚合自身的事件流已带租户，回写链路无需该字段。此不承接不影响反序列化
+ * （fastjson2 忽略未知键），已由 {@code PaymentResultConsumerTest} 按含该字段的真实载荷锁死。
  * </p>
  */
 public record PaymentOrderFailedMessage(
