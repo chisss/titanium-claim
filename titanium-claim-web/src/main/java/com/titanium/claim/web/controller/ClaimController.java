@@ -29,6 +29,7 @@ import com.titanium.claim.web.dto.maintenance.UpdateClaimDTO;
 import com.titanium.claim.web.dto.settlement.SettleClaimDTO;
 import com.titanium.claim.web.dto.settlement.SettleDeathBenefitDTO;
 import com.titanium.claim.web.dto.settlement.SettleDisabilityBenefitDTO;
+import com.titanium.claim.web.dto.settlement.SettleReimbursementDTO;
 import com.titanium.claim.web.mapper.ClaimStatisticsWebMapper;
 import com.titanium.claim.web.mapper.ClaimWebMapper;
 import com.titanium.claim.web.response.ClaimResponseVO;
@@ -282,5 +283,20 @@ public class ClaimController {
             @RequestBody @Valid ReimbursementAdjustmentDTO dto) {
         return ResponseEntity.ok(claimWebMapper.toReimbursementVO(
                 reimbursementAdjustmentQueryService.adjust(claimWebMapper.toReimbursementRequest(dto))));
+    }
+
+    /**
+     * 报销理算结算（健康险/宠物险，案件须已核赔通过 APPROVED）
+     * <p>
+     * 对已核赔通过的报销类案件<b>按理算金额结算</b>：给付金额由系统按赔付规则（免赔额/比例/单次限额）
+     * 与医院网络台账精算，不接受前端透传金额。与 {@code /reimbursement-adjustment} 的分工——
+     * 那条只试算、零副作用；本条落结算、发 {@code SettleClaimCommand}。
+     * </p>
+     */
+    @PostMapping("/{claimId}/reimbursement-settlement")
+    public ResponseEntity<Void> settleReimbursement(@PathVariable("claimId") String claimId,
+                                                    @RequestBody @Valid SettleReimbursementDTO requestVO) {
+        claimCommandService.settleReimbursement(claimId, claimWebMapper.toSettleReimbursementRequest(requestVO));
+        return ResponseEntity.noContent().build();
     }
 }

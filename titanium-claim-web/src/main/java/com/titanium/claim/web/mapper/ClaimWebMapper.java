@@ -16,6 +16,7 @@ import com.titanium.claim.application.model.maintenance.UpdateClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest;
 import com.titanium.claim.application.model.settlement.SettleDisabilityBenefitRequest;
+import com.titanium.claim.application.model.settlement.SettleReimbursementRequest;
 import com.titanium.claim.application.query.ClaimReadModel;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.enums.config.SettlementChannel;
@@ -31,6 +32,7 @@ import com.titanium.claim.web.dto.maintenance.UpdateClaimDTO;
 import com.titanium.claim.web.dto.settlement.SettleClaimDTO;
 import com.titanium.claim.web.dto.settlement.SettleDeathBenefitDTO;
 import com.titanium.claim.web.dto.settlement.SettleDisabilityBenefitDTO;
+import com.titanium.claim.web.dto.settlement.SettleReimbursementDTO;
 import com.titanium.claim.web.response.ClaimResponseVO;
 import com.titanium.claim.web.response.assessment.ReimbursementAdjustmentVO;
 import com.titanium.metadata.enums.claim.ClaimEnum;
@@ -85,6 +87,11 @@ public interface ClaimWebMapper {
      * 后台全残给付结算 DTO → 应用层全残给付结算入参（寿险/意外险专属，CLAIM-6）
      */
     SettleDisabilityBenefitRequest toDisabilityBenefitRequest(SettleDisabilityBenefitDTO dto);
+
+    /**
+     * 后台报销理算结算 DTO → 应用层报销结算入参（健康险/宠物险，金额由系统精算、无金额字段）
+     */
+    SettleReimbursementRequest toSettleReimbursementRequest(SettleReimbursementDTO dto);
 
     /**
      * 后台警示标记 DTO → 应用层警示标记入参（手动打标：人工复核/规则引擎回写）
@@ -147,6 +154,12 @@ public interface ClaimWebMapper {
      */
     SettleDisabilityBenefitRequest toDisabilityBenefitRequest(
             com.titanium.claim.api.request.settlement.SettleDisabilityBenefitRequest request);
+
+    /**
+     * 对外报销理算结算请求 → 应用层报销结算入参（api 层同名类型以全限定名区分）
+     */
+    SettleReimbursementRequest toSettleReimbursementRequest(
+            com.titanium.claim.api.request.settlement.SettleReimbursementRequest request);
 
     /**
      * 对外警示标记请求 → 应用层警示标记入参（api 层同名类型以全限定名区分）

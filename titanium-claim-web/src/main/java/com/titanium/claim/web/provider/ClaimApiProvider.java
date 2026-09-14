@@ -14,6 +14,7 @@ import com.titanium.claim.api.request.maintenance.RejectClaimRequest;
 import com.titanium.claim.api.request.settlement.SettleClaimRequest;
 import com.titanium.claim.api.request.settlement.SettleDeathBenefitRequest;
 import com.titanium.claim.api.request.settlement.SettleDisabilityBenefitRequest;
+import com.titanium.claim.api.request.settlement.SettleReimbursementRequest;
 import com.titanium.claim.api.response.ClaimResponse;
 import com.titanium.claim.application.command.ClaimCommandService;
 import com.titanium.claim.application.query.ClaimAppQueryService;
@@ -138,6 +139,14 @@ public class ClaimApiProvider implements ClaimApi {
     @Override
     public ApiResponse<Void> quickPay(String claimId, String tenantId) {
         claimCommandService.quickPay(claimId);
+        return ApiResponse.success();
+    }
+
+    @Override
+    public ApiResponse<Void> settleReimbursement(String claimId, SettleReimbursementRequest requestDTO,
+                                                 String tenantId) {
+        claimCommandService.settleReimbursement(claimId,
+                claimWebMapper.toSettleReimbursementRequest(requestDTO));
         return ApiResponse.success();
     }
 

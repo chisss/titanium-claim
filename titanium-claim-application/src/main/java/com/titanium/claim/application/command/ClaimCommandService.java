@@ -18,9 +18,11 @@ import com.titanium.claim.application.model.maintenance.UpdateClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleClaimRequest;
 import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest;
 import com.titanium.claim.application.model.settlement.SettleDisabilityBenefitRequest;
+import com.titanium.claim.application.model.settlement.SettleReimbursementRequest;
 import com.titanium.claim.application.orchestration.assessment.ClaimAlertOrchestrator;
 import com.titanium.claim.application.orchestration.assessment.ClaimSettlementOrchestrator;
 import com.titanium.claim.application.orchestration.assessment.QuickPayOrchestrator;
+import com.titanium.claim.application.orchestration.assessment.ReimbursementSettlementOrchestrator;
 import com.titanium.claim.application.orchestration.issuance.ClaimRegistrationOrchestrator;
 import com.titanium.claim.command.ChangeClaimStatusCommand;
 import com.titanium.claim.command.CloseClaimCommand;
@@ -64,6 +66,7 @@ public class ClaimCommandService {
     private final ClaimSettlementOrchestrator   claimSettlementOrchestrator;
     private final ClaimAlertOrchestrator        claimAlertOrchestrator;
     private final QuickPayOrchestrator           quickPayOrchestrator;
+    private final ReimbursementSettlementOrchestrator reimbursementSettlementOrchestrator;
     private final TenantContext                 tenantContext;
 
     /**
@@ -218,5 +221,18 @@ public class ClaimCommandService {
     @Transactional
     public void quickPay(String claimId) {
         quickPayOrchestrator.executeQuickPay(claimId, tenantContext.getCurrentTenantId());
+    }
+
+    /**
+     * 报销理算结算（健康险/宠物险）：委托 {@link ReimbursementSettlementOrchestrator} 按理算金额结算。
+     * <p>
+     * 赔付金额由领域服务按赔付规则与医院台账精算（不接收前端透传金额），本门面只透传理算四要素与给付参数；
+     * 案件须已核赔通过（APPROVED），前置校验在聚合。核赔通过不在此自动推进——它是人的决定，
+     * 有独立入口与合法流转守卫（与快赔自动通道的差异见编排器 javadoc）。
+     * </p>
+     */
+    @Transactional
+    public void settleReimbursement(String claimId, SettleReimbursementRequest request) {
+        reimbursementSettlementOrchestrator.settle(claimId, request);
     }
 }

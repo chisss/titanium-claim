@@ -19,6 +19,7 @@ import com.titanium.claim.api.request.maintenance.RejectClaimRequest;
 import com.titanium.claim.api.request.settlement.SettleClaimRequest;
 import com.titanium.claim.api.request.settlement.SettleDeathBenefitRequest;
 import com.titanium.claim.api.request.settlement.SettleDisabilityBenefitRequest;
+import com.titanium.claim.api.request.settlement.SettleReimbursementRequest;
 import com.titanium.claim.api.response.ClaimResponse;
 import com.titanium.metadata.response.ApiResponse;
 
@@ -231,6 +232,23 @@ public interface ClaimApi {
     @PostMapping("/{claimId}/quick-pay")
     ApiResponse<Void> quickPay(@PathVariable("claimId") String claimId,
                                @RequestHeader("X-Tenant-Id") String tenantId);
+
+    /**
+     * 报销理算结算（健康险/宠物险，案件须已核赔通过 APPROVED）
+     * <p>
+     * 按赔付规则（免赔额/比例/单次限额）与医院网络台账精算给付金额后结算，<b>不接受调用方透传金额</b>。
+     * 与 {@link #settleClaim} 的分工：那条由调用方指定金额（或交聚合按定损核定额裁决），本条由系统算。
+     * </p>
+     *
+     * @param claimId 理赔案件ID
+     * @param requestDTO 报销理算结算请求（理算四要素 + 给付方式/收款账户/结论）
+     * @param tenantId 租户ID
+     * @return 空响应
+     */
+    @PostMapping("/{claimId}/reimbursement-settlement")
+    ApiResponse<Void> settleReimbursement(@PathVariable("claimId") String claimId,
+                                          @RequestBody @Valid SettleReimbursementRequest requestDTO,
+                                          @RequestHeader("X-Tenant-Id") String tenantId);
 
     /**
      * 拒赔（核赔否决，PENDING/PROCESSING → REJECTED）

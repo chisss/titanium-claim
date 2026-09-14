@@ -1,5 +1,6 @@
 package com.titanium.claim.application.orchestration.assessment;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -67,14 +68,32 @@ public class QuickPayOrchestrator {
             throw new BusinessException(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET,
                     "快赔判据不满足: 存在欺诈警示标记");
         }
-        // 判据全过：变更状态 APPROVED → 核赔结算 → 打快赔统计标记（金额以读模型核定金额为准）
+        // 判据全过：变更状态 APPROVED → 核赔结算 → 打快赔统计标记
         commandGateway.sendAndWait(new ChangeClaimStatusCommand(ClaimId.of(claimId), ClaimStatus.APPROVED,
                 ClaimConstants.QUICK_PAY_CONCLUSION));
-        commandGateway.sendAndWait(new SettleClaimCommand(ClaimId.of(claimId), view.getClaimAmount(),
+        BigDecimal providedAmount = resolveProvidedAmount(view);
+        commandGateway.sendAndWait(new SettleClaimCommand(ClaimId.of(claimId), providedAmount,
                 ClaimEnum.PayoutMethod.BANK_TRANSFER, null, ClaimConstants.QUICK_PAY_CONCLUSION));
         commandGateway.sendAndWait(new FlagClaimAlertCommand(ClaimId.of(claimId),
                 List.of(new AlertFlag(AlertType.QUICK_PAY, ClaimConstants.AlertRule.RULE_QUICK_PAY))));
-        log.info("[快赔编排] 自动核赔完成, claimId={}, amount={}", claimId, view.getClaimAmount());
+        log.info("[快赔编排] 自动核赔完成, claimId={}, assessed={}, provided={}", claimId,
+                view.getAssessedPayableAmount(), providedAmount);
+    }
+
+    /**
+     * 结算金额来源：定损在案的案件<b>不传值</b>（交聚合以定损核定额裁决），未定损案件传读模型申报金额。
+     * <p>
+     * 🔴 <b>为何定损在案不传值（m16-1905）</b>：聚合 {@code Claim.resolveSettledAmount} 对已定损案件
+     * <b>只认</b>定损核定额（{@code =（定损总金额−残值）×责任比例}）——调用方传值不等即拒。原快赔实现
+     * 无条件透传读模型 {@code claimAmount}（案件<b>申报</b>金额），对已定损案件必然与核定额不等 ⇒
+     * 结算被拒、快赔在已定损场景下断链（而这恰是快赔最常见的自动场景）。
+     * 改判据为「定损在案即不指定金额」后，金额口径与聚合判定同源：核定额由聚合自己算、自己用，
+     * 快赔不再产生第二套金额来源。读模型滞后（定损事件尚未投影）时退化为传申报金额、由聚合拒绝——
+     * 失败关闭，不会错额支付。
+     * </p>
+     */
+    private BigDecimal resolveProvidedAmount(ClaimView view) {
+        return view.getAssessedPayableAmount() == null ? view.getClaimAmount() : null;
     }
 
     /**

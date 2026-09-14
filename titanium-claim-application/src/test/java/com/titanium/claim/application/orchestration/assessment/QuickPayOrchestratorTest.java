@@ -1,6 +1,7 @@
 package com.titanium.claim.application.orchestration.assessment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -74,6 +75,13 @@ class QuickPayOrchestratorTest {
         return view;
     }
 
+    /** 已定损案件的读模型形态：多一个按定损核定的应赔金额（= 聚合 {@code assessedPayableAmount()}） */
+    private ClaimView assessedView(BigDecimal claimAmount, BigDecimal assessedPayableAmount) {
+        ClaimView view = view("PROCESSING", claimAmount, null);
+        view.setAssessedPayableAmount(assessedPayableAmount);
+        return view;
+    }
+
     private ClaimQuickPayRule enabledRule() {
         return ClaimQuickPayRule.create("RULE-1", TENANT_ID, "MEDICAL", true, new BigDecimal("5000"));
     }
@@ -97,11 +105,29 @@ class QuickPayOrchestratorTest {
         inOrder.verify(commandGateway).sendAndWait(settleCaptor.capture());
         inOrder.verify(commandGateway).sendAndWait(flagCaptor.capture());
         assertEquals(ClaimStatus.APPROVED, statusCaptor.getValue().newStatus());
+        // 未定损：调用方须给金额，取读模型申报金额（聚合无定损依据时用该值）
         assertEquals(0, settleCaptor.getValue().settledAmount().compareTo(new BigDecimal("3000")));
         assertEquals(ClaimEnum.PayoutMethod.BANK_TRANSFER, settleCaptor.getValue().payoutMethod());
         assertEquals(ClaimConstants.QUICK_PAY_CONCLUSION, settleCaptor.getValue().conclusion());
         assertEquals(AlertType.QUICK_PAY, flagCaptor.getValue().flags().get(0).type());
         assertEquals(ClaimConstants.AlertRule.RULE_QUICK_PAY, flagCaptor.getValue().flags().get(0).ruleCode());
+    }
+
+    @Test
+    @DisplayName("🔴 已定损案件 → 结算不传金额：交聚合以定损核定额裁决，不透传申报金额")
+    void shouldNotProvideAmountWhenLossAssessed() {
+        // 申报金额 3000 ≠ 定损核定额 2400：原实现透传 3000 会被聚合判定「与核定额不等」而拒绝
+        when(claimViewRepository.findByClaimIdAndTenantId(CLAIM_ID, TENANT_ID))
+                .thenReturn(Optional.of(assessedView(new BigDecimal("3000"), new BigDecimal("2400"))));
+        when(quickPayRuleRepository.findByBusinessKey(TENANT_ID, "MEDICAL"))
+                .thenReturn(Optional.of(enabledRule()));
+
+        orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID);
+
+        ArgumentCaptor<SettleClaimCommand> settleCaptor = ArgumentCaptor.forClass(SettleClaimCommand.class);
+        verify(commandGateway, Mockito.atLeastOnce()).sendAndWait(settleCaptor.capture());
+        assertNull(settleCaptor.getValue().settledAmount(),
+                "已定损案件不得指定金额——金额权威在聚合（定损核定额），透传申报金额会因不等而被拒、令快赔断链");
     }
 
     @Test
