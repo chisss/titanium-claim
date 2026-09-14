@@ -33,7 +33,6 @@ import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.enums.AlertType;
 import com.titanium.claim.common.enums.ClaimStatus;
-import com.titanium.claim.common.enums.RejectReason;
 import com.titanium.claim.service.ClaimService;
 import com.titanium.claim.valueobject.AlertFlag;
 import com.titanium.claim.valueobject.ClaimAmount;
@@ -41,6 +40,7 @@ import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.Survey;
 import com.titanium.metadata.enums.claim.ClaimEnum;
+import com.titanium.metadata.enums.claim.RejectReason;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

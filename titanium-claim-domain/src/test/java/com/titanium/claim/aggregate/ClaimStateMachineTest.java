@@ -13,7 +13,6 @@ import com.titanium.claim.command.ChangeClaimStatusCommand;
 import com.titanium.claim.command.CloseClaimCommand;
 import com.titanium.claim.command.RejectClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
-import com.titanium.claim.common.enums.RejectReason;
 import com.titanium.claim.event.ClaimCreatedEvent;
 import com.titanium.claim.event.ClaimRejectedEvent;
 import com.titanium.claim.event.ClaimSettledEvent;
@@ -26,6 +25,7 @@ import com.titanium.claim.valueobject.ClaimSettlement;
 import com.titanium.claim.valueobject.CustomerId;
 import com.titanium.claim.valueobject.PolicyId;
 import com.titanium.metadata.enums.claim.ClaimEnum;
+import com.titanium.metadata.enums.claim.RejectReason;
 
 /**
  * 理赔状态机测试（拒赔/赔付回写/结案闭环）

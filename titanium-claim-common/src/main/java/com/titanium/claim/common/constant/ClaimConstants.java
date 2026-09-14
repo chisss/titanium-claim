@@ -49,7 +49,7 @@ public class ClaimConstants {
         public static final String DEATH_BENEFIT_SETTLED = CrossDomainTopics.CLAIM_DEATH_BENEFIT_SETTLED;
         /** 全残给付结算主题：供 policy 域防腐监听器消费以终止保单（给付后保单责任终结，同身故） */
         public static final String DISABILITY_BENEFIT_SETTLED = CrossDomainTopics.CLAIM_DISABILITY_BENEFIT_SETTLED;
-        /** 理赔拒赔主题：供 notification 域/下游消费触发拒赔通知书发送 */
+        /** 理赔拒赔主题：notification 域防腐消费后渲染拒赔通知书投递（2026-09-14 m6-905 已闭环） */
         public static final String CLAIM_REJECTED = CrossDomainTopics.CLAIM_REJECTED;
         /** 理赔赔付支付单主题：供 payment 域防腐消费创建 CLAIM_PAYOUT 支付单 */
         public static final String PAYMENT_ORDER_CREATED = CrossDomainTopics.PAYMENT_ORDER_CREATED;

@@ -25,7 +25,6 @@ import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.enums.PaymentFailureType;
-import com.titanium.claim.common.enums.RejectReason;
 import com.titanium.claim.event.ClaimAlertFlaggedEvent;
 import com.titanium.claim.event.ClaimClosedEvent;
 import com.titanium.claim.event.ClaimCreatedEvent;
@@ -56,6 +55,7 @@ import com.titanium.claim.valueobject.Survey;
 import com.titanium.common.domain.BaseAggregate;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.enums.claim.ClaimPhase;
+import com.titanium.metadata.enums.claim.RejectReason;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -13,7 +13,6 @@ import com.titanium.claim.event.ClaimStatusChangedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
 import com.titanium.claim.event.DisabilityBenefitSettledEvent;
-import com.titanium.claim.port.notification.NotificationServicePort;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,17 +75,25 @@ public class KafkaEventPublisher {
     }
 
     /**
-     * 发布理赔拒赔事件到 Kafka（claim-rejected 主题），载荷为拒赔通知出站契约
-     * {@link com.titanium.claim.port.notification.NotificationServicePort.RejectionNotice}，
-     * 供 notification 域按该契约定义入站防腐 record 消费并渲染拒赔通知书。
+     * 发布理赔拒赔事件到 Kafka（{@code claim-rejected} 主题），供 notification 域防腐消费后按模板
+     * 渲染拒赔通知书投递（唯一消费方，2026-09-14 m6-905 接线）。
+     * <p>
+     * 载荷即 {@link ClaimRejectedEvent} 序列化 JSON（与本域其余五个主题同形态）：通知域所需的拒赔原因码
+     * （{@code reason}）、拒赔时间（{@code rejectedAt}）、客户标识（{@code customerId}）与租户均在其中，
+     * 无需另设扁平通知契约。🔴 分区键取 <b>claimId</b>：消费端写单元是「理赔案件派生的通知记录」，
+     * 与案件维度同构，案件内保序（同一案件至多一次拒赔——已拒赔的重复指令在聚合侧被幂等忽略）。
+     * </p>
+     * <p>
+     * 🔴 本方法曾是<b>同主题双发送点</b>之一（另一处为已删除的死代码
+     * {@code NotificationServiceAdapter}，其 {@code sendRejectionNotice} 全仓零调用方）；死代码一并清除，
+     * 保留本处作为唯一出站点。
+     * </p>
      */
     @EventHandler
     public void handle(ClaimRejectedEvent event) {
-        NotificationServicePort.RejectionNotice notice = new NotificationServicePort.RejectionNotice(
-                event.claimId().value(), event.policyId(), event.customerId(),
-                event.reason() == null ? null : event.reason().getCode(), event.comment(), event.tenantId());
-        String noticeJson = JSON.toJSONString(notice);
-        log.info("[拒赔通知-出站] 发布拒赔通知: claimId={}, reasonCode={}", event.claimId(), notice.reasonCode());
-        kafkaTemplate.send(ClaimConstants.KafkaTopic.CLAIM_REJECTED, event.claimId().value(), noticeJson);
+        String eventJson = JSON.toJSONString(event);
+        log.info("[拒赔通知-出站] 发布拒赔事件: claimId={}, reason={}",
+                 event.claimId(), event.reason() == null ? null : event.reason().getCode());
+        kafkaTemplate.send(ClaimConstants.KafkaTopic.CLAIM_REJECTED, event.claimId().value(), eventJson);
     }
 }

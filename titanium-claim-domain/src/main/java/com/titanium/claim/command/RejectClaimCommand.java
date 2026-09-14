@@ -2,8 +2,8 @@ package com.titanium.claim.command;
 
 import org.axonframework.modelling.command.TargetAggregateIdentifier;
 
-import com.titanium.claim.common.enums.RejectReason;
 import com.titanium.claim.valueobject.ClaimId;
+import com.titanium.metadata.enums.claim.RejectReason;
 
 /**
  * 拒赔命令
