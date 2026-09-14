@@ -1,4 +1,4 @@
-package com.titanium.claim.api.request;
+package com.titanium.claim.api.request.settlement;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-import com.titanium.claim.api.request.ClaimRequest;
+import com.titanium.claim.api.request.issuance.ClaimRequest;
 import com.titanium.claim.api.response.ClaimResponse;
 import com.titanium.claim.application.model.assessment.FlagClaimAlertRequest;
 import com.titanium.claim.application.model.assessment.ReimbursementSettlementRequest;
@@ -21,16 +21,16 @@ import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.enums.config.SettlementChannel;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
 import com.titanium.claim.valueobject.ReimbursementCalculation;
-import com.titanium.claim.web.dto.CreateClaimDTO;
-import com.titanium.claim.web.dto.FlagClaimAlertDTO;
-import com.titanium.claim.web.dto.RejectClaimDTO;
-import com.titanium.claim.web.dto.SettleClaimDTO;
-import com.titanium.claim.web.dto.SettleDeathBenefitDTO;
-import com.titanium.claim.web.dto.SettleDisabilityBenefitDTO;
-import com.titanium.claim.web.dto.SubmitLossAssessmentDTO;
-import com.titanium.claim.web.dto.SubmitSurveyDTO;
-import com.titanium.claim.web.dto.UpdateClaimDTO;
 import com.titanium.claim.web.dto.assessment.ReimbursementAdjustmentDTO;
+import com.titanium.claim.web.dto.assessment.SubmitLossAssessmentDTO;
+import com.titanium.claim.web.dto.assessment.SubmitSurveyDTO;
+import com.titanium.claim.web.dto.issuance.CreateClaimDTO;
+import com.titanium.claim.web.dto.maintenance.FlagClaimAlertDTO;
+import com.titanium.claim.web.dto.maintenance.RejectClaimDTO;
+import com.titanium.claim.web.dto.maintenance.UpdateClaimDTO;
+import com.titanium.claim.web.dto.settlement.SettleClaimDTO;
+import com.titanium.claim.web.dto.settlement.SettleDeathBenefitDTO;
+import com.titanium.claim.web.dto.settlement.SettleDisabilityBenefitDTO;
 import com.titanium.claim.web.response.ClaimResponseVO;
 import com.titanium.claim.web.response.assessment.ReimbursementAdjustmentVO;
 import com.titanium.metadata.enums.claim.ClaimEnum;
@@ -118,41 +118,41 @@ public interface ClaimWebMapper {
     /**
      * 对外查勘请求 → 应用层查勘入参
      */
-    SubmitSurveyRequest toSurveyRequest(com.titanium.claim.api.request.SubmitSurveyRequest request);
+    SubmitSurveyRequest toSurveyRequest(com.titanium.claim.api.request.assessment.SubmitSurveyRequest request);
 
     /**
      * 对外定损请求 → 应用层定损入参
      */
     SubmitLossAssessmentRequest toLossAssessmentRequest(
-            com.titanium.claim.api.request.SubmitLossAssessmentRequest request);
+            com.titanium.claim.api.request.assessment.SubmitLossAssessmentRequest request);
 
     /**
      * 对外结算请求 → 应用层结算入参
      */
-    SettleClaimRequest toSettleRequest(com.titanium.claim.api.request.SettleClaimRequest request);
+    SettleClaimRequest toSettleRequest(com.titanium.claim.api.request.settlement.SettleClaimRequest request);
 
     /**
      * 对外拒赔请求 → 应用层拒赔入参
      */
-    RejectClaimRequest toRejectRequest(com.titanium.claim.api.request.RejectClaimRequest request);
+    RejectClaimRequest toRejectRequest(com.titanium.claim.api.request.maintenance.RejectClaimRequest request);
 
     /**
      * 对外身故给付结算请求 → 应用层身故给付结算入参
      */
     SettleDeathBenefitRequest toDeathBenefitRequest(
-            com.titanium.claim.api.request.SettleDeathBenefitRequest request);
+            com.titanium.claim.api.request.settlement.SettleDeathBenefitRequest request);
 
     /**
      * 对外全残给付结算请求 → 应用层全残给付结算入参
      */
     SettleDisabilityBenefitRequest toDisabilityBenefitRequest(
-            com.titanium.claim.api.request.SettleDisabilityBenefitRequest request);
+            com.titanium.claim.api.request.settlement.SettleDisabilityBenefitRequest request);
 
     /**
      * 对外警示标记请求 → 应用层警示标记入参（api 层同名类型以全限定名区分）
      */
     FlagClaimAlertRequest toFlagAlertRequest(
-            com.titanium.claim.api.request.FlagClaimAlertRequest request);
+            com.titanium.claim.api.request.maintenance.FlagClaimAlertRequest request);
 
     /**
      * 应用层读模型 → 对外响应（Provider 用，同名字段结构映射）

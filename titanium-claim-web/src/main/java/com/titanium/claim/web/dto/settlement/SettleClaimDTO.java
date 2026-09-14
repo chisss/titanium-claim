@@ -1,4 +1,4 @@
-package com.titanium.claim.web.dto;
+package com.titanium.claim.web.dto.settlement;
 
 import java.math.BigDecimal;
 

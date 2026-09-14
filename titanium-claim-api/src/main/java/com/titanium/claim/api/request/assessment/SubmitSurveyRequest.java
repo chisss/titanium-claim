@@ -1,4 +1,4 @@
-package com.titanium.claim.api.request;
+package com.titanium.claim.api.request.assessment;
 
 import java.util.List;
 

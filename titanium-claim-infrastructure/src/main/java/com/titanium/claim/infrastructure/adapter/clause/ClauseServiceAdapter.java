@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.titanium.claim.port.clause.ClauseServicePort;
 import com.titanium.clause.api.ClauseApi;
-import com.titanium.clause.api.response.CoverageResponse;
+import com.titanium.clause.api.response.clause.CoverageResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

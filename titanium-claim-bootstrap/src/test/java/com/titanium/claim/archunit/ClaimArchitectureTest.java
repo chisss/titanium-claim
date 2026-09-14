@@ -91,6 +91,60 @@ class ClaimArchitectureTest extends AbstractArchitectureGuardTest {
         super.apiInterfacesMustBeNamedByAggregate();
     }
 
+    /**
+     * 启用「web.dto 按业务主题拆子包、顶层清零」（分包规则·批次 2）。
+     * <p>
+     * 理赔域 web.dto 顶层 10 类已按业务主题归位至既有子包：{@code dto.issuance}（报案立案）、
+     * {@code dto.maintenance}（案件变更 / 状态 / 拒赔 / 警示标记）、{@code dto.settlement}
+     * （核赔结算 + 身故 / 全残给付）、{@code dto.assessment}（查勘 / 定损 / 报销理算），
+     * 与既有的 {@code dto.config}（7 类配置）合计 18 类，顶层零类。
+     * </p>
+     */
+    @Test
+    @Override
+    protected void webDtoShouldNotContainFlatClasses() {
+        super.webDtoShouldNotContainFlatClasses();
+    }
+
+    /**
+     * 启用「api.request 按业务主题拆子包、顶层清零」（分包规则·批次 2）。
+     * <p>
+     * 理赔域 api.request 已按与 web.dto / application.model 同构的四主题拆分：
+     * {@code request.issuance}（理赔案件创建与更新契约）、{@code request.maintenance}
+     * （警示标记 / 拒赔）、{@code request.settlement}（核赔结算 + 身故 / 全残给付）、
+     * {@code request.assessment}（查勘 / 定损），顶层零类。
+     * </p>
+     * <p>
+     * 全仓普查确认本包<b>零跨域引用方</b>——8 个 request 类仅本域 {@code ClaimApi} /
+     * {@code ClaimController} / {@code ClaimWebMapper} / {@code ClaimApiProvider} 使用，
+     * 故拆分仅涉本域 4 文件 import 改写。
+     * </p>
+     */
+    @Test
+    @Override
+    protected void apiRequestShouldNotContainFlatClasses() {
+        super.apiRequestShouldNotContainFlatClasses();
+    }
+
+    /**
+     * 启用「application.model 按业务主题拆子包、顶层清零」（分包规则·批次 2）。
+     * <p>
+     * 理赔域 application.model 早已按业务主题五分（{@code config} 7 / {@code assessment} 4 /
+     * {@code maintenance} 3 / {@code settlement} 3 / {@code issuance} 1），顶层长期为空，
+     * 但对应断言此前从未启用（ArchUnit 按字节码包名判定，规则形同虚设）。本次复核确认
+     * 目录与 {@code package} 声明零偏差后启用固化。
+     * </p>
+     */
+    @Test
+    @Override
+    protected void applicationModelShouldNotContainFlatClasses() {
+        super.applicationModelShouldNotContainFlatClasses();
+    }
+
+    // 注：域内其余契约/门面包（web.controller 2、web.response 1 + assessment/config/error 三子包、
+    // api.response 2、application.command 1 + config 子包）顶层均 ≤2 类，
+    // 按《包结构分包规范与执行方案-2026-09》§一判据表豁免，不启用对应断言。
+
     // 注：不启用严格隔离断言 webShouldNotDependOnDomainCommandsOrAggregates。
     // 现行 api/web 规范允许 web 依赖 command/query（但不碰 aggregate），故回退为基类默认 @Disabled。
 }

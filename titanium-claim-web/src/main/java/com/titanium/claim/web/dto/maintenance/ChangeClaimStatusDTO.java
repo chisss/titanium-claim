@@ -1,4 +1,4 @@
-package com.titanium.claim.web.dto;
+package com.titanium.claim.web.dto.maintenance;
 
 import com.titanium.claim.common.enums.ClaimStatus;
 
