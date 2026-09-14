@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.axonframework.config.ProcessingGroup;
+import org.axonframework.eventhandling.EventHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.env.YamlPropertySourceLoader;
@@ -15,6 +17,9 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.ClassPathResource;
 
 import com.titanium.claim.application.saga.ClaimSettlementPaymentSaga;
+import com.titanium.claim.event.ClaimSettledEvent;
+import com.titanium.claim.event.DeathBenefitSettledEvent;
+import com.titanium.claim.event.DisabilityBenefitSettledEvent;
 import com.titanium.claim.infrastructure.event.KafkaEventPublisher;
 
 /**
@@ -58,6 +63,26 @@ class ClaimAxonProcessingGroupConfigurationTest {
                 "赔付派发组须登记为出站组，否则首启位点从事件流头部开始：" + relayGroups);
         assertTrue(relayGroups.contains(KafkaEventPublisher.PROCESSING_GROUP),
                 "跨域出站组须登记为出站组：" + relayGroups);
+    }
+
+    @Test
+    @DisplayName("结算事件派发覆盖：普通/身故/全残三条结算事件均须有支付派发处理器")
+    void coversEverySettlementEventWithPayoutDispatcher() {
+        // 三条结算事件都会把赔案推进到「赔付中」，无派发方则赔案永久滞留在该状态
+        // 🔴 全残一路此前缺失：身故可派发、全残断（事件照常外发 Kafka，但无人创建支付单），
+        // 且**不报错**——只能靠本类这种显式断言发现。
+        assertHasEventHandler(ClaimSettledEvent.class);
+        assertHasEventHandler(DeathBenefitSettledEvent.class);
+        assertHasEventHandler(DisabilityBenefitSettledEvent.class);
+    }
+
+    /** 断言 {@link ClaimSettlementPaymentSaga} 声明了针对该事件类型的 {@code @EventHandler} */
+    private void assertHasEventHandler(Class<?> eventType) {
+        boolean present = Arrays.stream(ClaimSettlementPaymentSaga.class.getDeclaredMethods())
+                .anyMatch(method -> method.isAnnotationPresent(EventHandler.class)
+                        && method.getParameterCount() == 1
+                        && method.getParameterTypes()[0] == eventType);
+        assertTrue(present, "缺少 " + eventType.getSimpleName() + " 的支付派发处理器：结算后赔案将停在赔付中且不产生支付单");
     }
 
     private List<PropertySource<?>> load() throws IOException {

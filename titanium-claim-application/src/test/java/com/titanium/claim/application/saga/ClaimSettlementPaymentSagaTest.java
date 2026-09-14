@@ -20,12 +20,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.titanium.claim.common.enums.BenefitSource;
 import com.titanium.claim.event.ClaimSettledEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
+import com.titanium.claim.event.DisabilityBenefitSettledEvent;
 import com.titanium.claim.port.payment.PaymentServicePort;
 import com.titanium.claim.port.payment.PaymentServicePort.ClaimPayoutInstruction;
 import com.titanium.claim.valueobject.BenefitCalculation;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.ClaimSettlement;
 import com.titanium.claim.valueobject.DeathClaimEvidence;
+import com.titanium.claim.valueobject.DisabilityClaimEvidence;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 /**
@@ -94,5 +96,44 @@ class ClaimSettlementPaymentSagaTest {
         assertEquals(2, instruction.beneficiaryShares().size());
         assertTrue(instruction.beneficiaryShares().stream()
                 .anyMatch(s -> "B-1".equals(s.beneficiaryId()) && s.amount().compareTo(new BigDecimal("300000")) == 0));
+    }
+
+    @Test
+    @DisplayName("全残给付结算事件 → 按受益人份额派发分账支付单（收款方留空）")
+    void shouldDispatchPayoutWithSharesOnDisabilityBenefitSettled() {
+        BenefitCalculation calculation = new BenefitCalculation(new BigDecimal("300000"),
+                List.of(new BenefitCalculation.BeneficiaryShare("B-1", "本人", BigDecimal.ONE,
+                        new BigDecimal("300000"))), BenefitSource.ACCOUNT_VALUE_MAX);
+        ClaimSettlement settlement = ClaimSettlement.of(new BigDecimal("300000"),
+                ClaimEnum.PayoutMethod.BANK_TRANSFER, null, "全残给付核准");
+        saga.on(new DisabilityBenefitSettledEvent(ClaimId.of("CLAIM-3"), "POL-3",
+                new DisabilityClaimEvidence("DB-1", "一级", LocalDateTime.now(), "市劳动能力鉴定中心", "BP-1",
+                        LocalDateTime.now()),
+                calculation, settlement, LocalDateTime.now(), TENANT_ID));
+
+        ArgumentCaptor<ClaimPayoutInstruction> captor = ArgumentCaptor.forClass(ClaimPayoutInstruction.class);
+        verify(paymentServicePort).createClaimPayout(captor.capture());
+        ClaimPayoutInstruction instruction = captor.getValue();
+        assertEquals("CLAIM-3", instruction.claimId());
+        assertEquals("POL-3", instruction.policyId());
+        assertEquals(new BigDecimal("300000"), instruction.amount(), "给付额须取受益人份额核算总额");
+        assertNull(instruction.payeeAccount(), "分账给付收款方留空由支付域按明细分账");
+        assertEquals(1, instruction.beneficiaryShares().size());
+        assertEquals("B-1", instruction.beneficiaryShares().get(0).beneficiaryId());
+        assertEquals(TENANT_ID, instruction.tenantId(), "跨域支付载荷须携带租户，否则支付域无法判定归属租户");
+    }
+
+    @Test
+    @DisplayName("全残给付结算事件：载荷 settlement 为空时仍派发（金额留空，不因空值吞掉派发）")
+    void shouldStillDispatchWhenDisabilitySettlementMissing() {
+        saga.on(new DisabilityBenefitSettledEvent(ClaimId.of("CLAIM-4"), "POL-4",
+                new DisabilityClaimEvidence("DB-2", "一级", LocalDateTime.now(), "市劳动能力鉴定中心", "BP-2",
+                        LocalDateTime.now()),
+                null, null, LocalDateTime.now(), TENANT_ID));
+
+        ArgumentCaptor<ClaimPayoutInstruction> captor = ArgumentCaptor.forClass(ClaimPayoutInstruction.class);
+        verify(paymentServicePort).createClaimPayout(captor.capture());
+        assertNull(captor.getValue().amount());
+        assertNull(captor.getValue().beneficiaryShares());
     }
 }

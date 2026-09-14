@@ -9,9 +9,11 @@ import org.springframework.stereotype.Component;
 
 import com.titanium.claim.event.ClaimSettledEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
+import com.titanium.claim.event.DisabilityBenefitSettledEvent;
 import com.titanium.claim.port.payment.PaymentServicePort;
 import com.titanium.claim.port.payment.PaymentServicePort.ClaimPayoutInstruction;
 import com.titanium.claim.valueobject.BenefitCalculation;
+import com.titanium.claim.valueobject.ClaimSettlement;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>
  * <b>形态说明</b>：单步跨服务派发、无本地多步状态与补偿需求，故用 {@code @EventHandler} 事件驱动形态
  * 而非 Axon {@code @Saga} 注解（无 StartSaga/关联键跟踪的必要）。类名保留 Saga 与领域建模文档一致。
- * 分账给付的身故支付按 {@link BenefitCalculation.BeneficiaryShare} 明细派发，收款方留空由支付域分账。
+ * 分账给付（身故 / 全残）按 {@link BenefitCalculation.BeneficiaryShare} 明细派发，收款方留空由支付域分账。
  * </p>
  */
 @Slf4j
@@ -61,12 +63,41 @@ public class ClaimSettlementPaymentSaga {
     public void on(DeathBenefitSettledEvent event) {
         log.info("[身故给付] 结算完成, claimId={}, policyId={}, 给付总额={}", event.claimId(), event.policyId(),
                 event.settlement().settledAmount());
-        List<BenefitCalculation.BeneficiaryShare> shares = event.benefitCalculation() == null ? null
-                : event.benefitCalculation().shares();
-        BigDecimal total = event.settlement() == null ? null : event.settlement().settledAmount();
-        ClaimPayoutInstruction instruction = new ClaimPayoutInstruction(event.claimId().value(), event.policyId(),
-                total, event.settlement() == null ? null : event.settlement().payoutMethod().getCode(), null, shares,
-                event.tenantId());
+        dispatchBenefitPayout(event.claimId().value(), event.policyId(), event.benefitCalculation(),
+                event.settlement(), event.tenantId());
+    }
+
+    /**
+     * 全残给付结算完成 → 按受益人份额派发全残金支付单（寿险/意外险全残理赔专属）
+     * <p>
+     * 与身故给付同构：给付额取受益人份额核算总额、收款方留空由支付域按明细分账。
+     * 此前本事件无支付派发方，全残赔案理算完成后**不产生支付单**（身故路径可、全残路径断），
+     * 赔案永久停在「赔付中」。
+     * </p>
+     */
+    @EventHandler
+    public void on(DisabilityBenefitSettledEvent event) {
+        log.info("[全残给付] 结算完成, claimId={}, policyId={}, 给付总额={}", event.claimId(), event.policyId(),
+                event.settlement() == null ? null : event.settlement().settledAmount());
+        dispatchBenefitPayout(event.claimId().value(), event.policyId(), event.benefitCalculation(),
+                event.settlement(), event.tenantId());
+    }
+
+    /**
+     * 分账给付支付派发（身故 / 全残共用）
+     * <p>
+     * 两类给付同构——给付额均为受益人份额核算的给付总额、均无单一收款账户（收款方留空，
+     * 由支付域按 {@link BenefitCalculation.BeneficiaryShare} 明细分账），故共用一条派发路径，
+     * 避免两份实现各自漂移。
+     * </p>
+     */
+    private void dispatchBenefitPayout(String claimId, String policyId, BenefitCalculation benefitCalculation,
+            ClaimSettlement settlement, String tenantId) {
+        List<BenefitCalculation.BeneficiaryShare> shares = benefitCalculation == null ? null
+                : benefitCalculation.shares();
+        BigDecimal total = settlement == null ? null : settlement.settledAmount();
+        ClaimPayoutInstruction instruction = new ClaimPayoutInstruction(claimId, policyId, total,
+                settlement == null ? null : settlement.payoutMethod().getCode(), null, shares, tenantId);
         paymentServicePort.createClaimPayout(instruction);
     }
 }
