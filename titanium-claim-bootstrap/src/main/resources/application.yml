@@ -57,6 +57,23 @@ axon:
       claim-group:
         mode: subscribing
         source: claimCreatedEventSource
+      # 读侧投影组（ClaimProjectionEventHandler / ClaimQueryHandler 的 @ProcessingGroup）。
+      # 🔴 m6-915 上下文实测：本组未声明时 Axon 按**隐式 tracking** 装配（本项目 eventBus 为流式
+      #    EmbeddedEventStore，未声明的组一律退化为 TrackingEventProcessor），但**拿不到 DLQ**
+      #    （实测 dlqPresent=false）——读侧投影失败无重投，而 DeadLetterQueueService 的重投清单里
+      #    早已含该组，每次扫描都静默跳过（空转）。故显式声明 + dlq.enabled 只是把「本已存在的
+      #    tracking 形态」落到配置上并补上重投能力，**不改变任何读写一致性语义**（从来不是同步投影）。
+      # ⚠️ 不登记进 titanium.axon.outbound-relay.groups：该机制是给出站组首启位点取事件流**末端**，
+      #    而读侧投影组在全新部署时**需要**从头部重放以重建读模型（见 AxonOutboundRelayAutoConfiguration）。
+      claim-query-group:
+        mode: tracking
+        dlq:
+          enabled: true
+          max-size: 1000
+          cache:
+            enabled: true
+            size: 2048
+        batchSize: 10
       # 跨域出站组：tracking + DLQ，发布失败的事件由 DeadLetterQueueService 定时重投
       claim-kafka-group:
         mode: tracking
