@@ -12,4 +12,6 @@
     <include file="classpath:liquibase/ddl/claim_quick_pay_rule_202609021630_weisun_ddl.sql"/>
     <include file="classpath:liquibase/ddl/claim_view_payment_failure_202609112000_weisun_ddl.sql"/>
     <include file="classpath:liquibase/ddl/claim_view_assessed_amount_202609141130_weisun_ddl.sql"/>
+    <!-- 第 6 张 Axon 系统表：本域三处理组已开 dlq.enabled，缺表将使处理器整域停摆（详见脚本头注释） -->
+    <include file="classpath:liquibase/ddl/axon_dead_letter_202609151500_weisun_ddl.sql"/>
 </databaseChangeLog>
