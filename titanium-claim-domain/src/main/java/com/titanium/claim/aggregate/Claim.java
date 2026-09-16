@@ -39,6 +39,7 @@ import com.titanium.claim.event.ClaimSurveySubmittedEvent;
 import com.titanium.claim.event.ClaimUpdatedEvent;
 import com.titanium.claim.event.DeathBenefitSettledEvent;
 import com.titanium.claim.event.DisabilityBenefitSettledEvent;
+import com.titanium.claim.exception.ClaimLiabilityRatioException;
 import com.titanium.claim.exception.ClaimPhaseTransitionException;
 import com.titanium.claim.exception.ClaimSettlementAmountException;
 import com.titanium.claim.exception.ClaimStatusPreconditionException;
@@ -211,6 +212,12 @@ public class Claim extends BaseAggregate {
 
     /**
      * 核定赔付金额：定损在案的案件取定损核定额（唯一权威来源），未定损案件取调用方指定金额。
+     * <p>
+     * 🔴 定损责任比例量纲越界的案件<b>拒绝结算</b>（🔴 D-501-49）：命令入口的校验只能拦住<b>新增</b>错值，
+     * 修复前已落库的越界值（本环境实存 `80`/`100` 两例）其 {@code payableAmount()} 会算出 100 倍金额 ——
+     * 该金额是出账唯一权威，且已定损案件的结算会<b>采信</b>而非校验调用方传入的金额，
+     * 相当于自证式放行。此处是出账前最后一道共同闸口，越界即拒，绝不放行不可信的核定金额。
+     * </p>
      *
      * @param claimId            理赔案件ID
      * @param providedAmount     调用方指定金额（可为 null）
@@ -222,6 +229,9 @@ public class Claim extends BaseAggregate {
                 throw ClaimSettlementAmountException.required(claimId);
             }
             return providedAmount;
+        }
+        if (LossAssessment.isOutOfDecimalScale(lossAssessment.liabilityRatio())) {
+            throw ClaimLiabilityRatioException.outOfRange(lossAssessment.liabilityRatio());
         }
         BigDecimal assessedAmount = lossAssessment.payableAmount();
         if (assessedAmount == null || assessedAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -387,12 +397,22 @@ public class Claim extends BaseAggregate {
 
     /**
      * 提交定损：推进理赔阶段至 LOSS_ASSESS（车险按损案件）。 须已完成查勘（SURVEY 阶段）。
+     * <p>
+     * 🔴 责任比例量纲在<b>命令入口</b>校验（0-1 小数），不放在 {@link LossAssessment} 紧凑构造器里 ——
+     * 本值对象同时是 {@link ClaimLossAssessedEvent} 的载荷，重放历史事件时 Jackson 会走同一个规范构造器，
+     * 构造即校验会让事件库中已存在的越界值（修复前写入的 {@code 80}/{@code 100}）把聚合锁死。
+     * 详见 {@link LossAssessment#isOutOfDecimalScale}。
+     * </p>
      */
     @CommandHandler
     public void handle(SubmitLossAssessmentCommand command) {
         if (this.phase != ClaimPhase.SURVEY) {
             throw new ClaimPhaseTransitionException(command.claimId(),
                     this.phase == null ? ClaimPhase.REPORT : this.phase, ClaimPhase.LOSS_ASSESS);
+        }
+        LossAssessment assessment = command.lossAssessment();
+        if (assessment != null && LossAssessment.isOutOfDecimalScale(assessment.liabilityRatio())) {
+            throw ClaimLiabilityRatioException.outOfRange(assessment.liabilityRatio());
         }
         AggregateLifecycle.apply(new ClaimLossAssessedEvent(command.claimId(), command.lossAssessment(),
                 ClaimPhase.LOSS_ASSESS, LocalDateTime.now()));
