@@ -3,6 +3,8 @@ package com.titanium.claim.valueobject;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.titanium.claim.exception.ClaimLiabilityRatioException;
+
 /**
  * 定损记录值对象（车险按损定损阶段）
  * <p>
@@ -13,7 +15,7 @@ import java.util.List;
  * @param assessedAmount 定损总金额
  * @param items          定损明细项（维修项/损失项）
  * @param salvageValue   残值扣减（损余件残值，可为空=0，不超过定损总金额）
- * @param liabilityRatio 责任比例（0-1，如全责1.0、同责0.5）
+ * @param liabilityRatio 责任比例（**0-1 小数**，如全责1.0、同责0.5；越界抛 {@link ClaimLiabilityRatioException}）
  * @param assessorId     定损员ID
  *
  * @author wei.sun
@@ -28,6 +30,29 @@ public record LossAssessment(
 
     public LossAssessment {
         items = items == null ? List.of() : List.copyOf(items);
+        requireRatioInDecimalScale(liabilityRatio);
+    }
+
+    /**
+     * 责任比例量纲不变量：契约口径为 0-1 小数，越界即拒（🔴 D-501-49）。
+     * <p>
+     * 越界值几乎只有一种来源 —— 调用方按百分数传入（80 表示 80%）。若放行，
+     * {@link #payableAmount()} 会算出 <b>100 倍</b> 的核定赔付额，而该金额是核赔结算的唯一权威、
+     * 会被支付域真实出账。故在值对象构造处显式失败，而非静默放大。
+     * </p>
+     * <p>
+     * {@code null} 保持原有容忍（不参与赔付计算，由结算环节的金额校验兜底）。
+     * </p>
+     *
+     * @param liabilityRatio 责任比例
+     */
+    private static void requireRatioInDecimalScale(BigDecimal liabilityRatio) {
+        if (liabilityRatio == null) {
+            return;
+        }
+        if (liabilityRatio.compareTo(BigDecimal.ZERO) < 0 || liabilityRatio.compareTo(BigDecimal.ONE) > 0) {
+            throw ClaimLiabilityRatioException.outOfRange(liabilityRatio);
+        }
     }
 
     /**

@@ -66,17 +66,22 @@ public interface ClaimViewRepository
             LocalDateTime end);
 
     /**
-     * 累计已结案赔付金额（指定状态案件的核定赔付金额之和，多租户隔离）
+     * 累计已结案赔付金额（指定状态集合案件的核定赔付金额之和，多租户隔离）
      * <p>
      * 用 {@code COALESCE} 兜底空结果返回 0，避免无数据时返回 null。强制携带 {@code tenantId}。
      * </p>
+     * <p>
+     * 🔴 须传<b>终态集合</b>（{@code PAID} + {@code CLOSED}）：{@code PAID} 只是「已支付待归档」的
+     * 中转态，归档后案件转 {@code CLOSED}。若只过滤 {@code PAID}，赔付金额会在归档瞬间从统计中消失，
+     * 「累计」指标随业务推进反向下降。参考 D-501-48。
+     * </p>
      *
-     * @param status 结案状态（传 {@code PAID}）
+     * @param statuses 结案状态集合（{@code PAID}、{@code CLOSED}）
      * @param tenantId 租户ID
      * @return 已结案赔付金额之和，无数据为 0
      */
     @Query("SELECT COALESCE(SUM(c.settledAmount), 0) FROM ClaimView c "
-            + "WHERE c.tenantId = :tenantId AND c.status = :status")
-    BigDecimal sumSettledAmountByStatusAndTenantId(@Param("status") ClaimStatus status,
+            + "WHERE c.tenantId = :tenantId AND c.status IN :statuses")
+    BigDecimal sumSettledAmountByStatusInAndTenantId(@Param("statuses") List<ClaimStatus> statuses,
             @Param("tenantId") String tenantId);
 }

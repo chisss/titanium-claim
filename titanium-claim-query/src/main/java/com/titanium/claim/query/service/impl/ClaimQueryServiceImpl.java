@@ -112,8 +112,9 @@ public class ClaimQueryServiceImpl implements ClaimQueryService {
                 .countByTenantIdAndCreateTimeGreaterThanEqualAndCreateTimeLessThan(tenantId, todayStart, tomorrowStart);
         // 理赔总数
         long totalCount = claimViewRepository.countByTenantId(tenantId);
-        // 累计已结案赔付金额（已支付案件核定赔付金额之和）
-        BigDecimal totalSettled = claimViewRepository.sumSettledAmountByStatusAndTenantId(ClaimStatus.PAID, tenantId);
+        // 累计已结案赔付金额：取终态集合（PAID 是中转态，归档后转 CLOSED，只过滤 PAID 会漏计 —— D-501-48）
+        List<ClaimStatus> settledStatuses = List.of(ClaimStatus.PAID, ClaimStatus.CLOSED);
+        BigDecimal totalSettled = claimViewRepository.sumSettledAmountByStatusInAndTenantId(settledStatuses, tenantId);
         return new ClaimStatisticsResult(pendingCount, todayCount, totalCount, totalSettled);
     }
 

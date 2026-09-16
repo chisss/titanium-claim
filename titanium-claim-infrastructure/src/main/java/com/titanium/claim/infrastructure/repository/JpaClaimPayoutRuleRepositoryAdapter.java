@@ -21,7 +21,8 @@ import lombok.extern.slf4j.Slf4j;
  * 赔付规则仓储实现（domain 仓储接口的 JPA Adapter）
  * <p>
  * 状态存储聚合：聚合 → DO 经 MapStruct 转换；DO → 聚合经 {@code ClaimPayoutRule.create}
- * 工厂重建。upsert 按业务键复用行（含逻辑删除行复活），规避唯一约束冲突；审计字段由仓储显式维护。
+ * 工厂重建。按业务键复用行（含逻辑删除行复活）以规避唯一约束冲突，业务键已被<b>其它</b>聚合占用时
+ * 由 {@code ClaimConfigBusinessKeyGuard} 显式失败，不静默覆盖（🔴 D-501-53）；审计字段由仓储显式维护。
  * </p>
  */
 @Slf4j
@@ -40,6 +41,9 @@ public class JpaClaimPayoutRuleRepositoryAdapter implements ClaimPayoutRuleRepos
         ClaimPayoutRuleDO fresh = mapper.toDO(rule);
         if (existing.isPresent()) {
             ClaimPayoutRuleDO old = existing.get();
+            ClaimConfigBusinessKeyGuard.rejectSilentOverwrite("赔付规则",
+                    rule.getTenantId() + "/" + rule.getInsuranceLine() + "/" + rule.getClaimType(),
+                    old.getRuleId(), rule.getRuleId());
             fresh.setRuleId(old.getRuleId());
             fresh.setId(old.getId());
             fresh.setCreateTime(old.getCreateTime());
