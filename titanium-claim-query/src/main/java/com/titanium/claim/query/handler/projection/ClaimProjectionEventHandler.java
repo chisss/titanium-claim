@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.common.enums.ClaimStatus;
@@ -59,7 +60,7 @@ public class ClaimProjectionEventHandler {
      * 投影理赔创建事件：新建读模型记录
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimCreatedEvent event) {
         log.info("[读模型投影] 理赔创建: claimId={}", event.claimId());
 
@@ -80,7 +81,7 @@ public class ClaimProjectionEventHandler {
      * 投影理赔更新事件
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimUpdatedEvent event) {
         log.info("[读模型投影] 理赔更新: claimId={}", event.claimId());
 
@@ -100,7 +101,7 @@ public class ClaimProjectionEventHandler {
      * 投影理赔状态变更事件
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimStatusChangedEvent event) {
         log.info("[读模型投影] 理赔状态变更: claimId={}, {} -> {}", event.claimId(), event.oldStatus(),
                 event.newStatus());
@@ -120,7 +121,7 @@ public class ClaimProjectionEventHandler {
      * 投影查勘提交事件（阶段推进至 SURVEY）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimSurveySubmittedEvent event) {
         log.info("[读模型投影] 查勘提交: claimId={}, phase={}", event.claimId(), event.newPhase());
 
@@ -135,7 +136,7 @@ public class ClaimProjectionEventHandler {
      * 投影定损提交事件（阶段推进至 LOSS_ASSESS）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimLossAssessedEvent event) {
         log.info("[读模型投影] 定损提交: claimId={}, phase={}", event.claimId(), event.newPhase());
 
@@ -153,7 +154,7 @@ public class ClaimProjectionEventHandler {
      * 投影核赔结算事件（记录核定赔付金额并进入赔付中，保持 APPROVED 待支付域回写）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimSettledEvent event) {
         log.info("[读模型投影] 核赔结算: claimId={}", event.claimId());
 
@@ -172,7 +173,7 @@ public class ClaimProjectionEventHandler {
      * 投影身故给付结算事件（记录给付总额并进入赔付中，保持 APPROVED 待支付域回写）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(DeathBenefitSettledEvent event) {
         log.info("[读模型投影] 身故给付结算: claimId={}, policyId={}", event.claimId(), event.policyId());
 
@@ -191,7 +192,7 @@ public class ClaimProjectionEventHandler {
      * 投影全残给付结算事件（CLAIM-6：settled_amount 取给付总额，进入赔付中）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(DisabilityBenefitSettledEvent event) {
         log.info("[读模型投影] 全残给付结算: claimId={}, policyId={}", event.claimId(), event.policyId());
 
@@ -211,7 +212,7 @@ public class ClaimProjectionEventHandler {
      * 快赔通道判据「无欺诈警示标记」的数据来源）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimAlertFlaggedEvent event) {
         log.info("[读模型投影] 理赔警示打标: claimId={}, flags={}", event.claimId(), event.flags());
 
@@ -229,7 +230,7 @@ public class ClaimProjectionEventHandler {
      * 投影拒赔事件（流转至 REJECTED，记录拒赔原因与时间）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimRejectedEvent event) {
         log.info("[读模型投影] 理赔拒赔: claimId={}, reason={}", event.claimId(), event.reason());
 
@@ -248,7 +249,7 @@ public class ClaimProjectionEventHandler {
      * 投影赔付完成事件（支付域回写：流转至 PAID，记录支付单号）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimPaymentCompletedEvent event) {
         log.info("[读模型投影] 赔付完成: claimId={}, paymentNo={}", event.claimId(), event.paymentNo());
 
@@ -270,7 +271,7 @@ public class ClaimProjectionEventHandler {
      * </p>
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimPaymentFailedEvent event) {
         log.info("[读模型投影] 赔付失败: claimId={}, paymentNo={}, failureType={}", event.claimId(), event.paymentNo(),
                 event.failureType());
@@ -289,7 +290,7 @@ public class ClaimProjectionEventHandler {
      * 投影结案事件（终态归档至 CLOSED，记录结案时间）
      */
     @EventHandler
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(ClaimClosedEvent event) {
         log.info("[读模型投影] 理赔结案: claimId={}", event.claimId());
 
