@@ -2,6 +2,8 @@ package com.titanium.claim.valueobject;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import com.titanium.claim.common.enums.DecisionType;
 import com.titanium.metadata.errorcode.BaseErrorCode;
 
@@ -39,16 +41,22 @@ public record RuleDecision(
     }
 
     /** 是否责任成立 */
+    // 🔴 @JsonIgnore 不可删（D-501-19，与 D-501-18 investment/regulatory 同病）：
+    //    派生 getter 非 record 分量，却会被 Axon 的 Jackson 序列化器写进事件/载荷
+    //    （isXxx → 属性 "approved"），重放时报 UnrecognizedPropertyException → 聚合无法加载。
+    @JsonIgnore
     public boolean isApproved() {
         return type == DecisionType.APPROVED;
     }
 
     /** 是否需人工判定 */
+    @JsonIgnore
     public boolean isManualReview() {
         return type == DecisionType.MANUAL_REVIEW;
     }
 
     /** 是否责任除外 */
+    @JsonIgnore
     public boolean isRejected() {
         return type == DecisionType.REJECTED;
     }
