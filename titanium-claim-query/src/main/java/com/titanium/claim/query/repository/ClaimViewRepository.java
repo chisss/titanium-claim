@@ -35,7 +35,13 @@ public interface ClaimViewRepository
 
     List<ClaimView> findByStatusAndTenantId(ClaimStatus status, String tenantId);
 
-    List<ClaimView> findByTenantId(String tenantId);
+    /**
+     * 按租户ID查询全部理赔案件列表：默认按创建时间倒序 + 主键第二排序键
+     * <p>
+     * 排序下推到数据库：调用方在其结果上做 skip/limit 分页时，窗口必须落在有确定顺序的结果集上。
+     * </p>
+     */
+    List<ClaimView> findByTenantIdOrderByCreateTimeDescClaimIdDesc(String tenantId);
 
     /**
      * 按租户ID统计理赔案件总数（多租户隔离）

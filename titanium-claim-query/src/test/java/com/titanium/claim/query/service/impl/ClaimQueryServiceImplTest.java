@@ -29,10 +29,10 @@ class ClaimQueryServiceImplTest {
     void shouldRestrictAllClaimsQueryToTenant() {
         ClaimViewRepository repository = mock(ClaimViewRepository.class);
         ClaimQueryServiceImpl service = new ClaimQueryServiceImpl(repository, mock(ClaimQueryResultMapper.class));
-        when(repository.findByTenantId("tenant-a")).thenReturn(List.of());
+        when(repository.findByTenantIdOrderByCreateTimeDescClaimIdDesc("tenant-a")).thenReturn(List.of());
 
         assertTrue(service.getAllClaimSummaries("tenant-a").isEmpty());
 
-        verify(repository).findByTenantId("tenant-a");
+        verify(repository).findByTenantIdOrderByCreateTimeDescClaimIdDesc("tenant-a");
     }
 }

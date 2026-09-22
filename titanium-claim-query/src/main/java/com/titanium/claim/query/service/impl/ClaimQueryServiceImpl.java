@@ -78,7 +78,7 @@ public class ClaimQueryServiceImpl implements ClaimQueryService {
     @Override
     @Transactional(readOnly = true)
     public List<ClaimQueryResult> getAllClaimSummaries(String tenantId) {
-        return claimViewRepository.findByTenantId(tenantId).stream()
+        return claimViewRepository.findByTenantIdOrderByCreateTimeDescClaimIdDesc(tenantId).stream()
                 .map(claimQueryResultMapper::toResult)
                 .collect(Collectors.toList());
     }
