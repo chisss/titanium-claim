@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.titanium.claim.application.model.issuance.CreateClaimRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.ClaimOutOfCoverageException;
 import com.titanium.claim.port.clause.ClauseServicePort;
 import com.titanium.claim.port.clause.ClauseServicePort.CoverageInfo;
@@ -24,6 +24,7 @@ import com.titanium.claim.port.policy.ClauseRef;
 import com.titanium.claim.port.policy.PolicyInfo;
 import com.titanium.claim.port.policy.PolicyServicePort;
 import com.titanium.claim.service.ClaimService;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 /**
@@ -42,13 +43,16 @@ class CoverageValidatorTest {
     private ClauseServicePort clauseServicePort;
 
     private CoverageValidator validator;
-    private TenantContext    tenantContext;
 
     @BeforeEach
     void setUp() {
-        tenantContext = new TenantContext();
-        tenantContext.setCurrentTenantId("T-1");
-        validator = new CoverageValidator(policyServicePort, clauseServicePort, new ClaimService(), tenantContext);
+        RequestContextHolder.setTenantId("T-1");
+        validator = new CoverageValidator(policyServicePort, clauseServicePort, new ClaimService());
+    }
+
+    @AfterEach
+    void tearDown() {
+        RequestContextHolder.clear();
     }
 
     private CreateClaimRequest request() {

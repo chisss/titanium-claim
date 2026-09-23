@@ -2,7 +2,6 @@ package com.titanium.claim.application.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.aggregate.ClaimPayoutRule;
 import com.titanium.claim.application.model.assessment.ReimbursementSettlementRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
 import com.titanium.claim.common.enums.config.SettlementChannel;
 import com.titanium.claim.common.exception.BusinessException;
@@ -31,6 +30,7 @@ import com.titanium.claim.repository.ClaimPayoutRuleRepository;
 import com.titanium.claim.service.ReimbursementAdjustmentService;
 import com.titanium.claim.service.impl.ReimbursementAdjustmentServiceImpl;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
+import com.titanium.common.context.RequestContextHolder;
 
 /**
  * 报销理算查询服务测试（application 读入口编排）
@@ -50,16 +50,20 @@ class ReimbursementAdjustmentQueryServiceTest {
     @Mock
     private ClaimHospitalNetworkRepository hospitalRepository;
     @Mock
-    private TenantContext                 tenantContext;
 
     private ReimbursementAdjustmentQueryService queryService;
 
     @BeforeEach
     void setUp() {
-        lenient().when(tenantContext.getCurrentTenantId()).thenReturn(TENANT_ID);
+        RequestContextHolder.setTenantId(TENANT_ID);
         ReimbursementAdjustmentService adjustmentService = new ReimbursementAdjustmentServiceImpl();
         queryService = new ReimbursementAdjustmentQueryService(payoutRuleRepository, hospitalRepository,
-                adjustmentService, tenantContext);
+                adjustmentService);
+    }
+
+    @AfterEach
+    void tearDown() {
+        RequestContextHolder.clear();
     }
 
     private ReimbursementSettlementRequest request(String hospitalName) {

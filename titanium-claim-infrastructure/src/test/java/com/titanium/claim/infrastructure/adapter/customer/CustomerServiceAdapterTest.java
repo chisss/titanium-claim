@@ -46,20 +46,20 @@ class CustomerServiceAdapterTest {
         response.setCustomerId(CUSTOMER_ID);
         response.setFullName("张三");
         response.setStatus(CustomerEnum.CustomerStatus.ACTIVE);
-        when(customerApi.getCustomer(CUSTOMER_ID, TENANT_ID)).thenReturn(response);
+        when(customerApi.getCustomer(CUSTOMER_ID)).thenReturn(response);
 
         CustomerInfo info = adapter.getCustomer(CUSTOMER_ID, TENANT_ID);
 
         assertEquals(CUSTOMER_ID, info.customerId());
         assertEquals("张三", info.name());
         assertEquals(CustomerEnum.CustomerStatus.ACTIVE.getCode(), info.statusCode());
-        verify(customerApi).getCustomer(CUSTOMER_ID, TENANT_ID);
+        verify(customerApi).getCustomer(CUSTOMER_ID);
     }
 
     @Test
     @DisplayName("对端返回 null（客户不存在）：原样返回 null，不抛异常")
     void shouldReturnNullWhenCustomerAbsent() {
-        when(customerApi.getCustomer(CUSTOMER_ID, TENANT_ID)).thenReturn(null);
+        when(customerApi.getCustomer(CUSTOMER_ID)).thenReturn(null);
 
         assertNull(adapter.getCustomer(CUSTOMER_ID, TENANT_ID));
     }
@@ -70,7 +70,7 @@ class CustomerServiceAdapterTest {
         CustomerResponse response = new CustomerResponse();
         response.setCustomerId(CUSTOMER_ID);
         response.setFullName("张三");
-        when(customerApi.getCustomer(CUSTOMER_ID, TENANT_ID)).thenReturn(response);
+        when(customerApi.getCustomer(CUSTOMER_ID)).thenReturn(response);
 
         assertNull(adapter.getCustomer(CUSTOMER_ID, TENANT_ID).statusCode());
     }
@@ -81,7 +81,7 @@ class CustomerServiceAdapterTest {
         CustomerResponse response = new CustomerResponse();
         response.setFullName("张三");
         response.setStatus(CustomerEnum.CustomerStatus.ACTIVE);
-        when(customerApi.getCustomer(CUSTOMER_ID, TENANT_ID)).thenReturn(response);
+        when(customerApi.getCustomer(CUSTOMER_ID)).thenReturn(response);
 
         assertEquals(CUSTOMER_ID, adapter.getCustomer(CUSTOMER_ID, TENANT_ID).customerId());
     }

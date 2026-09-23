@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimPayoutRule;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimPayoutRuleRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -25,14 +25,13 @@ import lombok.RequiredArgsConstructor;
 public class PayoutRuleConfigQueryService {
 
     private final ClaimPayoutRuleRepository repository;
-    private final TenantContext             tenantContext;
 
     /**
      * 按规则ID查询
      */
     @Transactional(readOnly = true)
     public ClaimPayoutRule getPayoutRule(String ruleId) {
-        return repository.findById(tenantContext.getCurrentTenantId(), ruleId)
+        return repository.findById(RequestContextHolder.getTenantId(), ruleId)
                 .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "赔付规则不存在: " + ruleId));
     }
@@ -42,6 +41,6 @@ public class PayoutRuleConfigQueryService {
      */
     @Transactional(readOnly = true)
     public List<ClaimPayoutRule> listPayoutRules() {
-        return repository.findByTenant(tenantContext.getCurrentTenantId());
+        return repository.findByTenant(RequestContextHolder.getTenantId());
     }
 }

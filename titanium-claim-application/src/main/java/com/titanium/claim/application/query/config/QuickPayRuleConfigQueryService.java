@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimQuickPayRule;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimQuickPayRuleRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -25,14 +25,13 @@ import lombok.RequiredArgsConstructor;
 public class QuickPayRuleConfigQueryService {
 
     private final ClaimQuickPayRuleRepository repository;
-    private final TenantContext               tenantContext;
 
     /**
      * 按规则ID查询
      */
     @Transactional(readOnly = true)
     public ClaimQuickPayRule getQuickPayRule(String ruleId) {
-        return repository.findById(tenantContext.getCurrentTenantId(), ruleId)
+        return repository.findById(RequestContextHolder.getTenantId(), ruleId)
                 .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "快赔规则不存在: " + ruleId));
     }
@@ -42,6 +41,6 @@ public class QuickPayRuleConfigQueryService {
      */
     @Transactional(readOnly = true)
     public List<ClaimQuickPayRule> listQuickPayRules() {
-        return repository.findByTenant(tenantContext.getCurrentTenantId());
+        return repository.findByTenant(RequestContextHolder.getTenantId());
     }
 }

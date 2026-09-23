@@ -3,7 +3,6 @@ package com.titanium.claim.application.orchestration.assessment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,13 +27,13 @@ import com.titanium.claim.aggregate.ClaimPayoutRule;
 import com.titanium.claim.application.model.settlement.SettleReimbursementRequest;
 import com.titanium.claim.application.query.ReimbursementAdjustmentQueryService;
 import com.titanium.claim.command.SettleClaimCommand;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
 import com.titanium.claim.repository.ClaimPayoutRuleRepository;
 import com.titanium.claim.service.ReimbursementAdjustmentService;
 import com.titanium.claim.service.impl.ReimbursementAdjustmentServiceImpl;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 /**
@@ -57,19 +57,22 @@ class ReimbursementSettlementOrchestratorTest {
     @Mock
     private ClaimHospitalNetworkRepository hospitalRepository;
     @Mock
-    private TenantContext                  tenantContext;
-    @Mock
     private CommandGateway                 commandGateway;
 
     private ReimbursementSettlementOrchestrator orchestrator;
 
     @BeforeEach
     void setUp() {
-        lenient().when(tenantContext.getCurrentTenantId()).thenReturn(TENANT_ID);
+        RequestContextHolder.setTenantId(TENANT_ID);
         ReimbursementAdjustmentService adjustmentService = new ReimbursementAdjustmentServiceImpl();
         ReimbursementAdjustmentQueryService queryService = new ReimbursementAdjustmentQueryService(
-                payoutRuleRepository, hospitalRepository, adjustmentService, tenantContext);
+                payoutRuleRepository, hospitalRepository, adjustmentService);
         orchestrator = new ReimbursementSettlementOrchestrator(queryService, commandGateway);
+    }
+
+    @AfterEach
+    void tearDown() {
+        RequestContextHolder.clear();
     }
 
     /** 结算入参：合规费用 1000 元，给付方式银行转账——注意模型里<b>没有金额字段</b> */

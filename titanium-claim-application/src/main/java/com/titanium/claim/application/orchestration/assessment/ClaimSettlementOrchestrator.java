@@ -11,7 +11,6 @@ import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest
 import com.titanium.claim.application.model.settlement.SettleDisabilityBenefitRequest;
 import com.titanium.claim.command.SettleDeathBenefitCommand;
 import com.titanium.claim.command.SettleDisabilityBenefitCommand;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BenefitCalculationException;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
@@ -23,6 +22,7 @@ import com.titanium.claim.valueobject.BenefitCalculation;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.DeathClaimEvidence;
 import com.titanium.claim.valueobject.DisabilityClaimEvidence;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.enums.customer.CustomerEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
@@ -48,7 +48,6 @@ public class ClaimSettlementOrchestrator {
 
     private final PolicyServicePort   policyServicePort;
     private final CustomerServicePort customerServicePort;
-    private final TenantContext       tenantContext;
     private final CommandGateway      commandGateway;
 
     /**
@@ -58,7 +57,7 @@ public class ClaimSettlementOrchestrator {
      * @param request 身故给付结算入参（不含金额，金额由系统精算）
      */
     public void settleDeathBenefit(String claimId, SettleDeathBenefitRequest request) {
-        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantId = RequestContextHolder.getTenantId();
         // 1. Port 取数：保单须有效且携带基本保额（定额给付精算依据）
         PolicyInfo policy = policyServicePort.getPolicy(request.getPolicyId(), tenantId);
         if (policy == null || !policy.isEffective()) {
@@ -101,7 +100,7 @@ public class ClaimSettlementOrchestrator {
      * 给付后保单责任终止（被保险人全残，下游据事件派发保单终止）。
      */
     public void settleDisabilityBenefit(String claimId, SettleDisabilityBenefitRequest request) {
-        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantId = RequestContextHolder.getTenantId();
         // 1. Port 取数：保单须有效且携带基本保额（全残给付精算依据）
         PolicyInfo policy = policyServicePort.getPolicy(request.getPolicyId(), tenantId);
         if (policy == null || !policy.isEffective()) {

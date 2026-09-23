@@ -10,10 +10,15 @@ import java.time.LocalDateTime;
  * {@code resultType}="FAILED"/"CANCELLED"），跨域转换在本域消费端完成。
  * </p>
  * <p>
- * 只镜像本域用到的字段（与 {@link PaymentOrderPaidMessage} 同做法），对端载荷的其余审计字段不透传：
- * 对端自 m6-901 起在载荷中新增 {@code tenantId}，本 record 刻意不承接——本域按 {@code businessId}
- * （claimId）定位赔案，聚合自身的事件流已带租户，回写链路无需该字段。此不承接不影响反序列化
- * （fastjson2 忽略未知键），已由 {@code PaymentResultConsumerTest} 按含该字段的真实载荷锁死。
+ * 只镜像本域用到的字段（与 {@link PaymentOrderPaidMessage} 同做法），对端载荷的其余审计字段不透传。
+ * </p>
+ * <p>
+ * 🔴 {@code tenantId} 由「刻意不承接」改为<b>必须承接</b>（2026-09-22）：原判据是「本域按
+ * {@code businessId}（claimId）定位赔案，聚合自身的事件流已带租户，回写链路无需该字段」——
+ * 该判据只覆盖了**赔案定位**，漏了**出站身份**：本域消费侧运行在 Kafka 监听线程、无请求上下文，
+ * 而回写链路派发的命令及其下游 Axon 事件线程要走出站 Feign（{@code /api/v1/**} 缺租户头即 400），
+ * 跨域载荷是该线程判定租户归属的唯一依据。对端自 m6-901 起已随载荷下发该字段（D16 判据），
+ * 故镜像侧补齐即可，无需回查本域读模型。
  * </p>
  */
 public record PaymentOrderFailedMessage(
@@ -23,6 +28,8 @@ public record PaymentOrderFailedMessage(
         String businessId,
         /** 关联业务域：据以过滤本域消息 */
         String businessType,
+        /** 租户ID：消费侧无请求上下文时的身份来源 */
+        String tenantId,
         /** 未成功结果类型：FAILED（渠道确认失败）/ CANCELLED（人工取消） */
         String resultType,
         /** 未成功原因：渠道失败原因或人工取消原因 */

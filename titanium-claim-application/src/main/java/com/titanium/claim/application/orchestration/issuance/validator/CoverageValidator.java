@@ -6,7 +6,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import com.titanium.claim.application.model.issuance.CreateClaimRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.ClaimOutOfCoverageException;
 import com.titanium.claim.port.clause.ClauseServicePort;
 import com.titanium.claim.port.clause.ClauseServicePort.CoverageInfo;
@@ -17,6 +16,7 @@ import com.titanium.claim.service.ClaimService;
 import com.titanium.claim.valueobject.CoverageResult;
 import com.titanium.claim.valueobject.CoverageResult.CoverageMatch;
 import com.titanium.claim.valueobject.RuleDecision;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 import lombok.RequiredArgsConstructor;
@@ -44,11 +44,10 @@ public class CoverageValidator implements ClaimRegistrationValidator {
     private final PolicyServicePort  policyServicePort;
     private final ClauseServicePort  clauseServicePort;
     private final ClaimService       claimService;
-    private final TenantContext      tenantContext;
 
     @Override
     public void validate(CreateClaimRequest request) {
-        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantId = RequestContextHolder.getTenantId();
         // 1. Port 取数：保单（等待期起算基准）→ 保单条款（责任定位）→ 条款责任列表
         PolicyInfo policy = policyServicePort.getPolicy(request.getPolicyId(), tenantId);
         if (policy == null || policy.effectiveDate() == null) {

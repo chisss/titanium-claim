@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -29,7 +29,6 @@ import com.titanium.claim.aggregate.ClaimFlowTemplate;
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.application.model.config.ClaimBlacklistConfigRequest;
 import com.titanium.claim.application.model.config.ClaimFlowTemplateConfigRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.enums.config.BlacklistStatus;
 import com.titanium.claim.common.enums.config.BlacklistSubjectType;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
@@ -37,6 +36,7 @@ import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimBlacklistRepository;
 import com.titanium.claim.repository.ClaimFlowTemplateRepository;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
+import com.titanium.common.context.RequestContextHolder;
 
 /**
  * 理赔配置子域写服务测试（application/command/config）
@@ -57,12 +57,15 @@ class ClaimConfigServiceTest {
     private ClaimBlacklistRepository      blacklistRepository;
     @Mock
     private ClaimHospitalNetworkRepository hospitalRepository;
-    @Mock
-    private TenantContext                 tenantContext;
 
     @BeforeEach
     void setUp() {
-        lenient().when(tenantContext.getCurrentTenantId()).thenReturn(TENANT_ID);
+        RequestContextHolder.setTenantId(TENANT_ID);
+    }
+
+    @AfterEach
+    void tearDown() {
+        RequestContextHolder.clear();
     }
 
     @Nested
@@ -80,7 +83,7 @@ class ClaimConfigServiceTest {
             request.setResponsibleRole("理赔专员");
             request.setMandatoryCheckpoints(List.of("核赔"));
 
-            FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository, tenantContext);
+            FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository);
             String templateId = service.saveFlowTemplate(request);
 
             assertThat(templateId).isNotBlank();
@@ -104,7 +107,7 @@ class ClaimConfigServiceTest {
             request.setStageSequence(List.of("报案", "给付"));
             request.setStageTimeLimitHours(Map.of("报案", 24));
 
-            FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository, tenantContext);
+            FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository);
             String templateId = service.saveFlowTemplate(request);
 
             assertThat(templateId).isEqualTo("tpl-1");
@@ -122,7 +125,7 @@ class ClaimConfigServiceTest {
             request.setTemplateId("tpl-404");
             request.setStageSequence(List.of("报案"));
 
-            FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository, tenantContext);
+            FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository);
             assertThatThrownBy(() -> service.saveFlowTemplate(request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("流程模板不存在");
@@ -131,7 +134,7 @@ class ClaimConfigServiceTest {
         @Test
         @DisplayName("删除委托仓储逻辑删除")
         void shouldDelete() {
-            FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository, tenantContext);
+            FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository);
             service.deleteFlowTemplate("tpl-1");
             verify(flowTemplateRepository).delete(TENANT_ID, "tpl-1");
         }
@@ -154,7 +157,7 @@ class ClaimConfigServiceTest {
         @Test
         @DisplayName("blacklistId 空 → 创建即 ACTIVE 并落库")
         void shouldCreateActive() {
-            BlacklistConfigService service = new BlacklistConfigService(blacklistRepository, tenantContext);
+            BlacklistConfigService service = new BlacklistConfigService(blacklistRepository);
             String blacklistId = service.saveBlacklist(request());
 
             assertThat(blacklistId).isNotBlank();
@@ -171,7 +174,7 @@ class ClaimConfigServiceTest {
                     "customer-1", "张三", "FRAUD_SUSPECTED", LocalDateTime.now());
             when(blacklistRepository.findById(TENANT_ID, "blk-1")).thenReturn(Optional.of(existing));
 
-            BlacklistConfigService service = new BlacklistConfigService(blacklistRepository, tenantContext);
+            BlacklistConfigService service = new BlacklistConfigService(blacklistRepository);
             service.revokeBlacklist("blk-1");
 
             ArgumentCaptor<ClaimBlacklist> captor = ArgumentCaptor.forClass(ClaimBlacklist.class);
@@ -184,7 +187,7 @@ class ClaimConfigServiceTest {
         void shouldThrowWhenRevokeTargetMissing() {
             when(blacklistRepository.findById(TENANT_ID, "blk-404")).thenReturn(Optional.empty());
 
-            BlacklistConfigService service = new BlacklistConfigService(blacklistRepository, tenantContext);
+            BlacklistConfigService service = new BlacklistConfigService(blacklistRepository);
             assertThatThrownBy(() -> service.revokeBlacklist("blk-404"))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("黑名单不存在");
@@ -212,7 +215,7 @@ class ClaimConfigServiceTest {
             when(hospitalRepository.findById(TENANT_ID, "hosp-1")).thenReturn(Optional.of(activeHospital()));
 
             HospitalNetworkConfigService service =
-                    new HospitalNetworkConfigService(hospitalRepository, tenantContext);
+                    new HospitalNetworkConfigService(hospitalRepository);
             service.suspendHospital("hosp-1");
 
             ArgumentCaptor<ClaimHospitalNetwork> captor = ArgumentCaptor.forClass(ClaimHospitalNetwork.class);
@@ -226,7 +229,7 @@ class ClaimConfigServiceTest {
             when(hospitalRepository.findById(TENANT_ID, "hosp-1")).thenReturn(Optional.of(suspendedHospital()));
 
             HospitalNetworkConfigService service =
-                    new HospitalNetworkConfigService(hospitalRepository, tenantContext);
+                    new HospitalNetworkConfigService(hospitalRepository);
             service.activateHospital("hosp-1");
 
             ArgumentCaptor<ClaimHospitalNetwork> captor = ArgumentCaptor.forClass(ClaimHospitalNetwork.class);
@@ -242,7 +245,7 @@ class ClaimConfigServiceTest {
             when(hospitalRepository.findById(TENANT_ID, "hosp-1")).thenReturn(Optional.of(terminated));
 
             HospitalNetworkConfigService service =
-                    new HospitalNetworkConfigService(hospitalRepository, tenantContext);
+                    new HospitalNetworkConfigService(hospitalRepository);
             assertThatThrownBy(() -> service.suspendHospital("hosp-1"))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("禁止执行「暂停协议」");
@@ -258,7 +261,7 @@ class ClaimConfigServiceTest {
             when(hospitalRepository.findById(TENANT_ID, "hosp-1")).thenReturn(Optional.of(activeHospital()));
 
             HospitalNetworkConfigService service =
-                    new HospitalNetworkConfigService(hospitalRepository, tenantContext);
+                    new HospitalNetworkConfigService(hospitalRepository);
             assertThatThrownBy(() -> service.activateHospital("hosp-1"))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("禁止执行「恢复协议」");
@@ -271,7 +274,7 @@ class ClaimConfigServiceTest {
             when(hospitalRepository.findById(eq(TENANT_ID), anyString())).thenReturn(Optional.empty());
 
             HospitalNetworkConfigService service =
-                    new HospitalNetworkConfigService(hospitalRepository, tenantContext);
+                    new HospitalNetworkConfigService(hospitalRepository);
             assertThatThrownBy(() -> service.terminateHospital("hosp-404"))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("医院台账不存在");

@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -25,14 +25,13 @@ import lombok.RequiredArgsConstructor;
 public class HospitalNetworkConfigQueryService {
 
     private final ClaimHospitalNetworkRepository repository;
-    private final TenantContext                 tenantContext;
 
     /**
      * 按医院ID查询
      */
     @Transactional(readOnly = true)
     public ClaimHospitalNetwork getHospital(String hospitalId) {
-        return repository.findById(tenantContext.getCurrentTenantId(), hospitalId)
+        return repository.findById(RequestContextHolder.getTenantId(), hospitalId)
                 .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "医院台账不存在: " + hospitalId));
     }
@@ -42,6 +41,6 @@ public class HospitalNetworkConfigQueryService {
      */
     @Transactional(readOnly = true)
     public List<ClaimHospitalNetwork> listHospitals() {
-        return repository.findByTenant(tenantContext.getCurrentTenantId());
+        return repository.findByTenant(RequestContextHolder.getTenantId());
     }
 }

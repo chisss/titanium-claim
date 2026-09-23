@@ -38,7 +38,7 @@ public class PolicyServiceAdapter implements PolicyServicePort {
     @Override
     public PolicyInfo getPolicy(String policyId, String tenantId) {
         log.info("获取保单详情, policyId={}, tenantId={}", policyId, tenantId);
-        ApiResponse<PolicyResponse> response = policyApi.getPolicy(policyId, tenantId);
+        ApiResponse<PolicyResponse> response = policyApi.getPolicy(policyId);
         if (!response.isSuccess()) {
             log.error("获取保单详情失败, policyId={}, error={}", policyId, response.getMessage());
             throw new BusinessException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,
@@ -60,7 +60,7 @@ public class PolicyServiceAdapter implements PolicyServicePort {
     @Override
     public List<ClauseRef> fetchClauses(String policyId, String tenantId) {
         log.info("查询保单条款快照, policyId={}, tenantId={}", policyId, tenantId);
-        ApiResponse<List<PolicyClauseResponse>> response = policyApi.getPolicyClauses(policyId, tenantId);
+        ApiResponse<List<PolicyClauseResponse>> response = policyApi.getPolicyClauses(policyId);
         if (!response.isSuccess()) {
             log.error("查询保单条款快照失败, policyId={}, error={}", policyId, response.getMessage());
             throw new BusinessException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,
@@ -78,7 +78,7 @@ public class PolicyServiceAdapter implements PolicyServicePort {
     @Override
     public List<BeneficiaryInfo> fetchBeneficiaries(String policyId, String tenantId) {
         log.info("查询保单受益人主数据, policyId={}, tenantId={}", policyId, tenantId);
-        ApiResponse<List<PolicyBeneficiaryResponse>> response = policyApi.getBeneficiaries(policyId, tenantId);
+        ApiResponse<List<PolicyBeneficiaryResponse>> response = policyApi.getBeneficiaries(policyId);
         if (!response.isSuccess()) {
             log.error("查询保单受益人失败, policyId={}, error={}", policyId, response.getMessage());
             throw new BusinessException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,

@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimBlacklist;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimBlacklistRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -25,14 +25,13 @@ import lombok.RequiredArgsConstructor;
 public class BlacklistConfigQueryService {
 
     private final ClaimBlacklistRepository repository;
-    private final TenantContext            tenantContext;
 
     /**
      * 按黑名单ID查询
      */
     @Transactional(readOnly = true)
     public ClaimBlacklist getBlacklist(String blacklistId) {
-        return repository.findById(tenantContext.getCurrentTenantId(), blacklistId)
+        return repository.findById(RequestContextHolder.getTenantId(), blacklistId)
                 .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "黑名单不存在: " + blacklistId));
     }
@@ -42,6 +41,6 @@ public class BlacklistConfigQueryService {
      */
     @Transactional(readOnly = true)
     public List<ClaimBlacklist> listBlacklists() {
-        return repository.findByTenant(tenantContext.getCurrentTenantId());
+        return repository.findByTenant(RequestContextHolder.getTenantId());
     }
 }

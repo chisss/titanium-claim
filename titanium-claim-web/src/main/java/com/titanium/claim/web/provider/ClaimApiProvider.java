@@ -19,6 +19,7 @@ import com.titanium.claim.api.response.ClaimResponse;
 import com.titanium.claim.application.command.ClaimCommandService;
 import com.titanium.claim.application.query.ClaimAppQueryService;
 import com.titanium.claim.web.mapper.ClaimWebMapper;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 import com.titanium.metadata.response.ApiResponse;
 
@@ -44,120 +45,116 @@ public class ClaimApiProvider implements ClaimApi {
     private final ClaimWebMapper          claimWebMapper;
 
     @Override
-    public ApiResponse<String> createClaim(ClaimRequest requestDTO, String tenantId) {
+    public ApiResponse<String> createClaim(ClaimRequest requestDTO) {
         String claimId = claimCommandService.createClaim(claimWebMapper.toCreateRequest(requestDTO));
         return ApiResponse.success(claimId);
     }
 
     @Override
-    public ApiResponse<Void> updateClaim(String claimId, ClaimRequest requestDTO, String tenantId) {
+    public ApiResponse<Void> updateClaim(String claimId, ClaimRequest requestDTO) {
         claimCommandService.updateClaim(claimId, claimWebMapper.toUpdateRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> updateClaimStatus(String claimId, String status, String tenantId) {
+    public ApiResponse<Void> updateClaimStatus(String claimId, String status) {
         claimCommandService.updateClaimStatus(claimId, status);
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<ClaimResponse> getClaim(String claimId, String tenantId) {
-        return claimAppQueryService.getClaim(claimId, tenantId)
+    public ApiResponse<ClaimResponse> getClaim(String claimId) {
+        return claimAppQueryService.getClaim(claimId, RequestContextHolder.requireTenantId())
                 .map(claimWebMapper::toApiResponse)
                 .map(ApiResponse::success)
                 .orElseGet(() -> ApiResponse.error(ClaimErrorCode.CLAIM_NOT_EXIST, "理赔案件不存在: " + claimId));
     }
 
     @Override
-    public ApiResponse<List<ClaimResponse>> getClaimsByCustomerId(String customerId, String tenantId) {
-        List<ClaimResponse> list = claimAppQueryService.getClaimsByCustomerId(customerId, tenantId)
+    public ApiResponse<List<ClaimResponse>> getClaimsByCustomerId(String customerId) {
+        List<ClaimResponse> list = claimAppQueryService.getClaimsByCustomerId(customerId, RequestContextHolder.requireTenantId())
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
-    public ApiResponse<List<ClaimResponse>> getClaimsByPolicyId(String policyId, String tenantId) {
-        List<ClaimResponse> list = claimAppQueryService.getClaimsByPolicyId(policyId, tenantId)
+    public ApiResponse<List<ClaimResponse>> getClaimsByPolicyId(String policyId) {
+        List<ClaimResponse> list = claimAppQueryService.getClaimsByPolicyId(policyId, RequestContextHolder.requireTenantId())
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
-    public ApiResponse<List<ClaimResponse>> getClaimsByStatus(String status, String tenantId) {
-        List<ClaimResponse> list = claimAppQueryService.getClaimsByStatus(status, tenantId)
+    public ApiResponse<List<ClaimResponse>> getClaimsByStatus(String status) {
+        List<ClaimResponse> list = claimAppQueryService.getClaimsByStatus(status, RequestContextHolder.requireTenantId())
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
-    public ApiResponse<List<ClaimResponse>> getAllClaims(String tenantId) {
-        List<ClaimResponse> list = claimAppQueryService.getAllClaims(tenantId)
+    public ApiResponse<List<ClaimResponse>> getAllClaims() {
+        List<ClaimResponse> list = claimAppQueryService.getAllClaims(RequestContextHolder.requireTenantId())
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }
 
     @Override
-    public ApiResponse<Void> submitSurvey(String claimId, SubmitSurveyRequest requestDTO, String tenantId) {
+    public ApiResponse<Void> submitSurvey(String claimId, SubmitSurveyRequest requestDTO) {
         claimCommandService.submitSurvey(claimId, claimWebMapper.toSurveyRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> submitLossAssessment(String claimId, SubmitLossAssessmentRequest requestDTO,
-                                                  String tenantId) {
+    public ApiResponse<Void> submitLossAssessment(String claimId, SubmitLossAssessmentRequest requestDTO) {
         claimCommandService.submitLossAssessment(claimId, claimWebMapper.toLossAssessmentRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> settleClaim(String claimId, SettleClaimRequest requestDTO, String tenantId) {
+    public ApiResponse<Void> settleClaim(String claimId, SettleClaimRequest requestDTO) {
         claimCommandService.settleClaim(claimId, claimWebMapper.toSettleRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> settleDeathBenefit(String claimId, SettleDeathBenefitRequest requestDTO,
-                                                String tenantId) {
+    public ApiResponse<Void> settleDeathBenefit(String claimId, SettleDeathBenefitRequest requestDTO) {
         claimCommandService.settleDeathBenefit(claimId, claimWebMapper.toDeathBenefitRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> settleDisabilityBenefit(String claimId, SettleDisabilityBenefitRequest requestDTO,
-                                                     String tenantId) {
+    public ApiResponse<Void> settleDisabilityBenefit(String claimId, SettleDisabilityBenefitRequest requestDTO) {
         claimCommandService.settleDisabilityBenefit(claimId, claimWebMapper.toDisabilityBenefitRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> flagClaimAlert(String claimId, FlagClaimAlertRequest requestDTO, String tenantId) {
+    public ApiResponse<Void> flagClaimAlert(String claimId, FlagClaimAlertRequest requestDTO) {
         claimCommandService.flagAlert(claimId, claimWebMapper.toFlagAlertRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> quickPay(String claimId, String tenantId) {
+    public ApiResponse<Void> quickPay(String claimId) {
         claimCommandService.quickPay(claimId);
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> settleReimbursement(String claimId, SettleReimbursementRequest requestDTO,
-                                                 String tenantId) {
+    public ApiResponse<Void> settleReimbursement(String claimId, SettleReimbursementRequest requestDTO) {
         claimCommandService.settleReimbursement(claimId,
                 claimWebMapper.toSettleReimbursementRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> rejectClaim(String claimId, RejectClaimRequest requestDTO, String tenantId) {
+    public ApiResponse<Void> rejectClaim(String claimId, RejectClaimRequest requestDTO) {
         claimCommandService.rejectClaim(claimId, claimWebMapper.toRejectRequest(requestDTO));
         return ApiResponse.success();
     }
 
     @Override
-    public ApiResponse<Void> closeClaim(String claimId, String tenantId) {
+    public ApiResponse<Void> closeClaim(String claimId) {
         claimCommandService.closeClaim(claimId);
         return ApiResponse.success();
     }

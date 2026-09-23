@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimTimeLimitRule;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimTimeLimitRuleRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -25,14 +25,13 @@ import lombok.RequiredArgsConstructor;
 public class TimeLimitRuleConfigQueryService {
 
     private final ClaimTimeLimitRuleRepository repository;
-    private final TenantContext               tenantContext;
 
     /**
      * 按规则ID查询
      */
     @Transactional(readOnly = true)
     public ClaimTimeLimitRule getTimeLimitRule(String ruleId) {
-        return repository.findById(tenantContext.getCurrentTenantId(), ruleId)
+        return repository.findById(RequestContextHolder.getTenantId(), ruleId)
                 .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "时限规则不存在: " + ruleId));
     }
@@ -42,6 +41,6 @@ public class TimeLimitRuleConfigQueryService {
      */
     @Transactional(readOnly = true)
     public List<ClaimTimeLimitRule> listTimeLimitRules() {
-        return repository.findByTenant(tenantContext.getCurrentTenantId());
+        return repository.findByTenant(RequestContextHolder.getTenantId());
     }
 }

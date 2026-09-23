@@ -31,7 +31,7 @@ public class ClauseServiceAdapter implements ClauseServicePort {
     public List<CoverageInfo> fetchCoverages(String clauseId, String tenantId) {
         log.info("查询条款保险责任, clauseId={}, tenantId={}", clauseId, tenantId);
         // ClauseApi 契约返回裸列表（无 ApiResponse 信封，下游 api 层契约现状）
-        List<CoverageResponse> coverages = clauseApi.getCoveragesByClauseId(clauseId, tenantId);
+        List<CoverageResponse> coverages = clauseApi.getCoveragesByClauseId(clauseId);
         if (coverages == null) {
             return List.of();
         }

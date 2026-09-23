@@ -32,7 +32,7 @@ public class CustomerServiceAdapter implements CustomerServicePort {
     @Override
     public CustomerInfo getCustomer(String customerId, String tenantId) {
         log.info("获取客户信息, customerId={}, tenantId={}", customerId, tenantId);
-        CustomerResponse customer = customerApi.getCustomer(customerId, tenantId);
+        CustomerResponse customer = customerApi.getCustomer(customerId);
         if (customer == null) {
             // 对端契约语义：不存在返回 null（非错误），由调用方判定并给出精确拒绝理由
             return null;

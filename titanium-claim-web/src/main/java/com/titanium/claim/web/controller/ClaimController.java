@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,6 +33,7 @@ import com.titanium.claim.web.mapper.ClaimStatisticsWebMapper;
 import com.titanium.claim.web.mapper.ClaimWebMapper;
 import com.titanium.claim.web.response.ClaimResponseVO;
 import com.titanium.claim.web.response.assessment.ReimbursementAdjustmentVO;
+import com.titanium.common.context.RequestContextHolder;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -64,12 +64,12 @@ public class ClaimController {
      * 返回待处理理赔数、今日报案数、理赔总数及累计已结案赔付金额。强制按 {@code X-Tenant-Id} 租户隔离。
      * </p>
      *
-     * @param tenantId 租户ID
      * @return 理赔统计结果
      */
     @GetMapping("/statistics")
     public ResponseEntity<ClaimStatisticsResponse> getStatistics(
-            @RequestHeader("X-Tenant-Id") String tenantId) {
+            ) {
+        String tenantId = RequestContextHolder.requireTenantId();
         return ResponseEntity.ok(
                 claimStatisticsWebMapper.toResponse(claimAppQueryService.getStatistics(tenantId)));
     }
@@ -87,7 +87,7 @@ public class ClaimController {
      * 更新理赔案件
      */
     @PutMapping("/{claimId}")
-    public ResponseEntity<Void> updateClaim(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> updateClaim(@PathVariable String claimId,
                                             @RequestBody @Valid UpdateClaimDTO requestVO) {
         claimCommandService.updateClaim(claimId, claimWebMapper.toUpdateRequest(requestVO));
         return ResponseEntity.noContent().build();
@@ -97,8 +97,8 @@ public class ClaimController {
      * 更新理赔状态
      */
     @PutMapping("/{claimId}/status")
-    public ResponseEntity<Void> updateClaimStatus(@PathVariable("claimId") String claimId,
-                                                  @RequestParam("status") String status) {
+    public ResponseEntity<Void> updateClaimStatus(@PathVariable String claimId,
+                                                  @RequestParam String status) {
         claimCommandService.updateClaimStatus(claimId, status);
         return ResponseEntity.noContent().build();
     }
@@ -108,8 +108,8 @@ public class ClaimController {
      */
     @GetMapping("/{claimId}")
     public ResponseEntity<ClaimResponseVO> getClaim(
-            @PathVariable("claimId") String claimId,
-            @RequestHeader("X-Tenant-Id") String tenantId) {
+            @PathVariable String claimId) {
+        String tenantId = RequestContextHolder.requireTenantId();
         return claimAppQueryService.getClaim(claimId, tenantId)
                 .map(claimWebMapper::toVO)
                 .map(ResponseEntity::ok)
@@ -121,8 +121,8 @@ public class ClaimController {
      */
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<ClaimResponseVO>> getClaimsByCustomerId(
-            @PathVariable("customerId") String customerId,
-            @RequestHeader("X-Tenant-Id") String tenantId) {
+            @PathVariable String customerId) {
+        String tenantId = RequestContextHolder.requireTenantId();
         return ResponseEntity.ok(claimAppQueryService.getClaimsByCustomerId(customerId, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
@@ -132,8 +132,8 @@ public class ClaimController {
      */
     @GetMapping("/policy/{policyId}")
     public ResponseEntity<List<ClaimResponseVO>> getClaimsByPolicyId(
-            @PathVariable("policyId") String policyId,
-            @RequestHeader("X-Tenant-Id") String tenantId) {
+            @PathVariable String policyId) {
+        String tenantId = RequestContextHolder.requireTenantId();
         return ResponseEntity.ok(claimAppQueryService.getClaimsByPolicyId(policyId, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
@@ -143,8 +143,8 @@ public class ClaimController {
      */
     @GetMapping("/status/{status}")
     public ResponseEntity<List<ClaimResponseVO>> getClaimsByStatus(
-            @PathVariable("status") String status,
-            @RequestHeader("X-Tenant-Id") String tenantId) {
+            @PathVariable String status) {
+        String tenantId = RequestContextHolder.requireTenantId();
         return ResponseEntity.ok(claimAppQueryService.getClaimsByStatus(status, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
@@ -154,7 +154,8 @@ public class ClaimController {
      */
     @GetMapping
     public ResponseEntity<List<ClaimResponseVO>> getAllClaims(
-            @RequestHeader("X-Tenant-Id") String tenantId) {
+            ) {
+        String tenantId = RequestContextHolder.requireTenantId();
         return ResponseEntity.ok(claimAppQueryService.getAllClaims(tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
@@ -163,7 +164,7 @@ public class ClaimController {
      * 提交查勘（推进理赔阶段至 SURVEY）
      */
     @PostMapping("/{claimId}/survey")
-    public ResponseEntity<Void> submitSurvey(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> submitSurvey(@PathVariable String claimId,
                                              @RequestBody @Valid SubmitSurveyDTO requestVO) {
         claimCommandService.submitSurvey(claimId, claimWebMapper.toSurveyRequest(requestVO));
         return ResponseEntity.noContent().build();
@@ -173,7 +174,7 @@ public class ClaimController {
      * 提交定损（推进理赔阶段至 LOSS_ASSESS）
      */
     @PostMapping("/{claimId}/loss-assessment")
-    public ResponseEntity<Void> submitLossAssessment(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> submitLossAssessment(@PathVariable String claimId,
                                                      @RequestBody @Valid SubmitLossAssessmentDTO requestVO) {
         claimCommandService.submitLossAssessment(claimId, claimWebMapper.toLossAssessmentRequest(requestVO));
         return ResponseEntity.noContent().build();
@@ -183,7 +184,7 @@ public class ClaimController {
      * 核赔结算（APPROVED → PAID）
      */
     @PostMapping("/{claimId}/settlement")
-    public ResponseEntity<Void> settleClaim(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> settleClaim(@PathVariable String claimId,
                                             @RequestBody @Valid SettleClaimDTO requestVO) {
         claimCommandService.settleClaim(claimId, claimWebMapper.toSettleRequest(requestVO));
         return ResponseEntity.noContent().build();
@@ -193,7 +194,7 @@ public class ClaimController {
      * 身故给付结算（寿险专属，APPROVED → PAID，按受益人份额一次性给付）
      */
     @PostMapping("/{claimId}/death-benefit")
-    public ResponseEntity<Void> settleDeathBenefit(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> settleDeathBenefit(@PathVariable String claimId,
                                                    @RequestBody @Valid SettleDeathBenefitDTO requestVO) {
         claimCommandService.settleDeathBenefit(claimId, claimWebMapper.toDeathBenefitRequest(requestVO));
         return ResponseEntity.noContent().build();
@@ -203,7 +204,7 @@ public class ClaimController {
      * 全残给付结算（寿险/意外险专属，CLAIM-6，APPROVED → PAID，按受益人份额一次性给付）
      */
     @PostMapping("/{claimId}/disability-benefit")
-    public ResponseEntity<Void> settleDisabilityBenefit(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> settleDisabilityBenefit(@PathVariable String claimId,
                                                         @RequestBody @Valid SettleDisabilityBenefitDTO requestVO) {
         claimCommandService.settleDisabilityBenefit(claimId, claimWebMapper.toDisabilityBenefitRequest(requestVO));
         return ResponseEntity.noContent().build();
@@ -213,7 +214,7 @@ public class ClaimController {
      * 打标警示标记（手动：人工复核/规则引擎回写，聚合根按类型合并去重幂等）
      */
     @PostMapping("/{claimId}/alert-flags")
-    public ResponseEntity<Void> flagClaimAlert(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> flagClaimAlert(@PathVariable String claimId,
                                                @RequestBody @Valid FlagClaimAlertDTO requestVO) {
         claimCommandService.flagAlert(claimId, claimWebMapper.toFlagAlertRequest(requestVO));
         return ResponseEntity.noContent().build();
@@ -223,7 +224,7 @@ public class ClaimController {
      * 快赔自动核赔（小额快赔通道：规则匹配 + 判据全过自动核赔并打快赔统计标记）
      */
     @PostMapping("/{claimId}/quick-pay")
-    public ResponseEntity<Void> quickPay(@PathVariable("claimId") String claimId) {
+    public ResponseEntity<Void> quickPay(@PathVariable String claimId) {
         claimCommandService.quickPay(claimId);
         return ResponseEntity.noContent().build();
     }
@@ -232,7 +233,7 @@ public class ClaimController {
      * 拒赔（核赔否决，PENDING/PROCESSING → REJECTED）
      */
     @PostMapping("/{claimId}/reject")
-    public ResponseEntity<Void> rejectClaim(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> rejectClaim(@PathVariable String claimId,
                                             @RequestBody @Valid RejectClaimDTO requestVO) {
         claimCommandService.rejectClaim(claimId, claimWebMapper.toRejectRequest(requestVO));
         return ResponseEntity.noContent().build();
@@ -242,7 +243,7 @@ public class ClaimController {
      * 结案（归档，PAID/REJECTED → CLOSED）
      */
     @PostMapping("/{claimId}/close")
-    public ResponseEntity<Void> closeClaim(@PathVariable("claimId") String claimId) {
+    public ResponseEntity<Void> closeClaim(@PathVariable String claimId) {
         claimCommandService.closeClaim(claimId);
         return ResponseEntity.noContent().build();
     }
@@ -262,8 +263,8 @@ public class ClaimController {
             @RequestParam(required = false) String customerId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestHeader("X-Tenant-Id") String tenantId) {
+            @RequestParam(defaultValue = "10") int size) {
+        String tenantId = RequestContextHolder.requireTenantId();
         List<ClaimResponseVO> result = claimAppQueryService
                 .searchClaims(new SearchClaimSummariesQuery(claimNo, policyId, customerId, status), page, size, tenantId)
                 .stream().map(claimWebMapper::toVO).toList();
@@ -294,7 +295,7 @@ public class ClaimController {
      * </p>
      */
     @PostMapping("/{claimId}/reimbursement-settlement")
-    public ResponseEntity<Void> settleReimbursement(@PathVariable("claimId") String claimId,
+    public ResponseEntity<Void> settleReimbursement(@PathVariable String claimId,
                                                     @RequestBody @Valid SettleReimbursementDTO requestVO) {
         claimCommandService.settleReimbursement(claimId, claimWebMapper.toSettleReimbursementRequest(requestVO));
         return ResponseEntity.noContent().build();

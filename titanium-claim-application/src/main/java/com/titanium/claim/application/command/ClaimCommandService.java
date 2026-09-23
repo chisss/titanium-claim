@@ -32,7 +32,6 @@ import com.titanium.claim.command.SettleClaimCommand;
 import com.titanium.claim.command.SubmitLossAssessmentCommand;
 import com.titanium.claim.command.SubmitSurveyCommand;
 import com.titanium.claim.command.UpdateClaimCommand;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.enums.AlertType;
 import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.service.ClaimService;
@@ -41,6 +40,7 @@ import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.LossAssessment;
 import com.titanium.claim.valueobject.Survey;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.enums.claim.RejectReason;
 
@@ -67,7 +67,6 @@ public class ClaimCommandService {
     private final ClaimAlertOrchestrator        claimAlertOrchestrator;
     private final QuickPayOrchestrator           quickPayOrchestrator;
     private final ReimbursementSettlementOrchestrator reimbursementSettlementOrchestrator;
-    private final TenantContext                 tenantContext;
 
     /**
      * 创建理赔案件（报案）：委托报案校验链编排器，返回理赔 ID。
@@ -77,7 +76,7 @@ public class ClaimCommandService {
         String claimId = claimRegistrationOrchestrator.registerClaim(request);
         // 报案后自动风险评分：延迟报案/多次报案判据命中即打标（读模型投影供快赔判据使用）
         claimAlertOrchestrator.scoreAndFlag(claimId, request.getPolicyId(), request.getIncidentDate(),
-                LocalDateTime.now(), tenantContext.getCurrentTenantId());
+                LocalDateTime.now(), RequestContextHolder.getTenantId());
         return claimId;
     }
 
@@ -220,7 +219,7 @@ public class ClaimCommandService {
      */
     @Transactional
     public void quickPay(String claimId) {
-        quickPayOrchestrator.executeQuickPay(claimId, tenantContext.getCurrentTenantId());
+        quickPayOrchestrator.executeQuickPay(claimId, RequestContextHolder.getTenantId());
     }
 
     /**

@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimFlowTemplate;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimFlowTemplateRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -25,14 +25,13 @@ import lombok.RequiredArgsConstructor;
 public class FlowTemplateConfigQueryService {
 
     private final ClaimFlowTemplateRepository repository;
-    private final TenantContext               tenantContext;
 
     /**
      * 按模板ID查询
      */
     @Transactional(readOnly = true)
     public ClaimFlowTemplate getFlowTemplate(String templateId) {
-        return repository.findById(tenantContext.getCurrentTenantId(), templateId)
+        return repository.findById(RequestContextHolder.getTenantId(), templateId)
                 .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "流程模板不存在: " + templateId));
     }
@@ -42,6 +41,6 @@ public class FlowTemplateConfigQueryService {
      */
     @Transactional(readOnly = true)
     public List<ClaimFlowTemplate> listFlowTemplates() {
-        return repository.findByTenant(tenantContext.getCurrentTenantId());
+        return repository.findByTenant(RequestContextHolder.getTenantId());
     }
 }

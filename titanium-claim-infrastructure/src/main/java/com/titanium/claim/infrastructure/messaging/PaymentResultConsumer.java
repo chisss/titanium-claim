@@ -9,6 +9,7 @@ import com.titanium.claim.application.orchestration.payment.PaymentCompletionOrc
 import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.infrastructure.messaging.inbound.PaymentOrderFailedMessage;
 import com.titanium.claim.infrastructure.messaging.inbound.PaymentOrderPaidMessage;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.BusinessDomainType;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,14 @@ import lombok.extern.slf4j.Slf4j;
  * <b>归属 infrastructure（driving adapter）</b>：{@code @KafkaListener} 只做消息接入与防腐翻译，
  * 发命令的编排逻辑下沉 application（{@link PaymentCompletionOrchestrator}），
  * infrastructure 不持有 CommandGateway（ArchUnit 固化）。
+ * </p>
+ * <p>
+ * 🔴 <b>身份播种（消费侧无请求上下文）</b>：Kafka 监听线程没有 Web 请求上下文，两个入口在校验通过后
+ * 一律先按载荷 {@code tenantId} 建立身份作用域（{@link RequestContextHolder#runAsTenant}）再委托编排器——
+ * 身份必须在<b>派发命令之前</b>建立，下游 Axon 事件线程才能继承，出站 Feign（{@code /api/v1/**}
+ * 强制准入）才不会因缺租户头被 400 拦下；作用域退出即还原，不污染线程池复用线程。
+ * 载荷缺租户属**数据缺陷**（对端出站载荷自该字段引入起即携带），重投永远不会成功，
+ * 故记 WARN 跳过且**不重抛**——把重投通道留给可恢复故障。
  * </p>
  */
 @Slf4j
@@ -51,8 +60,9 @@ public class PaymentResultConsumer {
         log.debug("[支付回写-入站] 收到支付出账成功消息: {}", payload);
         try {
             PaymentOrderPaidMessage message = JSONObject.parseObject(payload, PaymentOrderPaidMessage.class);
-            if (message == null || message.businessId() == null || message.paymentNo() == null) {
-                log.warn("[支付回写-入站] 消息字段缺失，忽略: {}", payload);
+            if (message == null || message.businessId() == null || message.paymentNo() == null
+                    || message.tenantId() == null || message.tenantId().isBlank()) {
+                log.warn("[支付回写-入站] 消息字段缺失（含租户），忽略: {}", payload);
                 return;
             }
             if (!BusinessDomainType.CLAIM.getCode().equals(message.businessType())) {
@@ -62,7 +72,11 @@ public class PaymentResultConsumer {
             }
             log.info("[支付回写-入站] 回写赔案赔付完成: claimId={}, paymentNo={}", message.businessId(),
                     message.paymentNo());
-            paymentCompletionOrchestrator.completePayment(message.businessId(), message.paymentNo());
+            // 本方法运行在 Kafka 监听线程（无 Web 请求上下文）：先按消息载荷建立身份作用域，使回写链路派发的
+            // 命令及其下游 Axon 事件线程继承该身份（出站 Feign 契约在 /api/v1/** 强制准入，缺租户头即 400）；
+            // 作用域退出即还原，不污染线程池复用线程。
+            RequestContextHolder.runAsTenant(message.tenantId(),
+                    () -> paymentCompletionOrchestrator.completePayment(message.businessId(), message.paymentNo()));
         } catch (Exception e) {
             // 聚合根前置校验（非 APPROVED+已结算）会抛异常，属业务性拒绝；消费失败交由 Kafka 重试/DLQ 兜底
             log.error("[支付回写-入站] 回写失败（由 Kafka 重试兜底）: payload={}", payload, e);
@@ -88,8 +102,9 @@ public class PaymentResultConsumer {
         log.debug("[支付回写-入站] 收到支付出账未成功消息: {}", payload);
         try {
             PaymentOrderFailedMessage message = JSONObject.parseObject(payload, PaymentOrderFailedMessage.class);
-            if (message == null || message.businessId() == null || message.paymentNo() == null) {
-                log.warn("[支付回写-入站] 未成功消息字段缺失，忽略: {}", payload);
+            if (message == null || message.businessId() == null || message.paymentNo() == null
+                    || message.tenantId() == null || message.tenantId().isBlank()) {
+                log.warn("[支付回写-入站] 未成功消息字段缺失（含租户），忽略: {}", payload);
                 return;
             }
             if (!BusinessDomainType.CLAIM.getCode().equals(message.businessType())) {
@@ -99,8 +114,10 @@ public class PaymentResultConsumer {
             }
             log.info("[支付回写-入站] 标记赔案赔付失败: claimId={}, paymentNo={}, resultType={}", message.businessId(),
                     message.paymentNo(), message.resultType());
-            paymentCompletionOrchestrator.recordPaymentFailure(message.businessId(), message.paymentNo(),
-                    message.resultType(), message.reason());
+            // 与成功路径同源：本方法同样运行在 Kafka 监听线程，先按载荷建立身份作用域再派发命令。
+            RequestContextHolder.runAsTenant(message.tenantId(),
+                    () -> paymentCompletionOrchestrator.recordPaymentFailure(message.businessId(),
+                            message.paymentNo(), message.resultType(), message.reason()));
         } catch (Exception e) {
             // 聚合层已对「重复消息 / 跨主题乱序」做幂等静默，此处抛出的只应是基础设施故障（DB 不可达等），
             // 交由 Kafka 重试兜底是合理语义。

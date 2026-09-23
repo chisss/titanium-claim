@@ -5,9 +5,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimTimeLimitRule;
 import com.titanium.claim.application.model.config.ClaimTimeLimitRuleConfigRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimTimeLimitRuleRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
@@ -27,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 public class TimeLimitRuleConfigService {
 
     private final ClaimTimeLimitRuleRepository repository;
-    private final TenantContext               tenantContext;
 
     /**
      * 新增/更新时限规则（ruleId 空=新增，非空=全量更新）
@@ -36,7 +35,7 @@ public class TimeLimitRuleConfigService {
      */
     @Transactional
     public String saveTimeLimitRule(ClaimTimeLimitRuleConfigRequest request) {
-        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantId = RequestContextHolder.getTenantId();
         if (request.getRuleId() == null || request.getRuleId().isBlank()) {
             ClaimTimeLimitRule rule = ClaimTimeLimitRule.create(SnowflakeIdGenerator.generate(), tenantId,
                     request.getInsuranceLine(), request.getClaimStage(), request.getLimitHours(),
@@ -59,6 +58,6 @@ public class TimeLimitRuleConfigService {
      */
     @Transactional
     public void deleteTimeLimitRule(String ruleId) {
-        repository.delete(tenantContext.getCurrentTenantId(), ruleId);
+        repository.delete(RequestContextHolder.getTenantId(), ruleId);
     }
 }

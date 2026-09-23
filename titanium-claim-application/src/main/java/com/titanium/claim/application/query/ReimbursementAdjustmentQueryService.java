@@ -6,13 +6,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.aggregate.ClaimPayoutRule;
 import com.titanium.claim.application.model.assessment.ReimbursementSettlementRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
 import com.titanium.claim.repository.ClaimPayoutRuleRepository;
 import com.titanium.claim.service.ReimbursementAdjustmentService;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,6 @@ public class ReimbursementAdjustmentQueryService {
     private final ClaimPayoutRuleRepository     payoutRuleRepository;
     private final ClaimHospitalNetworkRepository hospitalNetworkRepository;
     private final ReimbursementAdjustmentService adjustmentService;
-    private final TenantContext                 tenantContext;
 
     /**
      * 报销理算：定点资格校验 + 赔付比例裁决 + 金额理算。
@@ -44,7 +43,7 @@ public class ReimbursementAdjustmentQueryService {
      * @return 理算结果（应付金额/实际比例/结算渠道）
      */
     public ReimbursementAdjustmentResult adjust(ReimbursementSettlementRequest request) {
-        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantId = RequestContextHolder.getTenantId();
         // 1. 取赔付规则：租户覆盖优先，回落平台默认模板
         ClaimPayoutRule rule = payoutRuleRepository
                 .findByBusinessKey(tenantId, request.getInsuranceLine(), request.getClaimType())

@@ -5,9 +5,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimQuickPayRule;
 import com.titanium.claim.application.model.config.ClaimQuickPayRuleConfigRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimQuickPayRuleRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 public class QuickPayRuleConfigService {
 
     private final ClaimQuickPayRuleRepository repository;
-    private final TenantContext               tenantContext;
 
     /**
      * 新增/更新快赔规则（ruleId 空=新增，非空=全量更新）
@@ -37,7 +36,7 @@ public class QuickPayRuleConfigService {
      */
     @Transactional
     public String saveQuickPayRule(ClaimQuickPayRuleConfigRequest request) {
-        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantId = RequestContextHolder.getTenantId();
         if (request.getRuleId() == null || request.getRuleId().isBlank()) {
             ClaimQuickPayRule rule = ClaimQuickPayRule.create(SnowflakeIdGenerator.generate(), tenantId,
                     request.getClaimType(), Boolean.TRUE.equals(request.getEnabled()),
@@ -60,6 +59,6 @@ public class QuickPayRuleConfigService {
      */
     @Transactional
     public void deleteQuickPayRule(String ruleId) {
-        repository.delete(tenantContext.getCurrentTenantId(), ruleId);
+        repository.delete(RequestContextHolder.getTenantId(), ruleId);
     }
 }

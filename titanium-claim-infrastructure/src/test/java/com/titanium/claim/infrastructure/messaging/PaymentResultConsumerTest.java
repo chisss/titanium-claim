@@ -1,11 +1,16 @@
 package com.titanium.claim.infrastructure.messaging;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.titanium.claim.application.orchestration.payment.PaymentCompletionOrchestrator;
+import com.titanium.common.context.RequestContextHolder;
 
 /**
  * 支付结果入站消费者用例
@@ -129,9 +135,8 @@ class PaymentResultConsumerTest {
      * {@code occurredAt} 按对端实际形态（空格分隔，非 ISO 的 {@code T} 分隔）书写——
      * 入站 record 若按 ISO 认知接收，此用例会直接反序列化失败。
      * <p>
-     * 🔴 {@code tenantId} 按对端新增后的实际载荷书写（m6-901 补齐 D16 判据）：本域入站 record
-     * **刻意不镜像该字段**（只承接本域用到的字段，与成功路径同做法），故本用例同时证明
-     * 「对端新增字段不会让本域反序列化失败」——新增可空字段的向后兼容由此锁死。
+     * 🔴 {@code tenantId} 为对端实际载荷（m6-901 补齐 D16 判据）且本域入站 record **已承接**——
+     * 消费线程无请求上下文，跨域载荷是该线程判定租户归属的唯一依据。
      * </p>
      */
     private String failedPayload(String businessId, String businessType) {
@@ -139,5 +144,68 @@ class PaymentResultConsumerTest {
                 {"paymentNo":"PAY-NO-001","businessId":"%s","businessType":"%s","tenantId":"TENANT-001",
                  "resultType":"FAILED","reason":"渠道返回账户异常","occurredAt":"2026-09-11 10:00:00"}
                 """.formatted(businessId, businessType);
+    }
+
+    /**
+     * 回写在无请求上下文的 Kafka 监听线程中执行：身份必须在**派发命令之前**按载荷建立，
+     * 否则下游 Axon 事件线程继承不到租户，出站 Feign（{@code /api/v1/**} 强制准入）必被 400 拦下；
+     * 作用域退出后须还原，不污染线程池复用线程。
+     */
+    @Test
+    void shouldSeedTenantScopeBeforeDelegatingPaidWriteBack() {
+        String before = RequestContextHolder.getTenantId();
+        AtomicReference<String> tenantDuringDelegation = new AtomicReference<>();
+        doAnswer(invocation -> {
+            tenantDuringDelegation.set(RequestContextHolder.getTenantId());
+            return null;
+        }).when(paymentCompletionOrchestrator).completePayment(anyString(), anyString());
+
+        consumer.onPaymentPaid(payload("CLAIM-001", "CLAIM"));
+
+        assertNull(before, "监听线程本无请求上下文");
+        assertEquals("TENANT-001", tenantDuringDelegation.get(), "委托期间必须处于载荷租户作用域内");
+        assertEquals(before, RequestContextHolder.getTenantId(), "作用域退出后须还原进入前的上下文");
+    }
+
+    /** 失败回写路径同源：同样必须先建立身份作用域再委托。 */
+    @Test
+    void shouldSeedTenantScopeBeforeDelegatingFailureWriteBack() {
+        String before = RequestContextHolder.getTenantId();
+        AtomicReference<String> tenantDuringDelegation = new AtomicReference<>();
+        doAnswer(invocation -> {
+            tenantDuringDelegation.set(RequestContextHolder.getTenantId());
+            return null;
+        }).when(paymentCompletionOrchestrator)
+                .recordPaymentFailure(anyString(), anyString(), anyString(), anyString());
+
+        consumer.onPaymentFailed(failedPayload("CLAIM-001", "CLAIM"));
+
+        assertNull(before, "监听线程本无请求上下文");
+        assertEquals("TENANT-001", tenantDuringDelegation.get(), "委托期间必须处于载荷租户作用域内");
+        assertEquals(before, RequestContextHolder.getTenantId(), "作用域退出后须还原进入前的上下文");
+    }
+
+    /**
+     * 载荷缺租户：数据缺陷（对端出站载荷自该字段引入起即携带），重投不可能成功 ⇒ 记 WARN 跳过、不重抛；
+     * 且**不进编排**——不为出站留下无身份的执行路径。
+     */
+    @Test
+    void shouldSkipPaidMessageWithoutTenant() {
+        consumer.onPaymentPaid("""
+                {"paymentNo":"PAY-NO-001","businessId":"CLAIM-001","businessType":"CLAIM","amount":8888.00}
+                """);
+
+        verifyNoInteractions(paymentCompletionOrchestrator);
+    }
+
+    /** 未成功消息同源：缺租户同样跳过，不委派。 */
+    @Test
+    void shouldSkipFailedMessageWithoutTenant() {
+        consumer.onPaymentFailed("""
+                {"paymentNo":"PAY-NO-001","businessId":"CLAIM-001","businessType":"CLAIM",
+                 "resultType":"FAILED","reason":"渠道返回账户异常"}
+                """);
+
+        verifyNoInteractions(paymentCompletionOrchestrator);
     }
 }

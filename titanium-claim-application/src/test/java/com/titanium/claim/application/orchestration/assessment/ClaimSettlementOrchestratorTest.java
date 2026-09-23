@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,6 @@ import com.titanium.claim.application.model.settlement.SettleDeathBenefitRequest
 import com.titanium.claim.application.model.settlement.SettleDisabilityBenefitRequest;
 import com.titanium.claim.command.SettleDeathBenefitCommand;
 import com.titanium.claim.command.SettleDisabilityBenefitCommand;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.enums.BenefitSource;
 import com.titanium.claim.common.exception.BenefitCalculationException;
 import com.titanium.claim.common.exception.BusinessException;
@@ -36,6 +36,7 @@ import com.titanium.claim.port.customer.CustomerServicePort;
 import com.titanium.claim.port.policy.BeneficiaryInfo;
 import com.titanium.claim.port.policy.PolicyInfo;
 import com.titanium.claim.port.policy.PolicyServicePort;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.enums.customer.CustomerEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
@@ -59,18 +60,21 @@ class ClaimSettlementOrchestratorTest {
     private CommandGateway      commandGateway;
 
     private ClaimSettlementOrchestrator orchestrator;
-    private TenantContext              tenantContext;
 
     @BeforeEach
     void setUp() {
-        tenantContext = new TenantContext();
-        tenantContext.setCurrentTenantId("T-1");
-        orchestrator = new ClaimSettlementOrchestrator(policyServicePort, customerServicePort, tenantContext,
+        RequestContextHolder.setTenantId("T-1");
+        orchestrator = new ClaimSettlementOrchestrator(policyServicePort, customerServicePort,
                 commandGateway);
         // 默认：受益人客户均存在且状态有效（CLAIM-4 第二道核验的通过态），
         // 各拒绝用例按 beneficiaryId 覆写为「不存在 / 状态无效」，lenient 避免未走到核验的用例报多余打桩
         lenient().when(customerServicePort.getCustomer(anyString(), anyString()))
                 .thenAnswer(invocation -> activeCustomer(invocation.getArgument(0)));
+    }
+
+    @AfterEach
+    void tearDown() {
+        RequestContextHolder.clear();
     }
 
     private CustomerServicePort.CustomerInfo activeCustomer(String customerId) {

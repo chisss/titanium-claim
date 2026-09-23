@@ -5,10 +5,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimBlacklist;
 import com.titanium.claim.application.model.config.ClaimBlacklistConfigRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.enums.config.BlacklistSubjectType;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimBlacklistRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 public class BlacklistConfigService {
 
     private final ClaimBlacklistRepository repository;
-    private final TenantContext            tenantContext;
 
     /**
      * 新增/更新黑名单（blacklistId 空=新增，非空=全量更新）
@@ -37,7 +36,7 @@ public class BlacklistConfigService {
      */
     @Transactional
     public String saveBlacklist(ClaimBlacklistConfigRequest request) {
-        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantId = RequestContextHolder.getTenantId();
         if (request.getBlacklistId() == null || request.getBlacklistId().isBlank()) {
             ClaimBlacklist blacklist = ClaimBlacklist.create(SnowflakeIdGenerator.generate(), tenantId,
                     BlacklistSubjectType.fromCode(request.getSubjectType()), request.getSubjectId(),
@@ -60,7 +59,7 @@ public class BlacklistConfigService {
      */
     @Transactional
     public void revokeBlacklist(String blacklistId) {
-        repository.findById(tenantContext.getCurrentTenantId(), blacklistId)
+        repository.findById(RequestContextHolder.getTenantId(), blacklistId)
                 .ifPresentOrElse(blacklist -> repository.save(blacklist.revoke()),
                         () -> { throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                                 "黑名单不存在: " + blacklistId); });
@@ -71,6 +70,6 @@ public class BlacklistConfigService {
      */
     @Transactional
     public void deleteBlacklist(String blacklistId) {
-        repository.delete(tenantContext.getCurrentTenantId(), blacklistId);
+        repository.delete(RequestContextHolder.getTenantId(), blacklistId);
     }
 }

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,12 +26,12 @@ import com.titanium.claim.application.model.issuance.CreateClaimRequest;
 import com.titanium.claim.application.orchestration.issuance.validator.ClaimAmountValidator;
 import com.titanium.claim.application.orchestration.issuance.validator.PolicyActiveValidator;
 import com.titanium.claim.command.CreateClaimCommand;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.InvalidClaimAmountException;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
 import com.titanium.claim.port.policy.PolicyInfo;
 import com.titanium.claim.port.policy.PolicyServicePort;
 import com.titanium.claim.service.ClaimService;
+import com.titanium.common.context.RequestContextHolder;
 
 /**
  * 报案校验链编排器测试
@@ -48,19 +48,21 @@ class ClaimRegistrationOrchestratorTest {
     @Mock
     private PolicyServicePort policyServicePort;
     @Mock
-    private TenantContext     tenantContext;
-    @Mock
     private CommandGateway    commandGateway;
 
     private ClaimRegistrationOrchestrator orchestrator;
 
     @BeforeEach
     void setUp() {
+        RequestContextHolder.setTenantId("default-tenant");
         orchestrator = new ClaimRegistrationOrchestrator(
-                List.of(new ClaimAmountValidator(claimService), new PolicyActiveValidator(policyServicePort,
-                        tenantContext)),
-                claimService, commandGateway, tenantContext);
-        lenient().when(tenantContext.getCurrentTenantId()).thenReturn("default-tenant");
+                List.of(new ClaimAmountValidator(claimService), new PolicyActiveValidator(policyServicePort)),
+                claimService, commandGateway);
+    }
+
+    @AfterEach
+    void tearDown() {
+        RequestContextHolder.clear();
     }
 
     private CreateClaimRequest request() {

@@ -52,7 +52,7 @@ import lombok.RequiredArgsConstructor;
  * 面向管理后台，路径 {@code /web/v1/config}，覆盖理赔配置子域六个配置主题：流程模板、赔付规则、单证模板、
  * 时限规则、医院网络（宠物医院直赔网络）与黑名单。入参 web 层 {@code XxxDTO}（web/dto/config）、出参
  * {@code XxxVO}（web/response/config），经 {@link ClaimConfigWebMapper} 与六组应用层读写服务交互。
- * 配置子域为纯 JPA CRUD（不走 Axon 命令网关），租户由 {@code TenantInterceptor → TenantContext} 贯穿。
+ * 配置子域为纯 JPA CRUD（不走 Axon 命令网关），租户由 {@code TenantInterceptor → RequestContextHolder} 贯穿。
  * Controller 零业务逻辑。
  * </p>
  */

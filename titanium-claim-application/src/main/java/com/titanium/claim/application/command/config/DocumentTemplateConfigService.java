@@ -5,9 +5,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimDocumentTemplate;
 import com.titanium.claim.application.model.config.ClaimDocumentTemplateConfigRequest;
-import com.titanium.claim.common.context.TenantContext;
 import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimDocumentTemplateRepository;
+import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 
@@ -27,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 public class DocumentTemplateConfigService {
 
     private final ClaimDocumentTemplateRepository repository;
-    private final TenantContext                   tenantContext;
 
     /**
      * 新增/更新单证模板（templateId 空=新增，非空=全量更新）
@@ -36,7 +35,7 @@ public class DocumentTemplateConfigService {
      */
     @Transactional
     public String saveDocumentTemplate(ClaimDocumentTemplateConfigRequest request) {
-        String tenantId = tenantContext.getCurrentTenantId();
+        String tenantId = RequestContextHolder.getTenantId();
         if (request.getTemplateId() == null || request.getTemplateId().isBlank()) {
             ClaimDocumentTemplate template = ClaimDocumentTemplate.create(SnowflakeIdGenerator.generate(),
                     tenantId, request.getInsuranceLine(), request.getClaimType(),
@@ -59,6 +58,6 @@ public class DocumentTemplateConfigService {
      */
     @Transactional
     public void deleteDocumentTemplate(String templateId) {
-        repository.delete(tenantContext.getCurrentTenantId(), templateId);
+        repository.delete(RequestContextHolder.getTenantId(), templateId);
     }
 }
