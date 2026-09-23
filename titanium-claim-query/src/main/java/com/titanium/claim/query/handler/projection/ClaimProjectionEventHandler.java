@@ -68,9 +68,16 @@ public class ClaimProjectionEventHandler {
 
         // 事件字段 → 读模型的结构映射收敛到 MapStruct（值对象拆解 + 初始状态常量），消除逐字段 set
         claimViewMapper.applyCreated(view, event);
-        // 租户兜底：历史事件（tenantId 字段引入前产生）回落默认租户，避免投影重试队列卡死
+        // 租户归属：只用事件自带的租户，不再回落假租户。
+        // <p>改造前此处把缺租户的事件写成 "default-tenant"，使不同租户的数据混进同一个假租户，
+        // 查询方按真实租户永远查不到、按假租户又能读到别人的数据。现改为：缺租户即显式告警、
+        // 读模型该行保持无租户归属（任何租户都查不到，属可见的失败而非静默错配）。
         if (view.getTenantId() == null) {
-            view.setTenantId(event.tenantId() != null ? event.tenantId() : "default-tenant");
+            view.setTenantId(event.tenantId());
+            if (event.tenantId() == null) {
+                log.error("[读模型投影] 事件缺租户，读模型该行将无租户归属: claimId={}",
+                        event.claimId().value());
+            }
         }
         stampAuditTime(view, event.createdAt());
 
