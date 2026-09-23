@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 
 /**
  * 死信队列监控 + 重试服务
@@ -55,6 +56,7 @@ public class DeadLetterQueueService {
     /**
      * 定时扫描各处理组的死信队列并重试失败事件（每30秒一次）
      */
+        @SchedulerLock(name = "claim-retryDeadLetterEvents")
     @Scheduled(fixedRate = 30000)
     public void retryDeadLetterEvents() {
         PROCESSING_GROUPS.forEach(this::retryGroup);
