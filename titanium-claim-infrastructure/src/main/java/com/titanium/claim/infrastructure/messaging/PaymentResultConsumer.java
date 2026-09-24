@@ -10,6 +10,7 @@ import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.infrastructure.messaging.inbound.PaymentOrderFailedMessage;
 import com.titanium.claim.infrastructure.messaging.inbound.PaymentOrderPaidMessage;
 import com.titanium.common.context.RequestContextHolder;
+import com.titanium.common.messaging.KafkaIdempotencyGuard;
 import com.titanium.metadata.enums.BusinessDomainType;
 
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PaymentResultConsumer {
 
+    /** 消费者组标识（幂等键组成部分，隔离不同消费语义） */
+    private static final String CONSUMER_GROUP = "claim-payment-result";
+
     private final PaymentCompletionOrchestrator paymentCompletionOrchestrator;
+    private final KafkaIdempotencyGuard         idempotencyGuard;
 
     /**
      * 监听支付出账成功消息并回写赔案赔付完成。
@@ -58,6 +63,9 @@ public class PaymentResultConsumer {
             groupId = "${spring.kafka.consumer.group-id}")
     public void onPaymentPaid(String payload) {
         log.debug("[支付回写-入站] 收到支付出账成功消息: {}", payload);
+        String claimId = null;
+        String paymentNo = null;
+        String tenantId = null;
         try {
             PaymentOrderPaidMessage message = JSONObject.parseObject(payload, PaymentOrderPaidMessage.class);
             if (message == null || message.businessId() == null || message.paymentNo() == null
@@ -72,6 +80,17 @@ public class PaymentResultConsumer {
             }
             log.info("[支付回写-入站] 回写赔案赔付完成: claimId={}, paymentNo={}", message.businessId(),
                     message.paymentNo());
+            // 🔴 m22-07（MSG-02）幂等：Kafka 为 at-least-once，重复投递会让赔付状态重复推进。
+            // 用 Redis SETNX 原子占位（读模型投影最终一致，先查表存在竞态窗口 —— billing 的既有判定）。
+            // 🔴 身份段必须含 paymentNo，不可只用 claimId：本消息代表**某个支付单**的出账结果，而非
+            // 「某赔案的支付结果」。出账失败后人工重派会生成新 paymentNo（m21-13 的赔付可重派），
+            // 只用 claimId 会把重派成功后的回写误判为重复投递而永久跳过，赔案卡在 APPROVED 再无消息可等。
+            claimId = message.businessId();
+            paymentNo = message.paymentNo();
+            tenantId = message.tenantId();
+            if (!idempotencyGuard.tryAcquire(CONSUMER_GROUP, tenantId, claimId, paymentNo)) {
+                return;
+            }
             // 本方法运行在 Kafka 监听线程（无 Web 请求上下文）：先按消息载荷建立身份作用域，使回写链路派发的
             // 命令及其下游 Axon 事件线程继承该身份（出站 Feign 契约在 /api/v1/** 强制准入，缺租户头即 400）；
             // 作用域退出即还原，不污染线程池复用线程。
@@ -79,6 +98,11 @@ public class PaymentResultConsumer {
                     () -> paymentCompletionOrchestrator.completePayment(message.businessId(), message.paymentNo()));
         } catch (Exception e) {
             // 聚合根前置校验（非 APPROVED+已结算）会抛异常，属业务性拒绝；消费失败交由 Kafka 重试/DLQ 兜底
+            // 🔴 必须释放幂等占位：否则重投递被判为「重复投递」而永久跳过，
+            //    把「可重试的失败」退化为「永久丢失」（引入幂等时最常见的自伤）
+            if (claimId != null && paymentNo != null && tenantId != null) {
+                idempotencyGuard.release(CONSUMER_GROUP, tenantId, claimId, paymentNo);
+            }
             log.error("[支付回写-入站] 回写失败（由 Kafka 重试兜底）: payload={}", payload, e);
             throw e;
         }
@@ -94,6 +118,13 @@ public class PaymentResultConsumer {
      * 🔴 <b>与成功消息各自独立 {@code @KafkaListener}</b>：不写成 {@code topics={甲,乙}} 合并形式——
      * 目录守护测试只解析首个主题常量，合并会让第二个主题漏登记而拓扑比对失败；且分主题后两个消费位点
      * 互不阻塞，失败消息积压不影响成功回写。
+     * </p>
+     * <p>
+     * 🔴 <b>本条有意不挂 {@link KafkaIdempotencyGuard}（与成功路径的不对称是刻意的）</b>：重复/乱序的
+     * 失败消息在聚合层已被静默吸收（{@code RecordPaymentFailureCommand} 仅当「已结算赔付中」才落事件，
+     * 其余 return 不抛异常），既不产生重复副作用也不进 DLT——再套一层 Redis 幂等只增加一个「占位未释放
+     * ⇒ 重投递被永久跳过」的自伤面，无收益。**成功路径则相反**：重复消息会被聚合前置校验抛异常
+     * （已 PAID 时 {@code status != APPROVED}），重投递会一路重试到 DLT，故必须就地短路。
      * </p>
      */
     @KafkaListener(topics = ClaimConstants.KafkaTopic.PAYMENT_ORDER_FAILED,
