@@ -51,12 +51,8 @@ axon:
     messages: jackson
   eventhandling:
     processors:
-      # ⚠️ 死配置（m6-909 实读登记，未改）：全仓无任何处理器声明组名 claim-group，亦不存在名为
-      #    claimCreatedEventSource 的 Bean，故本段不生效。真实的读侧组名是 claim-query-group
-      #    （见 ClaimProjectionEventHandler / ClaimQueryHandler 的 @ProcessingGroup）。
-      claim-group:
-        mode: subscribing
-        source: claimCreatedEventSource
+      # ✅ m21-04（审查报告 ORC-01）：原 claim-group 死配置已删除（m6-909 实读登记的死配置，
+      #    全仓无处理器声明该组名；真实读侧组名为 claim-query-group）。保留本行以留痕。
       # 读侧投影组（ClaimProjectionEventHandler / ClaimQueryHandler 的 @ProcessingGroup）。
       # 🔴 m6-915 上下文实测：本组未声明时 Axon 按**隐式 tracking** 装配（本项目 eventBus 为流式
       #    EmbeddedEventStore，未声明的组一律退化为 TrackingEventProcessor），但**拿不到 DLQ**
