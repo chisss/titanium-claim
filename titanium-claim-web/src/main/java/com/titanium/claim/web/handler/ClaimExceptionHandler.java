@@ -4,19 +4,14 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingRequestHeaderException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.titanium.claim.common.exception.ClaimNotFoundException;
 import com.titanium.claim.common.exception.CustomerNotFoundException;
 import com.titanium.claim.common.exception.PolicyNotFoundException;
 import com.titanium.claim.web.response.error.ClaimErrorVO;
+import com.titanium.common.boundary.ErrorCategoryHttpStatus;
 import com.titanium.metadata.errorcode.SystemErrorCode;
 import com.titanium.metadata.exception.DomainException;
 
@@ -29,19 +24,31 @@ import lombok.extern.slf4j.Slf4j;
  * 将理赔业务异常映射为稳定的 HTTP 状态与业务错误码（红线 8.2：业务错误码 ≠ HTTP 状态码，
  * HTTP 状态码由本处理器在传输层表达）。此前理赔域无全局兜底，聚合根抛出的
  * {@link DomainException}（如非法状态流转 30000007）以 500 呈现，管理后台无法区分
- * 「业务规则拒绝」与「系统故障」；现统一为 400 + 业务错误码。
+ * 「业务规则拒绝」与「系统故障」。
+ * </p>
+ * <p>
+ * <b>本类为何不用 {@code ExceptionResponseFactory}</b>：本域的错误信封是 {@link ClaimErrorVO}
+ * （{@code {code, message}}），与全仓 {@code ApiResponse} 形态不同，换信封属破坏性契约变更。
+ * 故这里<b>只</b>复用其状态映射——{@link ErrorCategoryHttpStatus} 是全系统唯一的
+ * 「错误码类别 → HTTP 状态」表，信封形态由各域自决。
  * </p>
  */
 @RestControllerAdvice(basePackages = "com.titanium.claim.web")
 @Slf4j
 public class ClaimExceptionHandler {
 
-    /** 领域规则违规（状态流转/阶段流转/前置条件）→ 400 业务错误码 */
+    /**
+     * 业务异常 → 状态取错误码的语义类别。
+     * <p>
+     * 改造前此处恒为 400：领域侧虽早已按语义定义错误码的类别，传输层却不读它，
+     * 于是「资源不存在」「状态冲突」「服务端故障」全被报成 400。
+     * </p>
+     */
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ClaimErrorVO> handleDomainException(DomainException exception) {
         log.warn("[理赔-领域规则] 请求被拒, errorCode={}, message={}", exception.getErrorCodeValue(),
                 exception.getMessage());
-        return ResponseEntity.badRequest()
+        return ResponseEntity.status(ErrorCategoryHttpStatus.of(exception.getErrorCode()))
                 .body(new ClaimErrorVO(exception.getErrorCodeValue(), exception.getMessage()));
     }
 
@@ -66,17 +73,20 @@ public class ClaimExceptionHandler {
                 .body(new ClaimErrorVO(exception.getErrorCodeValue(), exception.getMessage()));
     }
 
-    /** 请求参数/约束校验失败 → 400 通用参数错误码（提取具体字段校验消息，便于用户定位） */
-    @ExceptionHandler({
-            MethodArgumentNotValidException.class,
-            HandlerMethodValidationException.class,
-            ConstraintViolationException.class,
-            HttpMessageNotReadableException.class,
-            MethodArgumentTypeMismatchException.class,
-            MissingRequestHeaderException.class,
-            MissingServletRequestParameterException.class
-    })
-    public ResponseEntity<ClaimErrorVO> handleInvalidRequest(Exception exception) {
+    /**
+     * 方法级校验失败（{@code @Validated} 的形参约束）→ 400 通用参数错误码。
+     * <p>
+     * 🔴 <b>目标类型只剩 {@link ConstraintViolationException}</b>：改造前此处并列声明了 7 个类型，
+     * 其中 6 个（{@code MethodArgumentNotValidException}、{@code HandlerMethodValidationException}、
+     * {@code HttpMessageNotReadableException}、{@code MethodArgumentTypeMismatchException}、
+     * {@code MissingRequestHeaderException}、{@code MissingServletRequestParameterException}）
+     * 全部可由 {@code titanium-common} 的<b>边界处理器</b>按可赋值性接管，而边界 advice 序在前
+     * （{@code HIGHEST_PRECEDENCE + 20} vs 本类无 {@code @Order}），
+     * 故那 6 支<b>永不派发</b>——是死码。收窄后语义不变（这 6 类仍得 400），死码消失。
+     * </p>
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ClaimErrorVO> handleInvalidRequest(ConstraintViolationException exception) {
         String detail = extractValidationDetail(exception);
         log.warn("[理赔-参数校验] 请求参数不合法: {}", detail);
         return ResponseEntity.badRequest()
@@ -85,42 +95,14 @@ public class ClaimExceptionHandler {
     }
 
     /**
-     * 从各类校验异常中提取用户可读的字段级错误明细（如「客户ID不能为空」），
+     * 从约束违例中提取用户可读的字段级错误明细（如「客户ID不能为空」），
      * 兜底返回 {@code null}（由调用方使用通用文案）。
      */
-    private String extractValidationDetail(Exception exception) {
-        if (exception instanceof MethodArgumentNotValidException validException) {
-            List<String> details = validException.getBindingResult().getFieldErrors().stream()
-                    .map(error -> error.getField() + " " + error.getDefaultMessage())
-                    .toList();
-            return details.isEmpty() ? null : String.join("；", details);
-        }
-        if (exception instanceof HandlerMethodValidationException handlerException) {
-            List<String> details = handlerException.getAllErrors().stream()
-                    .map(error -> error.getDefaultMessage() != null ? error.getDefaultMessage()
-                            : error.toString())
-                    .toList();
-            return details.isEmpty() ? null : String.join("；", details);
-        }
-        if (exception instanceof ConstraintViolationException violationException) {
-            List<String> details = violationException.getConstraintViolations().stream()
-                    .map(violation -> violation.getPropertyPath() + " " + violation.getMessage())
-                    .toList();
-            return details.isEmpty() ? null : String.join("；", details);
-        }
-        if (exception instanceof MissingRequestHeaderException headerException) {
-            return "缺少请求头 " + headerException.getHeaderName();
-        }
-        if (exception instanceof MissingServletRequestParameterException paramException) {
-            return "缺少请求参数 " + paramException.getParameterName();
-        }
-        if (exception instanceof MethodArgumentTypeMismatchException mismatchException) {
-            return "参数 " + mismatchException.getName() + " 类型不匹配";
-        }
-        if (exception instanceof HttpMessageNotReadableException) {
-            return "请求体格式错误，无法解析";
-        }
-        return null;
+    private String extractValidationDetail(ConstraintViolationException exception) {
+        List<String> details = exception.getConstraintViolations().stream()
+                .map(violation -> violation.getPropertyPath() + " " + violation.getMessage())
+                .toList();
+        return details.isEmpty() ? null : String.join("；", details);
     }
 
     /** 兜底：未知异常 → 500 通用系统错误码（不泄漏堆栈细节） */
