@@ -59,7 +59,7 @@ public enum ClaimStatus implements BaseEnum {
      * @return 与 {@link #getName()} 等价的中文名称
      * @deprecated 请改用 {@link #getName()}，本方法仅为兼容既有调用点保留
      */
-    @Deprecated
+    @Deprecated(since = "2026-08", forRemoval = true)
     public String getDescription() {
         return name;
     }
@@ -71,7 +71,7 @@ public enum ClaimStatus implements BaseEnum {
      * @return 匹配的枚举
      * @deprecated 请改用 {@link #fromCode(String)}，本方法仅为兼容既有调用点保留
      */
-    @Deprecated
+    @Deprecated(since = "2026-08", forRemoval = true)
     public static ClaimStatus fromDescription(String description) {
         ClaimStatus status = BaseEnum.fromName(ClaimStatus.class, description);
         if (status == null) {
