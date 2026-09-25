@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 import com.titanium.claim.port.clause.ClauseServicePort;
 import com.titanium.clause.api.ClauseApi;
 import com.titanium.clause.api.response.clause.CoverageResponse;
+import com.titanium.metadata.errorcode.SystemErrorCode;
+import com.titanium.metadata.exception.DomainException;
+import com.titanium.metadata.response.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,8 +33,15 @@ public class ClauseServiceAdapter implements ClauseServicePort {
     @Override
     public List<CoverageInfo> fetchCoverages(String clauseId, String tenantId) {
         log.info("查询条款保险责任, clauseId={}, tenantId={}", clauseId, tenantId);
-        // ClauseApi 契约返回裸列表（无 ApiResponse 信封，下游 api 层契约现状）
-        List<CoverageResponse> coverages = clauseApi.getCoveragesByClauseId(clauseId);
+        // ClauseApi 契约统一返回 ApiResponse 信封：先判 isSuccess 再取 data。
+        // 失败分支必须显式抛错——若把「错误信封」静默当作空列表，会被上层读成「无保险责任」而误判拒赔。
+        ApiResponse<List<CoverageResponse>> response = clauseApi.getCoveragesByClauseId(clauseId);
+        if (!response.isSuccess()) {
+            log.error("查询条款保险责任失败, clauseId={}, error={}", clauseId, response.getMessage());
+            throw new DomainException(SystemErrorCode.DEPENDENCY_SERVICE_ERROR,
+                    "查询条款保险责任失败: " + response.getMessage());
+        }
+        List<CoverageResponse> coverages = response.getData();
         if (coverages == null) {
             return List.of();
         }
