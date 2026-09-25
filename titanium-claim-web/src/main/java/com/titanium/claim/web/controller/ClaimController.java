@@ -34,6 +34,8 @@ import com.titanium.claim.web.mapper.ClaimWebMapper;
 import com.titanium.claim.web.response.ClaimResponseVO;
 import com.titanium.claim.web.response.assessment.ReimbursementAdjustmentVO;
 import com.titanium.common.context.RequestContextHolder;
+import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.response.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -67,10 +69,10 @@ public class ClaimController {
      * @return 理赔统计结果
      */
     @GetMapping("/statistics")
-    public ResponseEntity<ClaimStatisticsResponse> getStatistics(
-            ) {
+    public ApiResponse<ClaimStatisticsResponse> getStatistics(
+         ) {
         String tenantId = RequestContextHolder.requireTenantId();
-        return ResponseEntity.ok(
+        return ApiResponse.success(
                 claimStatisticsWebMapper.toResponse(claimAppQueryService.getStatistics(tenantId)));
     }
 
@@ -78,52 +80,57 @@ public class ClaimController {
      * 创建理赔案件
      */
     @PostMapping
-    public ResponseEntity<String> createClaim(@RequestBody @Valid CreateClaimDTO requestVO) {
+    public ResponseEntity<ApiResponse<String>> createClaim(@RequestBody @Valid CreateClaimDTO requestVO) {
         String claimId = claimCommandService.createClaim(claimWebMapper.toCreateRequest(requestVO));
-        return new ResponseEntity<>(claimId, HttpStatus.CREATED);
+        // 保留 201：创建语义属 HTTP 传输层，不并入 ApiResponse.code
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(claimId));
     }
 
     /**
      * 更新理赔案件
      */
     @PutMapping("/{claimId}")
-    public ResponseEntity<Void> updateClaim(@PathVariable String claimId,
-                                            @RequestBody @Valid UpdateClaimDTO requestVO) {
+    public ApiResponse<Void> updateClaim(@PathVariable String claimId,
+                                         @RequestBody @Valid UpdateClaimDTO requestVO) {
         claimCommandService.updateClaim(claimId, claimWebMapper.toUpdateRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 更新理赔状态
      */
     @PutMapping("/{claimId}/status")
-    public ResponseEntity<Void> updateClaimStatus(@PathVariable String claimId,
-                                                  @RequestParam String status) {
+    public ApiResponse<Void> updateClaimStatus(@PathVariable String claimId,
+                                               @RequestParam String status) {
         claimCommandService.updateClaimStatus(claimId, status);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 获取理赔案件详情
      */
     @GetMapping("/{claimId}")
-    public ResponseEntity<ClaimResponseVO> getClaim(
+    public ResponseEntity<ApiResponse<ClaimResponseVO>> getClaim(
             @PathVariable String claimId) {
         String tenantId = RequestContextHolder.requireTenantId();
+        // R8-05 同族：未命中**保留 404**（不放宽成 200/403，避免成为探测 id 是否存在的侧信道），
+        // 但 body 必须带信封 —— BFF 对下游 404 的 message 一律取自响应体，空 body 会让调用方无从诊断
         return claimAppQueryService.getClaim(claimId, tenantId)
                 .map(claimWebMapper::toVO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .map(vo -> ResponseEntity.ok(ApiResponse.success(vo)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error(ClaimErrorCode.CLAIM_NOT_EXIST,
+                                "理赔案件不存在: " + claimId)));
     }
 
     /**
      * 根据客户ID查询理赔案件列表
      */
     @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<ClaimResponseVO>> getClaimsByCustomerId(
-            @PathVariable String customerId) {
+    public ApiResponse<List<ClaimResponseVO>> getClaimsByCustomerId(
+         @PathVariable String customerId) {
         String tenantId = RequestContextHolder.requireTenantId();
-        return ResponseEntity.ok(claimAppQueryService.getClaimsByCustomerId(customerId, tenantId)
+        return ApiResponse.success(claimAppQueryService.getClaimsByCustomerId(customerId, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
 
@@ -131,10 +138,10 @@ public class ClaimController {
      * 根据保单ID查询理赔案件列表
      */
     @GetMapping("/policy/{policyId}")
-    public ResponseEntity<List<ClaimResponseVO>> getClaimsByPolicyId(
-            @PathVariable String policyId) {
+    public ApiResponse<List<ClaimResponseVO>> getClaimsByPolicyId(
+         @PathVariable String policyId) {
         String tenantId = RequestContextHolder.requireTenantId();
-        return ResponseEntity.ok(claimAppQueryService.getClaimsByPolicyId(policyId, tenantId)
+        return ApiResponse.success(claimAppQueryService.getClaimsByPolicyId(policyId, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
 
@@ -142,10 +149,10 @@ public class ClaimController {
      * 根据状态查询理赔案件列表
      */
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<ClaimResponseVO>> getClaimsByStatus(
-            @PathVariable String status) {
+    public ApiResponse<List<ClaimResponseVO>> getClaimsByStatus(
+         @PathVariable String status) {
         String tenantId = RequestContextHolder.requireTenantId();
-        return ResponseEntity.ok(claimAppQueryService.getClaimsByStatus(status, tenantId)
+        return ApiResponse.success(claimAppQueryService.getClaimsByStatus(status, tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
 
@@ -153,10 +160,10 @@ public class ClaimController {
      * 查询所有理赔案件列表
      */
     @GetMapping
-    public ResponseEntity<List<ClaimResponseVO>> getAllClaims(
-            ) {
+    public ApiResponse<List<ClaimResponseVO>> getAllClaims(
+         ) {
         String tenantId = RequestContextHolder.requireTenantId();
-        return ResponseEntity.ok(claimAppQueryService.getAllClaims(tenantId)
+        return ApiResponse.success(claimAppQueryService.getAllClaims(tenantId)
                 .stream().map(claimWebMapper::toVO).toList());
     }
 
@@ -164,88 +171,88 @@ public class ClaimController {
      * 提交查勘（推进理赔阶段至 SURVEY）
      */
     @PostMapping("/{claimId}/survey")
-    public ResponseEntity<Void> submitSurvey(@PathVariable String claimId,
-                                             @RequestBody @Valid SubmitSurveyDTO requestVO) {
+    public ApiResponse<Void> submitSurvey(@PathVariable String claimId,
+                                          @RequestBody @Valid SubmitSurveyDTO requestVO) {
         claimCommandService.submitSurvey(claimId, claimWebMapper.toSurveyRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 提交定损（推进理赔阶段至 LOSS_ASSESS）
      */
     @PostMapping("/{claimId}/loss-assessment")
-    public ResponseEntity<Void> submitLossAssessment(@PathVariable String claimId,
-                                                     @RequestBody @Valid SubmitLossAssessmentDTO requestVO) {
+    public ApiResponse<Void> submitLossAssessment(@PathVariable String claimId,
+                                                  @RequestBody @Valid SubmitLossAssessmentDTO requestVO) {
         claimCommandService.submitLossAssessment(claimId, claimWebMapper.toLossAssessmentRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 核赔结算（APPROVED → PAID）
      */
     @PostMapping("/{claimId}/settlement")
-    public ResponseEntity<Void> settleClaim(@PathVariable String claimId,
-                                            @RequestBody @Valid SettleClaimDTO requestVO) {
+    public ApiResponse<Void> settleClaim(@PathVariable String claimId,
+                                         @RequestBody @Valid SettleClaimDTO requestVO) {
         claimCommandService.settleClaim(claimId, claimWebMapper.toSettleRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 身故给付结算（寿险专属，APPROVED → PAID，按受益人份额一次性给付）
      */
     @PostMapping("/{claimId}/death-benefit")
-    public ResponseEntity<Void> settleDeathBenefit(@PathVariable String claimId,
-                                                   @RequestBody @Valid SettleDeathBenefitDTO requestVO) {
+    public ApiResponse<Void> settleDeathBenefit(@PathVariable String claimId,
+                                                @RequestBody @Valid SettleDeathBenefitDTO requestVO) {
         claimCommandService.settleDeathBenefit(claimId, claimWebMapper.toDeathBenefitRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 全残给付结算（寿险/意外险专属，CLAIM-6，APPROVED → PAID，按受益人份额一次性给付）
      */
     @PostMapping("/{claimId}/disability-benefit")
-    public ResponseEntity<Void> settleDisabilityBenefit(@PathVariable String claimId,
-                                                        @RequestBody @Valid SettleDisabilityBenefitDTO requestVO) {
+    public ApiResponse<Void> settleDisabilityBenefit(@PathVariable String claimId,
+                                                     @RequestBody @Valid SettleDisabilityBenefitDTO requestVO) {
         claimCommandService.settleDisabilityBenefit(claimId, claimWebMapper.toDisabilityBenefitRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 打标警示标记（手动：人工复核/规则引擎回写，聚合根按类型合并去重幂等）
      */
     @PostMapping("/{claimId}/alert-flags")
-    public ResponseEntity<Void> flagClaimAlert(@PathVariable String claimId,
-                                               @RequestBody @Valid FlagClaimAlertDTO requestVO) {
+    public ApiResponse<Void> flagClaimAlert(@PathVariable String claimId,
+                                            @RequestBody @Valid FlagClaimAlertDTO requestVO) {
         claimCommandService.flagAlert(claimId, claimWebMapper.toFlagAlertRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 快赔自动核赔（小额快赔通道：规则匹配 + 判据全过自动核赔并打快赔统计标记）
      */
     @PostMapping("/{claimId}/quick-pay")
-    public ResponseEntity<Void> quickPay(@PathVariable String claimId) {
+    public ApiResponse<Void> quickPay(@PathVariable String claimId) {
         claimCommandService.quickPay(claimId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 拒赔（核赔否决，PENDING/PROCESSING → REJECTED）
      */
     @PostMapping("/{claimId}/reject")
-    public ResponseEntity<Void> rejectClaim(@PathVariable String claimId,
-                                            @RequestBody @Valid RejectClaimDTO requestVO) {
+    public ApiResponse<Void> rejectClaim(@PathVariable String claimId,
+                                         @RequestBody @Valid RejectClaimDTO requestVO) {
         claimCommandService.rejectClaim(claimId, claimWebMapper.toRejectRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
      * 结案（归档，PAID/REJECTED → CLOSED）
      */
     @PostMapping("/{claimId}/close")
-    public ResponseEntity<Void> closeClaim(@PathVariable String claimId) {
+    public ApiResponse<Void> closeClaim(@PathVariable String claimId) {
         claimCommandService.closeClaim(claimId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /**
@@ -257,18 +264,18 @@ public class ClaimController {
      * </p>
      */
     @GetMapping("/search")
-    public ResponseEntity<List<ClaimResponseVO>> searchClaims(
-            @RequestParam(required = false) String claimNo,
-            @RequestParam(required = false) String policyId,
-            @RequestParam(required = false) String customerId,
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+    public ApiResponse<List<ClaimResponseVO>> searchClaims(
+         @RequestParam(required = false) String claimNo,
+         @RequestParam(required = false) String policyId,
+         @RequestParam(required = false) String customerId,
+         @RequestParam(required = false) String status,
+         @RequestParam(defaultValue = "0") int page,
+         @RequestParam(defaultValue = "10") int size) {
         String tenantId = RequestContextHolder.requireTenantId();
         List<ClaimResponseVO> result = claimAppQueryService
                 .searchClaims(new SearchClaimSummariesQuery(claimNo, policyId, customerId, status), page, size, tenantId)
                 .stream().map(claimWebMapper::toVO).toList();
-        return ResponseEntity.ok(result);
+        return ApiResponse.success(result);
     }
 
     /**
@@ -280,9 +287,9 @@ public class ClaimController {
      * </p>
      */
     @PostMapping("/reimbursement-adjustment")
-    public ResponseEntity<ReimbursementAdjustmentVO> adjustReimbursement(
-            @RequestBody @Valid ReimbursementAdjustmentDTO dto) {
-        return ResponseEntity.ok(claimWebMapper.toReimbursementVO(
+    public ApiResponse<ReimbursementAdjustmentVO> adjustReimbursement(
+         @RequestBody @Valid ReimbursementAdjustmentDTO dto) {
+        return ApiResponse.success(claimWebMapper.toReimbursementVO(
                 reimbursementAdjustmentQueryService.adjust(claimWebMapper.toReimbursementRequest(dto))));
     }
 
@@ -295,9 +302,9 @@ public class ClaimController {
      * </p>
      */
     @PostMapping("/{claimId}/reimbursement-settlement")
-    public ResponseEntity<Void> settleReimbursement(@PathVariable String claimId,
-                                                    @RequestBody @Valid SettleReimbursementDTO requestVO) {
+    public ApiResponse<Void> settleReimbursement(@PathVariable String claimId,
+                                                 @RequestBody @Valid SettleReimbursementDTO requestVO) {
         claimCommandService.settleReimbursement(claimId, claimWebMapper.toSettleReimbursementRequest(requestVO));
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 }

@@ -42,6 +42,7 @@ import com.titanium.claim.web.response.config.ClaimHospitalNetworkConfigVO;
 import com.titanium.claim.web.response.config.ClaimPayoutRuleConfigVO;
 import com.titanium.claim.web.response.config.ClaimQuickPayRuleConfigVO;
 import com.titanium.claim.web.response.config.ClaimTimeLimitRuleConfigVO;
+import com.titanium.metadata.response.ApiResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -81,237 +82,244 @@ public class ClaimConfigController {
 
     /** 新增/更新理赔流程模板（templateId 空=新增） */
     @PostMapping("/flow-templates")
-    public ResponseEntity<String> saveFlowTemplate(@RequestBody @Valid ClaimFlowTemplateConfigDTO dto) {
-        return new ResponseEntity<>(flowTemplateConfigService.saveFlowTemplate(
-                claimConfigWebMapper.toRequest(dto)), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<String>> saveFlowTemplate(@RequestBody @Valid ClaimFlowTemplateConfigDTO dto) {
+        // 保留 201：创建语义属 HTTP 传输层，不并入 ApiResponse.code
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(flowTemplateConfigService.saveFlowTemplate(
+                claimConfigWebMapper.toRequest(dto))));
     }
 
     /** 流程模板列表（当前租户） */
     @GetMapping("/flow-templates")
-    public ResponseEntity<List<ClaimFlowTemplateConfigVO>> listFlowTemplates() {
-        return ResponseEntity.ok(flowTemplateConfigQueryService.listFlowTemplates()
-                .stream().map(claimConfigWebMapper::toVO).toList());
+    public ApiResponse<List<ClaimFlowTemplateConfigVO>> listFlowTemplates() {
+        return ApiResponse.success(flowTemplateConfigQueryService.listFlowTemplates()
+             .stream().map(claimConfigWebMapper::toVO).toList());
     }
 
     /** 流程模板详情 */
     @GetMapping("/flow-templates/{templateId}")
-    public ResponseEntity<ClaimFlowTemplateConfigVO> getFlowTemplate(@PathVariable String templateId) {
-        return ResponseEntity.ok(claimConfigWebMapper.toVO(
-                flowTemplateConfigQueryService.getFlowTemplate(templateId)));
+    public ApiResponse<ClaimFlowTemplateConfigVO> getFlowTemplate(@PathVariable String templateId) {
+        return ApiResponse.success(claimConfigWebMapper.toVO(
+             flowTemplateConfigQueryService.getFlowTemplate(templateId)));
     }
 
     /** 删除流程模板（逻辑删除） */
     @DeleteMapping("/flow-templates/{templateId}")
-    public ResponseEntity<Void> deleteFlowTemplate(@PathVariable String templateId) {
+    public ApiResponse<Void> deleteFlowTemplate(@PathVariable String templateId) {
         flowTemplateConfigService.deleteFlowTemplate(templateId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     // ==================== 赔付规则配置 ====================
 
     /** 新增/更新赔付规则（ruleId 空=新增） */
     @PostMapping("/payout-rules")
-    public ResponseEntity<String> savePayoutRule(@RequestBody @Valid ClaimPayoutRuleConfigDTO dto) {
-        return new ResponseEntity<>(payoutRuleConfigService.savePayoutRule(
-                claimConfigWebMapper.toRequest(dto)), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<String>> savePayoutRule(@RequestBody @Valid ClaimPayoutRuleConfigDTO dto) {
+        // 保留 201：创建语义属 HTTP 传输层，不并入 ApiResponse.code
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(payoutRuleConfigService.savePayoutRule(
+                claimConfigWebMapper.toRequest(dto))));
     }
 
     /** 赔付规则列表（当前租户） */
     @GetMapping("/payout-rules")
-    public ResponseEntity<List<ClaimPayoutRuleConfigVO>> listPayoutRules() {
-        return ResponseEntity.ok(payoutRuleConfigQueryService.listPayoutRules()
-                .stream().map(claimConfigWebMapper::toVO).toList());
+    public ApiResponse<List<ClaimPayoutRuleConfigVO>> listPayoutRules() {
+        return ApiResponse.success(payoutRuleConfigQueryService.listPayoutRules()
+             .stream().map(claimConfigWebMapper::toVO).toList());
     }
 
     /** 赔付规则详情 */
     @GetMapping("/payout-rules/{ruleId}")
-    public ResponseEntity<ClaimPayoutRuleConfigVO> getPayoutRule(@PathVariable String ruleId) {
-        return ResponseEntity.ok(claimConfigWebMapper.toVO(
-                payoutRuleConfigQueryService.getPayoutRule(ruleId)));
+    public ApiResponse<ClaimPayoutRuleConfigVO> getPayoutRule(@PathVariable String ruleId) {
+        return ApiResponse.success(claimConfigWebMapper.toVO(
+             payoutRuleConfigQueryService.getPayoutRule(ruleId)));
     }
 
     /** 删除赔付规则（逻辑删除） */
     @DeleteMapping("/payout-rules/{ruleId}")
-    public ResponseEntity<Void> deletePayoutRule(@PathVariable String ruleId) {
+    public ApiResponse<Void> deletePayoutRule(@PathVariable String ruleId) {
         payoutRuleConfigService.deletePayoutRule(ruleId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     // ==================== 快赔规则配置 ====================
 
     /** 新增/更新快赔规则（ruleId 空=新增） */
     @PostMapping("/quick-pay-rules")
-    public ResponseEntity<String> saveQuickPayRule(@RequestBody @Valid ClaimQuickPayRuleConfigDTO dto) {
-        return new ResponseEntity<>(quickPayRuleConfigService.saveQuickPayRule(
-                claimConfigWebMapper.toRequest(dto)), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<String>> saveQuickPayRule(@RequestBody @Valid ClaimQuickPayRuleConfigDTO dto) {
+        // 保留 201：创建语义属 HTTP 传输层，不并入 ApiResponse.code
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(quickPayRuleConfigService.saveQuickPayRule(
+                claimConfigWebMapper.toRequest(dto))));
     }
 
     /** 快赔规则列表（当前租户） */
     @GetMapping("/quick-pay-rules")
-    public ResponseEntity<List<ClaimQuickPayRuleConfigVO>> listQuickPayRules() {
-        return ResponseEntity.ok(quickPayRuleConfigQueryService.listQuickPayRules()
-                .stream().map(claimConfigWebMapper::toVO).toList());
+    public ApiResponse<List<ClaimQuickPayRuleConfigVO>> listQuickPayRules() {
+        return ApiResponse.success(quickPayRuleConfigQueryService.listQuickPayRules()
+             .stream().map(claimConfigWebMapper::toVO).toList());
     }
 
     /** 快赔规则详情 */
     @GetMapping("/quick-pay-rules/{ruleId}")
-    public ResponseEntity<ClaimQuickPayRuleConfigVO> getQuickPayRule(@PathVariable String ruleId) {
-        return ResponseEntity.ok(claimConfigWebMapper.toVO(
-                quickPayRuleConfigQueryService.getQuickPayRule(ruleId)));
+    public ApiResponse<ClaimQuickPayRuleConfigVO> getQuickPayRule(@PathVariable String ruleId) {
+        return ApiResponse.success(claimConfigWebMapper.toVO(
+             quickPayRuleConfigQueryService.getQuickPayRule(ruleId)));
     }
 
     /** 删除快赔规则（逻辑删除） */
     @DeleteMapping("/quick-pay-rules/{ruleId}")
-    public ResponseEntity<Void> deleteQuickPayRule(@PathVariable String ruleId) {
+    public ApiResponse<Void> deleteQuickPayRule(@PathVariable String ruleId) {
         quickPayRuleConfigService.deleteQuickPayRule(ruleId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     // ==================== 单证模板配置 ====================
 
     /** 新增/更新单证模板（templateId 空=新增） */
     @PostMapping("/document-templates")
-    public ResponseEntity<String> saveDocumentTemplate(@RequestBody @Valid ClaimDocumentTemplateConfigDTO dto) {
-        return new ResponseEntity<>(documentTemplateConfigService.saveDocumentTemplate(
-                claimConfigWebMapper.toRequest(dto)), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<String>> saveDocumentTemplate(@RequestBody @Valid ClaimDocumentTemplateConfigDTO dto) {
+        // 保留 201：创建语义属 HTTP 传输层，不并入 ApiResponse.code
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(documentTemplateConfigService.saveDocumentTemplate(
+                claimConfigWebMapper.toRequest(dto))));
     }
 
     /** 单证模板列表（当前租户） */
     @GetMapping("/document-templates")
-    public ResponseEntity<List<ClaimDocumentTemplateConfigVO>> listDocumentTemplates() {
-        return ResponseEntity.ok(documentTemplateConfigQueryService.listDocumentTemplates()
-                .stream().map(claimConfigWebMapper::toVO).toList());
+    public ApiResponse<List<ClaimDocumentTemplateConfigVO>> listDocumentTemplates() {
+        return ApiResponse.success(documentTemplateConfigQueryService.listDocumentTemplates()
+             .stream().map(claimConfigWebMapper::toVO).toList());
     }
 
     /** 单证模板详情 */
     @GetMapping("/document-templates/{templateId}")
-    public ResponseEntity<ClaimDocumentTemplateConfigVO> getDocumentTemplate(@PathVariable String templateId) {
-        return ResponseEntity.ok(claimConfigWebMapper.toVO(
-                documentTemplateConfigQueryService.getDocumentTemplate(templateId)));
+    public ApiResponse<ClaimDocumentTemplateConfigVO> getDocumentTemplate(@PathVariable String templateId) {
+        return ApiResponse.success(claimConfigWebMapper.toVO(
+             documentTemplateConfigQueryService.getDocumentTemplate(templateId)));
     }
 
     /** 删除单证模板（逻辑删除） */
     @DeleteMapping("/document-templates/{templateId}")
-    public ResponseEntity<Void> deleteDocumentTemplate(@PathVariable String templateId) {
+    public ApiResponse<Void> deleteDocumentTemplate(@PathVariable String templateId) {
         documentTemplateConfigService.deleteDocumentTemplate(templateId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     // ==================== 时限规则配置 ====================
 
     /** 新增/更新时限规则（ruleId 空=新增） */
     @PostMapping("/time-limit-rules")
-    public ResponseEntity<String> saveTimeLimitRule(@RequestBody @Valid ClaimTimeLimitRuleConfigDTO dto) {
-        return new ResponseEntity<>(timeLimitRuleConfigService.saveTimeLimitRule(
-                claimConfigWebMapper.toRequest(dto)), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<String>> saveTimeLimitRule(@RequestBody @Valid ClaimTimeLimitRuleConfigDTO dto) {
+        // 保留 201：创建语义属 HTTP 传输层，不并入 ApiResponse.code
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(timeLimitRuleConfigService.saveTimeLimitRule(
+                claimConfigWebMapper.toRequest(dto))));
     }
 
     /** 时限规则列表（当前租户） */
     @GetMapping("/time-limit-rules")
-    public ResponseEntity<List<ClaimTimeLimitRuleConfigVO>> listTimeLimitRules() {
-        return ResponseEntity.ok(timeLimitRuleConfigQueryService.listTimeLimitRules()
-                .stream().map(claimConfigWebMapper::toVO).toList());
+    public ApiResponse<List<ClaimTimeLimitRuleConfigVO>> listTimeLimitRules() {
+        return ApiResponse.success(timeLimitRuleConfigQueryService.listTimeLimitRules()
+             .stream().map(claimConfigWebMapper::toVO).toList());
     }
 
     /** 时限规则详情 */
     @GetMapping("/time-limit-rules/{ruleId}")
-    public ResponseEntity<ClaimTimeLimitRuleConfigVO> getTimeLimitRule(@PathVariable String ruleId) {
-        return ResponseEntity.ok(claimConfigWebMapper.toVO(
-                timeLimitRuleConfigQueryService.getTimeLimitRule(ruleId)));
+    public ApiResponse<ClaimTimeLimitRuleConfigVO> getTimeLimitRule(@PathVariable String ruleId) {
+        return ApiResponse.success(claimConfigWebMapper.toVO(
+             timeLimitRuleConfigQueryService.getTimeLimitRule(ruleId)));
     }
 
     /** 删除时限规则（逻辑删除） */
     @DeleteMapping("/time-limit-rules/{ruleId}")
-    public ResponseEntity<Void> deleteTimeLimitRule(@PathVariable String ruleId) {
+    public ApiResponse<Void> deleteTimeLimitRule(@PathVariable String ruleId) {
         timeLimitRuleConfigService.deleteTimeLimitRule(ruleId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     // ==================== 医院网络配置 ====================
 
     /** 新增/更新医院网络（hospitalId 空=新增） */
     @PostMapping("/hospital-networks")
-    public ResponseEntity<String> saveHospitalNetwork(@RequestBody @Valid ClaimHospitalNetworkConfigDTO dto) {
-        return new ResponseEntity<>(hospitalNetworkConfigService.saveHospitalNetwork(
-                claimConfigWebMapper.toRequest(dto)), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<String>> saveHospitalNetwork(@RequestBody @Valid ClaimHospitalNetworkConfigDTO dto) {
+        // 保留 201：创建语义属 HTTP 传输层，不并入 ApiResponse.code
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(hospitalNetworkConfigService.saveHospitalNetwork(
+                claimConfigWebMapper.toRequest(dto))));
     }
 
     /** 医院网络列表（当前租户） */
     @GetMapping("/hospital-networks")
-    public ResponseEntity<List<ClaimHospitalNetworkConfigVO>> listHospitalNetworks() {
-        return ResponseEntity.ok(hospitalNetworkConfigQueryService.listHospitals()
-                .stream().map(claimConfigWebMapper::toVO).toList());
+    public ApiResponse<List<ClaimHospitalNetworkConfigVO>> listHospitalNetworks() {
+        return ApiResponse.success(hospitalNetworkConfigQueryService.listHospitals()
+             .stream().map(claimConfigWebMapper::toVO).toList());
     }
 
     /** 医院网络详情 */
     @GetMapping("/hospital-networks/{hospitalId}")
-    public ResponseEntity<ClaimHospitalNetworkConfigVO> getHospitalNetwork(@PathVariable String hospitalId) {
-        return ResponseEntity.ok(claimConfigWebMapper.toVO(
-                hospitalNetworkConfigQueryService.getHospital(hospitalId)));
+    public ApiResponse<ClaimHospitalNetworkConfigVO> getHospitalNetwork(@PathVariable String hospitalId) {
+        return ApiResponse.success(claimConfigWebMapper.toVO(
+             hospitalNetworkConfigQueryService.getHospital(hospitalId)));
     }
 
     /** 暂停医院协议（ACTIVE → SUSPENDED，暂停期间不参与直赔/赔付比例计算） */
     @PutMapping("/hospital-networks/{hospitalId}/suspend")
-    public ResponseEntity<Void> suspendHospital(@PathVariable String hospitalId) {
+    public ApiResponse<Void> suspendHospital(@PathVariable String hospitalId) {
         hospitalNetworkConfigService.suspendHospital(hospitalId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /** 恢复医院协议（SUSPENDED → ACTIVE） */
     @PutMapping("/hospital-networks/{hospitalId}/activate")
-    public ResponseEntity<Void> activateHospital(@PathVariable String hospitalId) {
+    public ApiResponse<Void> activateHospital(@PathVariable String hospitalId) {
         hospitalNetworkConfigService.activateHospital(hospitalId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /** 终止医院协议（ACTIVE/SUSPENDED → TERMINATED） */
     @PutMapping("/hospital-networks/{hospitalId}/terminate")
-    public ResponseEntity<Void> terminateHospital(@PathVariable String hospitalId) {
+    public ApiResponse<Void> terminateHospital(@PathVariable String hospitalId) {
         hospitalNetworkConfigService.terminateHospital(hospitalId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /** 删除医院网络（逻辑删除） */
     @DeleteMapping("/hospital-networks/{hospitalId}")
-    public ResponseEntity<Void> deleteHospitalNetwork(@PathVariable String hospitalId) {
+    public ApiResponse<Void> deleteHospitalNetwork(@PathVariable String hospitalId) {
         hospitalNetworkConfigService.deleteHospitalNetwork(hospitalId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     // ==================== 黑名单配置 ====================
 
     /** 新增/更新黑名单（blacklistId 空=新增，更新保持生效状态不变） */
     @PostMapping("/blacklists")
-    public ResponseEntity<String> saveBlacklist(@RequestBody @Valid ClaimBlacklistConfigDTO dto) {
-        return new ResponseEntity<>(blacklistConfigService.saveBlacklist(
-                claimConfigWebMapper.toRequest(dto)), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<String>> saveBlacklist(@RequestBody @Valid ClaimBlacklistConfigDTO dto) {
+        // 保留 201：创建语义属 HTTP 传输层，不并入 ApiResponse.code
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(blacklistConfigService.saveBlacklist(
+                claimConfigWebMapper.toRequest(dto))));
     }
 
     /** 黑名单列表（当前租户） */
     @GetMapping("/blacklists")
-    public ResponseEntity<List<ClaimBlacklistConfigVO>> listBlacklists() {
-        return ResponseEntity.ok(blacklistConfigQueryService.listBlacklists()
-                .stream().map(claimConfigWebMapper::toVO).toList());
+    public ApiResponse<List<ClaimBlacklistConfigVO>> listBlacklists() {
+        return ApiResponse.success(blacklistConfigQueryService.listBlacklists()
+             .stream().map(claimConfigWebMapper::toVO).toList());
     }
 
     /** 黑名单详情 */
     @GetMapping("/blacklists/{blacklistId}")
-    public ResponseEntity<ClaimBlacklistConfigVO> getBlacklist(@PathVariable String blacklistId) {
-        return ResponseEntity.ok(claimConfigWebMapper.toVO(
-                blacklistConfigQueryService.getBlacklist(blacklistId)));
+    public ApiResponse<ClaimBlacklistConfigVO> getBlacklist(@PathVariable String blacklistId) {
+        return ApiResponse.success(claimConfigWebMapper.toVO(
+             blacklistConfigQueryService.getBlacklist(blacklistId)));
     }
 
     /** 撤销黑名单（ACTIVE → REVOKED） */
     @PostMapping("/blacklists/{blacklistId}/revoke")
-    public ResponseEntity<Void> revokeBlacklist(@PathVariable String blacklistId) {
+    public ApiResponse<Void> revokeBlacklist(@PathVariable String blacklistId) {
         blacklistConfigService.revokeBlacklist(blacklistId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 
     /** 删除黑名单（逻辑删除） */
     @DeleteMapping("/blacklists/{blacklistId}")
-    public ResponseEntity<Void> deleteBlacklist(@PathVariable String blacklistId) {
+    public ApiResponse<Void> deleteBlacklist(@PathVariable String blacklistId) {
         blacklistConfigService.deleteBlacklist(blacklistId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success();
     }
 }
