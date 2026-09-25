@@ -63,7 +63,7 @@ class ClaimLossAssessmentRatioTest {
     /** 「赔付比例无效」错误码 + 异常类型的联合判据 */
     private static final Matcher<Object> RATIO_INVALID = allOf(
             instanceOf(ClaimLiabilityRatioException.class),
-            hasProperty("errorCode", equalTo("30001021")));
+            hasProperty("errorCodeValue", equalTo("30001021")));
 
     private FixtureConfiguration<Claim> fixture;
 

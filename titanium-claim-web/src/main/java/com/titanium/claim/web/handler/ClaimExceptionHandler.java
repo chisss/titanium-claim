@@ -37,10 +37,10 @@ public class ClaimExceptionHandler {
     /** 领域规则违规（状态流转/阶段流转/前置条件）→ 400 业务错误码 */
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ClaimErrorVO> handleDomainException(DomainException exception) {
-        log.warn("[理赔-领域规则] 请求被拒, errorCode={}, message={}", exception.getErrorCode(),
+        log.warn("[理赔-领域规则] 请求被拒, errorCode={}, message={}", exception.getErrorCodeValue(),
                 exception.getMessage());
         return ResponseEntity.badRequest()
-                .body(new ClaimErrorVO(exception.getErrorCode(), exception.getMessage()));
+                .body(new ClaimErrorVO(exception.getErrorCodeValue(), exception.getMessage()));
     }
 
     /** 业务异常按异常自带的传输层状态建议映射（默认 400，资源不存在类 404） */
