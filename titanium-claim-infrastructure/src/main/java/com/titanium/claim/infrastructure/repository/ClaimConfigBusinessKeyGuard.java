@@ -1,7 +1,7 @@
 package com.titanium.claim.infrastructure.repository;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 理赔配置「业务键冲突」护栏
@@ -29,14 +29,14 @@ final class ClaimConfigBusinessKeyGuard {
      * @param businessKey        业务键描述（如 {@code MEDICAL/MEDICAL}）
      * @param existingAggregateId 库中已存在行的聚合ID
      * @param incomingAggregateId 本次写入的聚合ID
-     * @throws BusinessException 业务键已被其它配置占用（{@link ClaimErrorCode#CLAIM_CONFIG_BUSINESS_KEY_EXISTS}）
+     * @throws DomainException 业务键已被其它配置占用（{@link ClaimErrorCode#CLAIM_CONFIG_BUSINESS_KEY_EXISTS}）
      */
     static void rejectSilentOverwrite(String configName, String businessKey,
             String existingAggregateId, String incomingAggregateId) {
         if (existingAggregateId.equals(incomingAggregateId)) {
             return;
         }
-        throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_BUSINESS_KEY_EXISTS,
+        throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_BUSINESS_KEY_EXISTS,
                 String.format("%s业务键[%s]已被配置[%s]占用，新增将覆盖既有规则；如需修改请改用编辑入口",
                         configName, businessKey, existingAggregateId));
     }

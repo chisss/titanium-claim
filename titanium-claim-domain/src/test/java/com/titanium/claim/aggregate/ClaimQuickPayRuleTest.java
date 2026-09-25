@@ -10,8 +10,8 @@ import java.math.BigDecimal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 快赔规则聚合根测试（dev-012c，产品文档 §2.10 小额快赔通道配置）
@@ -30,17 +30,17 @@ class ClaimQuickPayRuleTest {
     @Test
     @DisplayName("理赔类型为空 → 拒绝创建")
     void shouldRejectBlankClaimType() {
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> ClaimQuickPayRule.create("RULE-1", "T-1", " ", true, new BigDecimal("5000")));
-        assertEquals(ClaimErrorCode.CLAIM_CONFIG_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_CONFIG_INVALID.getCode(), ex.getErrorCodeValue());
     }
 
     @Test
     @DisplayName("阈值非正 → 拒绝创建")
     void shouldRejectNonPositiveThreshold() {
-        assertThrows(BusinessException.class,
+        assertThrows(DomainException.class,
                 () -> ClaimQuickPayRule.create("RULE-1", "T-1", "MEDICAL", true, BigDecimal.ZERO));
-        assertThrows(BusinessException.class,
+        assertThrows(DomainException.class,
                 () -> ClaimQuickPayRule.create("RULE-1", "T-1", "MEDICAL", true, null));
     }
 

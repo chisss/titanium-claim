@@ -1,6 +1,7 @@
 package com.titanium.claim.common.exception;
 
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 身故给付核算非法异常
@@ -10,7 +11,7 @@ import com.titanium.metadata.errorcode.ClaimErrorCode;
  * 选取（金额无效/份额缺失/份额不匹配）。
  * </p>
  */
-public class BenefitCalculationException extends BusinessException {
+public class BenefitCalculationException extends DomainException {
 
     /**
      * 携带错误码与具体校验消息构造

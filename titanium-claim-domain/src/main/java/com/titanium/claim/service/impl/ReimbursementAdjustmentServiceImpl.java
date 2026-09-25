@@ -5,12 +5,12 @@ import org.springframework.stereotype.Service;
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.aggregate.ClaimPayoutRule;
 import com.titanium.claim.common.enums.config.SettlementChannel;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.service.ReimbursementAdjustmentService;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
 import com.titanium.claim.valueobject.ReimbursementCalculation;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 报销理算领域服务实现（纯规则，无任何基础设施依赖，可脱离容器 new 直测）
@@ -38,7 +38,7 @@ public class ReimbursementAdjustmentServiceImpl implements ReimbursementAdjustme
                 ? designatedRatio(rule, hospital)
                 : rule.nonDesignatedRatio();
         if (payoutRatio == null) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID,
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID,
                     "赔付规则未配置赔付比例，无法理算: " + rule.getClaimType());
         }
 

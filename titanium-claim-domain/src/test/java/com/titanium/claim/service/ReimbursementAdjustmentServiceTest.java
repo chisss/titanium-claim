@@ -16,11 +16,11 @@ import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.aggregate.ClaimPayoutRule;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
 import com.titanium.claim.common.enums.config.SettlementChannel;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.service.impl.ReimbursementAdjustmentServiceImpl;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
 import com.titanium.claim.valueobject.ReimbursementCalculation;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 报销理算领域服务测试（定点/非定点裁决 + 金额理算）
@@ -131,7 +131,7 @@ class ReimbursementAdjustmentServiceTest {
         void shouldRejectWhenNoRatioConfigured() {
             ClaimPayoutRule rule = payoutRule(null, BigDecimal.ZERO, null, null);
 
-            BusinessException ex = assertThrows(BusinessException.class,
+            DomainException ex = assertThrows(DomainException.class,
                     () -> service.adjust(new ReimbursementAdjustmentRequest(
                             new BigDecimal("1000.00"), rule, null)));
             assertTrue(ex.getMessage().contains("赔付比例"));
@@ -174,7 +174,7 @@ class ReimbursementAdjustmentServiceTest {
         @Test
         @DisplayName("合规费用非正数 → 拒绝")
         void shouldRejectNonPositiveExpense() {
-            BusinessException ex = assertThrows(BusinessException.class,
+            DomainException ex = assertThrows(DomainException.class,
                     () -> ReimbursementCalculation.of(new BigDecimal("0.00"), BigDecimal.ZERO, 80, null));
             assertTrue(ex.getMessage().contains("合规费用"));
         }
@@ -182,7 +182,7 @@ class ReimbursementAdjustmentServiceTest {
         @Test
         @DisplayName("赔付比例越界 → 拒绝")
         void shouldRejectRatioOutOfRange() {
-            BusinessException ex = assertThrows(BusinessException.class,
+            DomainException ex = assertThrows(DomainException.class,
                     () -> ReimbursementCalculation.of(new BigDecimal("100.00"), BigDecimal.ZERO, 101, null));
             assertTrue(ex.getMessage().contains("赔付比例"));
         }
@@ -190,7 +190,7 @@ class ReimbursementAdjustmentServiceTest {
         @Test
         @DisplayName("免赔额大于单次限额 → 拒绝")
         void shouldRejectDeductibleExceedsLimit() {
-            BusinessException ex = assertThrows(BusinessException.class,
+            DomainException ex = assertThrows(DomainException.class,
                     () -> ReimbursementCalculation.of(new BigDecimal("100.00"), new BigDecimal("600.00"),
                             80, new BigDecimal("500.00")));
             assertTrue(ex.getMessage().contains("免赔额"));

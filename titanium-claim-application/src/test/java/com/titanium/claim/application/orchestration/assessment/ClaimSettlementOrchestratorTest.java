@@ -30,7 +30,6 @@ import com.titanium.claim.command.SettleDeathBenefitCommand;
 import com.titanium.claim.command.SettleDisabilityBenefitCommand;
 import com.titanium.claim.common.enums.BenefitSource;
 import com.titanium.claim.common.exception.BenefitCalculationException;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
 import com.titanium.claim.port.customer.CustomerServicePort;
 import com.titanium.claim.port.policy.BeneficiaryInfo;
@@ -40,6 +39,7 @@ import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.enums.customer.CustomerEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 理算编排器测试（CLAIM-2 身故给付精算编排 + CLAIM-4 受益人核验）
@@ -177,9 +177,9 @@ class ClaimSettlementOrchestratorTest {
         SettleDeathBenefitRequest request = validRequest();
         request.getShares().get(1).setBeneficiaryId("B-99");
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", request));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -189,9 +189,9 @@ class ClaimSettlementOrchestratorTest {
         when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(activePolicy());
         when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(List.of());
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -203,9 +203,9 @@ class ClaimSettlementOrchestratorTest {
         SettleDeathBenefitRequest request = validRequest();
         request.setShares(null);
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", request));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -238,7 +238,7 @@ class ClaimSettlementOrchestratorTest {
 
         BenefitCalculationException ex = assertThrows(BenefitCalculationException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_AMOUNT_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_AMOUNT_INVALID.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -252,7 +252,7 @@ class ClaimSettlementOrchestratorTest {
 
         BenefitCalculationException ex = assertThrows(BenefitCalculationException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", request));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISMATCH.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISMATCH.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -289,9 +289,9 @@ class ClaimSettlementOrchestratorTest {
         when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
         when(customerServicePort.getCustomer("C-2", "T-1")).thenReturn(null);
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
-        assertEquals(ClaimErrorCode.CUSTOMER_NOT_FOUND.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CUSTOMER_NOT_FOUND.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -304,9 +304,9 @@ class ClaimSettlementOrchestratorTest {
                 .thenReturn(new CustomerServicePort.CustomerInfo("C-1", "配偶",
                         CustomerEnum.CustomerStatus.CLOSED.getCode()));
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -318,9 +318,9 @@ class ClaimSettlementOrchestratorTest {
         when(customerServicePort.getCustomer("C-1", "T-1"))
                 .thenReturn(new CustomerServicePort.CustomerInfo("C-1", "配偶", null));
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -332,9 +332,9 @@ class ClaimSettlementOrchestratorTest {
                 new BeneficiaryInfo("B-1", null, "配偶", "DESIGNATED", 1, new BigDecimal("60")),
                 new BeneficiaryInfo("B-2", "C-2", "子女", "DESIGNATED", 2, new BigDecimal("40"))));
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID.getCode(), ex.getErrorCodeValue());
         verify(customerServicePort, never()).getCustomer(anyString(), anyString());
         verify(commandGateway, never()).sendAndWait(any());
     }
@@ -405,7 +405,7 @@ class ClaimSettlementOrchestratorTest {
         SettleDisabilityBenefitRequest request = validDisabilityRequest();
         request.getShares().get(0).setBeneficiaryId("B-99");
 
-        assertThrows(BusinessException.class,
+        assertThrows(DomainException.class,
                 () -> orchestrator.settleDisabilityBenefit("CLAIM-1", request));
         verify(commandGateway, never()).sendAndWait(any());
     }
@@ -417,9 +417,9 @@ class ClaimSettlementOrchestratorTest {
         when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
         when(customerServicePort.getCustomer("C-1", "T-1")).thenReturn(null);
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.settleDisabilityBenefit("CLAIM-1", validDisabilityRequest()));
-        assertEquals(ClaimErrorCode.CUSTOMER_NOT_FOUND.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CUSTOMER_NOT_FOUND.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 }

@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import com.titanium.claim.common.exception.BusinessException;
+import com.titanium.claim.common.exception.ClaimNotFoundException;
+import com.titanium.claim.common.exception.CustomerNotFoundException;
+import com.titanium.claim.common.exception.PolicyNotFoundException;
 import com.titanium.claim.web.response.error.ClaimErrorVO;
 import com.titanium.metadata.errorcode.SystemErrorCode;
 import com.titanium.metadata.exception.DomainException;
@@ -43,14 +45,25 @@ public class ClaimExceptionHandler {
                 .body(new ClaimErrorVO(exception.getErrorCodeValue(), exception.getMessage()));
     }
 
-    /** 业务异常按异常自带的传输层状态建议映射（默认 400，资源不存在类 404） */
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ClaimErrorVO> handleBusinessException(BusinessException exception) {
-        HttpStatus status = exception.getStatus() == null ? HttpStatus.BAD_REQUEST : exception.getStatus();
-        log.warn("[理赔-业务异常] errorCode={}, status={}, message={}", exception.getErrorCode(),
-                status.value(), exception.getMessage());
-        return ResponseEntity.status(status)
-                .body(new ClaimErrorVO(exception.getErrorCode(), exception.getMessage()));
+    /**
+     * 资源不存在 → 404。
+     * <p>
+     * HTTP 状态码属传输层职责，领域侧不持有 {@code HttpStatus} 字段：原先由 claim 域自建的
+     * {@code BusinessException} 携带 {@code status} 供本处理器读取，代价是 domain / application
+     * 层反向依赖 {@code org.springframework.http}。m30-03 删除该字段与那个异常根后，404 语义改由
+     * 本处理器<b>按异常类型显式映射</b>——与原先的 {@code HttpStatus.NOT_FOUND} 声明等价，
+     * 且 domain / application 层回到零 Spring HTTP 依赖。
+     * </p>
+     */
+    @ExceptionHandler({
+            ClaimNotFoundException.class,
+            CustomerNotFoundException.class,
+            PolicyNotFoundException.class
+    })
+    public ResponseEntity<ClaimErrorVO> handleResourceNotFoundException(DomainException exception) {
+        log.warn("[理赔-资源不存在] errorCode={}, message={}", exception.getErrorCodeValue(), exception.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ClaimErrorVO(exception.getErrorCodeValue(), exception.getMessage()));
     }
 
     /** 请求参数/约束校验失败 → 400 通用参数错误码（提取具体字段校验消息，便于用户定位） */

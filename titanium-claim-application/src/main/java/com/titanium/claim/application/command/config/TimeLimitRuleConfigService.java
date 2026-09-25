@@ -5,11 +5,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimTimeLimitRule;
 import com.titanium.claim.application.model.config.ClaimTimeLimitRuleConfigRequest;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimTimeLimitRuleRepository;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class TimeLimitRuleConfigService {
             return rule.getRuleId();
         }
         ClaimTimeLimitRule existing = repository.findById(tenantId, request.getRuleId())
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "时限规则不存在: " + request.getRuleId()));
         ClaimTimeLimitRule updated = existing.update(request.getInsuranceLine(), request.getClaimStage(),
                 request.getLimitHours(), request.getAlertHours());

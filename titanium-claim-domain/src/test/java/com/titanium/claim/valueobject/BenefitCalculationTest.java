@@ -56,7 +56,7 @@ class BenefitCalculationTest {
                 () -> new BenefitCalculation(BigDecimal.ZERO,
                         List.of(share(B1, "配偶", BigDecimal.ONE, BigDecimal.ZERO)),
                         BenefitSource.BASIC_SUM_INSURED));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_AMOUNT_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_AMOUNT_INVALID.getCode(), ex.getErrorCodeValue());
     }
 
     @Test
@@ -65,7 +65,7 @@ class BenefitCalculationTest {
         BenefitCalculationException ex = assertThrows(BenefitCalculationException.class,
                 () -> new BenefitCalculation(new BigDecimal("500000"),
                         List.of(share(B1, "配偶", BigDecimal.ONE, new BigDecimal("500000"))), null));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_AMOUNT_INVALID.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_AMOUNT_INVALID.getCode(), ex.getErrorCodeValue());
     }
 
     @Test
@@ -73,7 +73,7 @@ class BenefitCalculationTest {
     void shouldRejectMissingShares() {
         BenefitCalculationException ex = assertThrows(BenefitCalculationException.class,
                 () -> new BenefitCalculation(new BigDecimal("500000"), List.of(), BenefitSource.BASIC_SUM_INSURED));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISSING.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISSING.getCode(), ex.getErrorCodeValue());
     }
 
     @Test
@@ -84,7 +84,7 @@ class BenefitCalculationTest {
                         List.of(share(B1, "配偶", RATIO_6, new BigDecimal("300000")),
                                 share(B2, "子女", RATIO_6, new BigDecimal("300000"))),
                         BenefitSource.BASIC_SUM_INSURED));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISMATCH.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISMATCH.getCode(), ex.getErrorCodeValue());
     }
 
     @Test
@@ -95,7 +95,7 @@ class BenefitCalculationTest {
                         List.of(share(B1, "配偶", RATIO_6, new BigDecimal("300000")),
                                 share(B2, "子女", RATIO_4, new BigDecimal("199999"))),
                         BenefitSource.BASIC_SUM_INSURED));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISMATCH.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISMATCH.getCode(), ex.getErrorCodeValue());
     }
 
     @Test
@@ -162,6 +162,6 @@ class BenefitCalculationTest {
     void shouldRejectEmptySpecs() {
         BenefitCalculationException ex = assertThrows(BenefitCalculationException.class,
                 () -> BenefitCalculation.ofBasicSumInsured(new BigDecimal("500000"), List.of()));
-        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISSING.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_BENEFIT_SHARE_MISSING.getCode(), ex.getErrorCodeValue());
     }
 }

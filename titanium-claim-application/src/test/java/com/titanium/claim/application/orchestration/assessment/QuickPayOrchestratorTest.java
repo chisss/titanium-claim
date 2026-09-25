@@ -29,12 +29,12 @@ import com.titanium.claim.command.SettleClaimCommand;
 import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.common.enums.AlertType;
 import com.titanium.claim.common.enums.ClaimStatus;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.query.repository.ClaimViewRepository;
 import com.titanium.claim.query.view.ClaimView;
 import com.titanium.claim.repository.ClaimQuickPayRuleRepository;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 快赔自动核赔编排器测试（dev-012c，产品文档 §2.10 小额快赔通道判据矩阵）
@@ -140,7 +140,7 @@ class QuickPayOrchestratorTest {
         when(quickPayRuleRepository.findByBusinessKey(TENANT_ID, "MEDICAL"))
                 .thenReturn(Optional.of(disabled));
 
-        assertThrows(BusinessException.class, () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
+        assertThrows(DomainException.class, () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -152,7 +152,7 @@ class QuickPayOrchestratorTest {
         when(quickPayRuleRepository.findByBusinessKey(TENANT_ID, "MEDICAL"))
                 .thenReturn(Optional.of(enabledRule()));
 
-        assertThrows(BusinessException.class, () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
+        assertThrows(DomainException.class, () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -164,7 +164,7 @@ class QuickPayOrchestratorTest {
         when(quickPayRuleRepository.findByBusinessKey(TENANT_ID, "MEDICAL"))
                 .thenReturn(Optional.of(enabledRule()));
 
-        assertThrows(BusinessException.class, () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
+        assertThrows(DomainException.class, () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -176,7 +176,7 @@ class QuickPayOrchestratorTest {
         when(quickPayRuleRepository.findByBusinessKey(TENANT_ID, "MEDICAL"))
                 .thenReturn(Optional.of(enabledRule()));
 
-        assertThrows(BusinessException.class, () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
+        assertThrows(DomainException.class, () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -201,9 +201,9 @@ class QuickPayOrchestratorTest {
         when(quickPayRuleRepository.findByBusinessKey(TENANT_ID, "MEDICAL")).thenReturn(Optional.empty());
         when(quickPayRuleRepository.findPlatformDefault("MEDICAL")).thenReturn(Optional.empty());
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
-        assertEquals(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 
@@ -227,9 +227,9 @@ class QuickPayOrchestratorTest {
     void shouldThrowClaimNotExist() {
         when(claimViewRepository.findByClaimIdAndTenantId(CLAIM_ID, TENANT_ID)).thenReturn(Optional.empty());
 
-        BusinessException ex = assertThrows(BusinessException.class,
+        DomainException ex = assertThrows(DomainException.class,
                 () -> orchestrator.executeQuickPay(CLAIM_ID, TENANT_ID));
-        assertEquals(ClaimErrorCode.CLAIM_NOT_EXIST.getCode(), ex.getErrorCode());
+        assertEquals(ClaimErrorCode.CLAIM_NOT_EXIST.getCode(), ex.getErrorCodeValue());
         verify(commandGateway, never()).sendAndWait(any());
     }
 }

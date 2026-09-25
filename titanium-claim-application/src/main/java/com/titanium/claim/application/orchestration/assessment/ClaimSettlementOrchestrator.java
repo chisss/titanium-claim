@@ -12,7 +12,6 @@ import com.titanium.claim.application.model.settlement.SettleDisabilityBenefitRe
 import com.titanium.claim.command.SettleDeathBenefitCommand;
 import com.titanium.claim.command.SettleDisabilityBenefitCommand;
 import com.titanium.claim.common.exception.BenefitCalculationException;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.common.exception.PolicyNotActiveException;
 import com.titanium.claim.port.customer.CustomerServicePort;
 import com.titanium.claim.port.policy.BeneficiaryInfo;
@@ -26,6 +25,7 @@ import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.enums.customer.CustomerEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -153,11 +153,11 @@ public class ClaimSettlementOrchestrator {
                                                                           String tenantId) {
         if (requestShares == null || requestShares.isEmpty()) {
             log.error("[给付编排] 给付未指定受益人, policyId={}", policyId);
-            throw new BusinessException(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID, "给付必须指定受益人");
+            throw new DomainException(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID, "给付必须指定受益人");
         }
         if (masterBeneficiaries.isEmpty()) {
             log.error("[给付编排] 保单受益人主数据为空, policyId={}", policyId);
-            throw new BusinessException(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID, "保单受益人主数据为空");
+            throw new DomainException(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID, "保单受益人主数据为空");
         }
         // 请求受益人逐个比对主数据：未知受益人直接拒绝
         for (ShareInput share : requestShares) {
@@ -166,7 +166,7 @@ public class ClaimSettlementOrchestrator {
             if (!known) {
                 log.error("[给付编排] 拒绝未知受益人, policyId={}, beneficiaryId={}", policyId,
                         share.beneficiaryId());
-                throw new BusinessException(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID,
+                throw new DomainException(ClaimErrorCode.CLAIM_BENEFICIARY_INVALID,
                         "受益人不在保单受益人主数据中: " + share.beneficiaryId());
             }
         }
@@ -204,20 +204,20 @@ public class ClaimSettlementOrchestrator {
             if (customerId == null || customerId.isBlank()) {
                 log.error("[给付编排] 受益人未关联客户主数据, policyId={}, beneficiaryId={}", policyId,
                         share.beneficiaryId());
-                throw new BusinessException(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID,
+                throw new DomainException(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID,
                         "受益人未关联客户主数据，无法核验身份: " + share.beneficiaryId());
             }
             CustomerServicePort.CustomerInfo customer = customerServicePort.getCustomer(customerId, tenantId);
             if (customer == null) {
                 log.error("[给付编排] 受益人在客户域不存在, policyId={}, beneficiaryId={}, customerId={}", policyId,
                         share.beneficiaryId(), customerId);
-                throw new BusinessException(ClaimErrorCode.CUSTOMER_NOT_FOUND,
+                throw new DomainException(ClaimErrorCode.CUSTOMER_NOT_FOUND,
                         "受益人在客户主数据中不存在: " + customerId);
             }
             if (!CustomerEnum.CustomerStatus.ACTIVE.getCode().equals(customer.statusCode())) {
                 log.error("[给付编排] 受益人客户状态无效, policyId={}, customerId={}, status={}", policyId, customerId,
                         customer.statusCode());
-                throw new BusinessException(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID,
+                throw new DomainException(ClaimErrorCode.CLAIM_BENEFICIARY_CUSTOMER_INVALID,
                         "受益人客户状态非有效: " + customerId + "，当前状态 " + customer.statusCode());
             }
         }

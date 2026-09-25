@@ -1,7 +1,7 @@
 package com.titanium.claim.aggregate;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.Getter;
 
@@ -30,10 +30,10 @@ public final class ClaimTimeLimitRule {
     private ClaimTimeLimitRule(String ruleId, String tenantId, String insuranceLine, String claimStage,
                                Integer limitHours, Integer alertHours) {
         if (limitHours == null || limitHours <= 0) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "环节时限必须大于 0 小时");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "环节时限必须大于 0 小时");
         }
         if (alertHours != null && (alertHours < 0 || alertHours >= limitHours)) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "预警时限必须小于环节时限且不小于 0");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "预警时限必须小于环节时限且不小于 0");
         }
         this.ruleId = ruleId;
         this.tenantId = tenantId;

@@ -5,12 +5,12 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.port.policy.BeneficiaryInfo;
 import com.titanium.claim.port.policy.ClauseRef;
 import com.titanium.claim.port.policy.PolicyInfo;
 import com.titanium.claim.port.policy.PolicyServicePort;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 import com.titanium.metadata.response.ApiResponse;
 import com.titanium.policy.api.PolicyApi;
 import com.titanium.policy.api.response.policy.PolicyBeneficiaryResponse;
@@ -41,7 +41,7 @@ public class PolicyServiceAdapter implements PolicyServicePort {
         ApiResponse<PolicyResponse> response = policyApi.getPolicy(policyId);
         if (!response.isSuccess()) {
             log.error("获取保单详情失败, policyId={}, error={}", policyId, response.getMessage());
-            throw new BusinessException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,
+            throw new DomainException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,
                     "获取保单详情失败: " + response.getMessage());
         }
         PolicyResponse policy = response.getData();
@@ -63,7 +63,7 @@ public class PolicyServiceAdapter implements PolicyServicePort {
         ApiResponse<List<PolicyClauseResponse>> response = policyApi.getPolicyClauses(policyId);
         if (!response.isSuccess()) {
             log.error("查询保单条款快照失败, policyId={}, error={}", policyId, response.getMessage());
-            throw new BusinessException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,
+            throw new DomainException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,
                     "查询保单条款快照失败: " + response.getMessage());
         }
         List<PolicyClauseResponse> clauses = response.getData();
@@ -81,7 +81,7 @@ public class PolicyServiceAdapter implements PolicyServicePort {
         ApiResponse<List<PolicyBeneficiaryResponse>> response = policyApi.getBeneficiaries(policyId);
         if (!response.isSuccess()) {
             log.error("查询保单受益人失败, policyId={}, error={}", policyId, response.getMessage());
-            throw new BusinessException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,
+            throw new DomainException(ClaimErrorCode.POLICY_DETAIL_QUERY_FAILED,
                     "查询保单受益人失败: " + response.getMessage());
         }
         List<PolicyBeneficiaryResponse> beneficiaries = response.getData();

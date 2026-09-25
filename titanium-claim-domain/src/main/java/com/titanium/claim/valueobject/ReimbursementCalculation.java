@@ -3,8 +3,8 @@ package com.titanium.claim.valueobject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 报销理算产物值对象（健康险/宠物险报销型理赔的金额精算，产品文档 §2.7 理算公式）
@@ -29,17 +29,17 @@ public record ReimbursementCalculation(
 
     public ReimbursementCalculation {
         if (eligibleExpense == null || eligibleExpense.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_AMOUNT_ERROR, "合规费用必须大于0");
+            throw new DomainException(ClaimErrorCode.CLAIM_AMOUNT_ERROR, "合规费用必须大于0");
         }
         if (payoutRatio == null || payoutRatio < 0 || payoutRatio > 100) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_AMOUNT_ERROR,
+            throw new DomainException(ClaimErrorCode.CLAIM_AMOUNT_ERROR,
                     "赔付比例必须在0-100之间: " + payoutRatio);
         }
         if (deductible != null && deductible.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_AMOUNT_ERROR, "免赔额不能为负数");
+            throw new DomainException(ClaimErrorCode.CLAIM_AMOUNT_ERROR, "免赔额不能为负数");
         }
         if (deductible != null && perClaimLimit != null && deductible.compareTo(perClaimLimit) > 0) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_AMOUNT_ERROR, "免赔额不能大于单次限额");
+            throw new DomainException(ClaimErrorCode.CLAIM_AMOUNT_ERROR, "免赔额不能大于单次限额");
         }
     }
 

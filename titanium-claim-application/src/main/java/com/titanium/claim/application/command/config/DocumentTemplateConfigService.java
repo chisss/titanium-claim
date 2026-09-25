@@ -5,11 +5,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimDocumentTemplate;
 import com.titanium.claim.application.model.config.ClaimDocumentTemplateConfigRequest;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimDocumentTemplateRepository;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class DocumentTemplateConfigService {
             return template.getTemplateId();
         }
         ClaimDocumentTemplate existing = repository.findById(tenantId, request.getTemplateId())
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "单证模板不存在: " + request.getTemplateId()));
         ClaimDocumentTemplate updated = existing.update(request.getInsuranceLine(), request.getClaimType(),
                 request.getRequiredDocuments(), request.getOptionalDocuments());

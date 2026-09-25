@@ -32,11 +32,11 @@ import com.titanium.claim.application.model.config.ClaimFlowTemplateConfigReques
 import com.titanium.claim.common.enums.config.BlacklistStatus;
 import com.titanium.claim.common.enums.config.BlacklistSubjectType;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimBlacklistRepository;
 import com.titanium.claim.repository.ClaimFlowTemplateRepository;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
 import com.titanium.common.context.RequestContextHolder;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 理赔配置子域写服务测试（application/command/config）
@@ -127,7 +127,7 @@ class ClaimConfigServiceTest {
 
             FlowTemplateConfigService service = new FlowTemplateConfigService(flowTemplateRepository);
             assertThatThrownBy(() -> service.saveFlowTemplate(request))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("流程模板不存在");
         }
 
@@ -189,7 +189,7 @@ class ClaimConfigServiceTest {
 
             BlacklistConfigService service = new BlacklistConfigService(blacklistRepository);
             assertThatThrownBy(() -> service.revokeBlacklist("blk-404"))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("黑名单不存在");
             verify(blacklistRepository, never()).save(any());
         }
@@ -247,10 +247,10 @@ class ClaimConfigServiceTest {
             HospitalNetworkConfigService service =
                     new HospitalNetworkConfigService(hospitalRepository);
             assertThatThrownBy(() -> service.suspendHospital("hosp-1"))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("禁止执行「暂停协议」");
             assertThatThrownBy(() -> service.activateHospital("hosp-1"))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("禁止执行「恢复协议」");
             verify(hospitalRepository, never()).save(any());
         }
@@ -263,7 +263,7 @@ class ClaimConfigServiceTest {
             HospitalNetworkConfigService service =
                     new HospitalNetworkConfigService(hospitalRepository);
             assertThatThrownBy(() -> service.activateHospital("hosp-1"))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("禁止执行「恢复协议」");
             verify(hospitalRepository, never()).save(any());
         }
@@ -276,7 +276,7 @@ class ClaimConfigServiceTest {
             HospitalNetworkConfigService service =
                     new HospitalNetworkConfigService(hospitalRepository);
             assertThatThrownBy(() -> service.terminateHospital("hosp-404"))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(DomainException.class)
                     .hasMessageContaining("医院台账不存在");
         }
     }

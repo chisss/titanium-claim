@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.aggregate.ClaimPayoutRule;
 import com.titanium.claim.application.model.assessment.ReimbursementSettlementRequest;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
 import com.titanium.claim.repository.ClaimPayoutRuleRepository;
 import com.titanium.claim.service.ReimbursementAdjustmentService;
@@ -14,6 +13,7 @@ import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +49,7 @@ public class ReimbursementAdjustmentQueryService {
                 .findByBusinessKey(tenantId, request.getInsuranceLine(), request.getClaimType())
                 .or(() -> payoutRuleRepository.findPlatformDefault(request.getInsuranceLine(),
                         request.getClaimType()))
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "赔付规则不存在: " + request.getInsuranceLine() + "/" + request.getClaimType()));
 
         // 2. 取医院台账：医院名为空或不在台账 = 非定点（台账非 ACTIVE 由领域服务按非定点裁决）

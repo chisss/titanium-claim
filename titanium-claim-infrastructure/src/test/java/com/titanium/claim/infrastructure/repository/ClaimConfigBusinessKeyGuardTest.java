@@ -16,10 +16,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.titanium.claim.aggregate.ClaimFlowTemplate;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.infrastructure.entity.ClaimFlowTemplateDO;
 import com.titanium.claim.infrastructure.mapper.ClaimConfigPersistenceMapper;
 import com.titanium.claim.infrastructure.repository.jpa.JpaClaimFlowTemplateRepository;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 理赔配置「新建即静默覆盖」护栏测试（🔴 D-501-53）
@@ -29,7 +29,7 @@ import com.titanium.claim.infrastructure.repository.jpa.JpaClaimFlowTemplateRepo
  * </p>
  * <ul>
  *   <li><b>业务键已被别的聚合占用</b>（新增路径传入全新聚合ID）→ 抛
- *       {@link BusinessException}（错误码 30001023），<b>不落库</b>——否则用户的「新建」
+ *       {@link DomainException}（错误码 30001023），<b>不落库</b>——否则用户的「新建」
  *       会静默改写别人的既有规则，且行数不变、无提示、用户无从自证；</li>
  *   <li><b>同一聚合的更新</b>（业务键命中的正是自己）→ 正常复用原主键与创建时间，不误伤。</li>
  * </ul>
@@ -76,10 +76,10 @@ class ClaimConfigBusinessKeyGuardTest {
     void shouldRejectCreateOnOccupiedBusinessKey() {
         givenBusinessKeyOccupied();
 
-        BusinessException exception = assertThrows(BusinessException.class,
+        DomainException exception = assertThrows(DomainException.class,
                 () -> adapter.save(template("TEMPLATE-NEW")));
 
-        assertEquals("30001023", exception.getErrorCode(), "须携带「业务键已存在」错误码");
+        assertEquals("30001023", exception.getErrorCodeValue(), "须携带「业务键已存在」错误码");
         verify(jpaRepository, never()).save(any(ClaimFlowTemplateDO.class));
     }
 

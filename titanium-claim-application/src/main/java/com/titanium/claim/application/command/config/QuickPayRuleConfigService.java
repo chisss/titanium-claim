@@ -5,11 +5,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimQuickPayRule;
 import com.titanium.claim.application.model.config.ClaimQuickPayRuleConfigRequest;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimQuickPayRuleRepository;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +46,7 @@ public class QuickPayRuleConfigService {
             return rule.getRuleId();
         }
         ClaimQuickPayRule existing = repository.findById(tenantId, request.getRuleId())
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "快赔规则不存在: " + request.getRuleId()));
         ClaimQuickPayRule updated = existing.update(request.getClaimType(),
                 Boolean.TRUE.equals(request.getEnabled()), request.getAmountThreshold());

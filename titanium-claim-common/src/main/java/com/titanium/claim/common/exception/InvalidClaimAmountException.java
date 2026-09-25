@@ -1,8 +1,7 @@
 package com.titanium.claim.common.exception;
 
-import org.springframework.http.HttpStatus;
-
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 无效理赔金额异常
@@ -10,10 +9,10 @@ import com.titanium.metadata.errorcode.ClaimErrorCode;
  * 当理赔金额为空、非正数或超出合理范围时抛出。
  * </p>
  */
-public class InvalidClaimAmountException extends BusinessException {
+public class InvalidClaimAmountException extends DomainException {
 
     public InvalidClaimAmountException() {
-        super(ClaimErrorCode.CLAIM_AMOUNT_ERROR, HttpStatus.BAD_REQUEST);
+        super(ClaimErrorCode.CLAIM_AMOUNT_ERROR);
     }
 
     /**
@@ -22,6 +21,6 @@ public class InvalidClaimAmountException extends BusinessException {
      * @param message 具体校验失败消息
      */
     public InvalidClaimAmountException(String message) {
-        super(ClaimErrorCode.CLAIM_AMOUNT_ERROR, message, HttpStatus.BAD_REQUEST);
+        super(ClaimErrorCode.CLAIM_AMOUNT_ERROR, message);
     }
 }

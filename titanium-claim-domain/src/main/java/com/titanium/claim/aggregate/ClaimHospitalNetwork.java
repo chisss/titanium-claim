@@ -1,8 +1,8 @@
 package com.titanium.claim.aggregate;
 
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.Getter;
 
@@ -37,10 +37,10 @@ public final class ClaimHospitalNetwork {
                                  HospitalAgreementStatus agreementStatus, Integer payoutRatio,
                                  Boolean directSettlement, String address, String contactPhone) {
         if (hospitalName == null || hospitalName.isBlank()) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "医院名称不能为空");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "医院名称不能为空");
         }
         if (payoutRatio != null && (payoutRatio < 0 || payoutRatio > 100)) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "定点赔付比例必须在 0-100 之间");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "定点赔付比例必须在 0-100 之间");
         }
         this.hospitalId = hospitalId;
         this.tenantId = tenantId;
@@ -132,7 +132,7 @@ public final class ClaimHospitalNetwork {
                 return;
             }
         }
-        throw new BusinessException(ClaimErrorCode.CLAIM_STATUS_TRANSITION_INVALID,
+        throw new DomainException(ClaimErrorCode.CLAIM_STATUS_TRANSITION_INVALID,
                 String.format("医院[%s] 当前协议状态为 %s，禁止执行「%s」", hospitalName, agreementStatus, operation));
     }
 

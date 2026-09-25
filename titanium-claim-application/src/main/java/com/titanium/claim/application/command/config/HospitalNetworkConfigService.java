@@ -6,11 +6,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.titanium.claim.aggregate.ClaimHospitalNetwork;
 import com.titanium.claim.application.model.config.ClaimHospitalNetworkConfigRequest;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +47,7 @@ public class HospitalNetworkConfigService {
             return hospital.getHospitalId();
         }
         ClaimHospitalNetwork existing = repository.findById(tenantId, request.getHospitalId())
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "医院台账不存在: " + request.getHospitalId()));
         ClaimHospitalNetwork updated = existing.update(request.getHospitalName(), request.getHospitalLevel(),
                 HospitalAgreementStatus.fromCode(request.getAgreementStatus()), request.getPayoutRatio(),
@@ -63,7 +63,7 @@ public class HospitalNetworkConfigService {
     public void suspendHospital(String hospitalId) {
         repository.findById(RequestContextHolder.getTenantId(), hospitalId)
                 .ifPresentOrElse(hospital -> repository.save(hospital.suspend()),
-                        () -> { throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                        () -> { throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                                 "医院台账不存在: " + hospitalId); });
     }
 
@@ -74,7 +74,7 @@ public class HospitalNetworkConfigService {
     public void activateHospital(String hospitalId) {
         repository.findById(RequestContextHolder.getTenantId(), hospitalId)
                 .ifPresentOrElse(hospital -> repository.save(hospital.activate()),
-                        () -> { throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                        () -> { throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                                 "医院台账不存在: " + hospitalId); });
     }
 
@@ -85,7 +85,7 @@ public class HospitalNetworkConfigService {
     public void terminateHospital(String hospitalId) {
         repository.findById(RequestContextHolder.getTenantId(), hospitalId)
                 .ifPresentOrElse(hospital -> repository.save(hospital.terminate()),
-                        () -> { throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                        () -> { throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                                 "医院台账不存在: " + hospitalId); });
     }
 

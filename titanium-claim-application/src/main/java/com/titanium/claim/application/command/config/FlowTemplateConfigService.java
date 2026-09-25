@@ -5,11 +5,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimFlowTemplate;
 import com.titanium.claim.application.model.config.ClaimFlowTemplateConfigRequest;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimFlowTemplateRepository;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +46,7 @@ public class FlowTemplateConfigService {
             return template.getTemplateId();
         }
         ClaimFlowTemplate existing = repository.findById(tenantId, request.getTemplateId())
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "流程模板不存在: " + request.getTemplateId()));
         ClaimFlowTemplate updated = existing.update(request.getInsuranceLine(), request.getClaimType(),
                 request.getStageSequence(), request.getStageTimeLimitHours(),

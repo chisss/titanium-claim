@@ -2,8 +2,8 @@ package com.titanium.claim.aggregate;
 
 import java.math.BigDecimal;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.Getter;
 
@@ -30,10 +30,10 @@ public final class ClaimQuickPayRule {
     private ClaimQuickPayRule(String ruleId, String tenantId, String claimType, boolean enabled,
                               BigDecimal amountThreshold) {
         if (claimType == null || claimType.isBlank()) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "快赔适用理赔类型不能为空");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "快赔适用理赔类型不能为空");
         }
         if (amountThreshold == null || amountThreshold.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "快赔金额阈值必须大于 0");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "快赔金额阈值必须大于 0");
         }
         this.ruleId = ruleId;
         this.tenantId = tenantId;

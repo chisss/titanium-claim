@@ -6,11 +6,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.titanium.claim.aggregate.ClaimBlacklist;
 import com.titanium.claim.application.model.config.ClaimBlacklistConfigRequest;
 import com.titanium.claim.common.enums.config.BlacklistSubjectType;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimBlacklistRepository;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.common.util.SnowflakeIdGenerator;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +46,7 @@ public class BlacklistConfigService {
             return blacklist.getBlacklistId();
         }
         ClaimBlacklist existing = repository.findById(tenantId, request.getBlacklistId())
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "黑名单不存在: " + request.getBlacklistId()));
         ClaimBlacklist updated = existing.update(request.getSubjectType(), request.getSubjectId(),
                 request.getSubjectName(), request.getReasonCode(), request.getEffectiveTime());
@@ -61,7 +61,7 @@ public class BlacklistConfigService {
     public void revokeBlacklist(String blacklistId) {
         repository.findById(RequestContextHolder.getTenantId(), blacklistId)
                 .ifPresentOrElse(blacklist -> repository.save(blacklist.revoke()),
-                        () -> { throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                        () -> { throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                                 "黑名单不存在: " + blacklistId); });
     }
 

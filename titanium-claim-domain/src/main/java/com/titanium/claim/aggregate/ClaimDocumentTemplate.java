@@ -2,8 +2,8 @@ package com.titanium.claim.aggregate;
 
 import java.util.List;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.Getter;
 
@@ -32,7 +32,7 @@ public final class ClaimDocumentTemplate {
                                   List<String> requiredDocuments, List<String> optionalDocuments) {
         if (requiredDocuments != null && optionalDocuments != null
                 && requiredDocuments.stream().anyMatch(optionalDocuments::contains)) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "必填与选填材料清单不能重复");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "必填与选填材料清单不能重复");
         }
         this.templateId = templateId;
         this.tenantId = tenantId;

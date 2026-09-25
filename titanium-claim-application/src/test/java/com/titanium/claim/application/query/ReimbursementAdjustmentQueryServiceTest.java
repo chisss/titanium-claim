@@ -24,13 +24,13 @@ import com.titanium.claim.aggregate.ClaimPayoutRule;
 import com.titanium.claim.application.model.assessment.ReimbursementSettlementRequest;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
 import com.titanium.claim.common.enums.config.SettlementChannel;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
 import com.titanium.claim.repository.ClaimPayoutRuleRepository;
 import com.titanium.claim.service.ReimbursementAdjustmentService;
 import com.titanium.claim.service.impl.ReimbursementAdjustmentServiceImpl;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
 import com.titanium.common.context.RequestContextHolder;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 报销理算查询服务测试（application 读入口编排）
@@ -117,7 +117,7 @@ class ReimbursementAdjustmentQueryServiceTest {
         when(payoutRuleRepository.findPlatformDefault("PET", "PET_MEDICAL")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> queryService.adjust(request(null)))
-                .isInstanceOf(BusinessException.class)
+                .isInstanceOf(DomainException.class)
                 .hasMessageContaining("赔付规则不存在");
     }
 

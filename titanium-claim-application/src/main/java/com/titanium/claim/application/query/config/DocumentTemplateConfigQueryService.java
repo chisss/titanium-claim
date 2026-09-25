@@ -6,10 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimDocumentTemplate;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimDocumentTemplateRepository;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,7 +32,7 @@ public class DocumentTemplateConfigQueryService {
     @Transactional(readOnly = true)
     public ClaimDocumentTemplate getDocumentTemplate(String templateId) {
         return repository.findById(RequestContextHolder.getTenantId(), templateId)
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "单证模板不存在: " + templateId));
     }
 

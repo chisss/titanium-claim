@@ -5,8 +5,8 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.Getter;
 
@@ -49,15 +49,15 @@ public final class ClaimPayoutRule {
                             BigDecimal annualLimit, Map<String, Integer> hospitalTierRatios,
                             List<String> exclusions) {
         if (payoutRatio != null && (payoutRatio < 0 || payoutRatio > 100)) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "赔付比例必须在 0-100 之间");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "赔付比例必须在 0-100 之间");
         }
         if (deductible != null && perClaimLimit != null && deductible.compareTo(perClaimLimit) > 0) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "免赔额不能大于单次限额");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "免赔额不能大于单次限额");
         }
         if (hospitalTierRatios != null) {
             hospitalTierRatios.values().forEach(ratio -> {
                 if (ratio < 0 || ratio > 100) {
-                    throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "医院分档比例必须在 0-100 之间");
+                    throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "医院分档比例必须在 0-100 之间");
                 }
             });
         }

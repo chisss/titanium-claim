@@ -3,8 +3,8 @@ package com.titanium.claim.aggregate;
 import java.util.List;
 import java.util.Map;
 
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.Getter;
 
@@ -41,13 +41,13 @@ public final class ClaimFlowTemplate {
                               List<String> stageSequence, Map<String, Integer> stageTimeLimitHours,
                               String responsibleRole, List<String> mandatoryCheckpoints) {
         if (stageSequence == null || stageSequence.isEmpty()) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "流程模板环节序列不能为空");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "流程模板环节序列不能为空");
         }
         if (stageTimeLimitHours != null && !stageSequence.containsAll(stageTimeLimitHours.keySet())) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "环节时限必须对应环节序列内环节");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "环节时限必须对应环节序列内环节");
         }
         if (mandatoryCheckpoints != null && !stageSequence.containsAll(mandatoryCheckpoints)) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "必经校验点必须对应环节序列内环节");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "必经校验点必须对应环节序列内环节");
         }
         this.templateId = templateId;
         this.tenantId = tenantId;

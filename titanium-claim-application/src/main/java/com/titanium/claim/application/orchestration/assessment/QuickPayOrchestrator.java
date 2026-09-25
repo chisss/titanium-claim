@@ -15,7 +15,6 @@ import com.titanium.claim.command.SettleClaimCommand;
 import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.common.enums.AlertType;
 import com.titanium.claim.common.enums.ClaimStatus;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.query.repository.ClaimViewRepository;
 import com.titanium.claim.query.view.ClaimView;
 import com.titanium.claim.repository.ClaimQuickPayRuleRepository;
@@ -23,6 +22,7 @@ import com.titanium.claim.valueobject.AlertFlag;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,19 +53,19 @@ public class QuickPayOrchestrator {
      */
     public void executeQuickPay(String claimId, String tenantId) {
         ClaimView view = claimViewRepository.findByClaimIdAndTenantId(claimId, tenantId)
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_NOT_EXIST,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_NOT_EXIST,
                         "理赔案件不存在: " + claimId));
         ClaimQuickPayRule rule = resolveRule(tenantId, view);
         if (!rule.matches(view.getClaimAmount())) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET,
+            throw new DomainException(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET,
                     "快赔判据不满足: 规则未开启或金额超阈值");
         }
         if (view.getStatus() != ClaimStatus.PROCESSING) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET,
+            throw new DomainException(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET,
                     "快赔判据不满足: 仅 PROCESSING 状态可自动核赔, 当前=" + view.getStatus());
         }
         if (hasFraudAlert(view.getAlertFlags())) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET,
+            throw new DomainException(ClaimErrorCode.CLAIM_STATUS_PRECONDITION_NOT_MET,
                     "快赔判据不满足: 存在欺诈警示标记");
         }
         // 判据全过：变更状态 APPROVED → 核赔结算 → 打快赔统计标记
@@ -103,7 +103,7 @@ public class QuickPayOrchestrator {
         String claimType = view.getClaimType() == null ? null : view.getClaimType().getCode();
         return quickPayRuleRepository.findByBusinessKey(tenantId, claimType)
                 .or(() -> quickPayRuleRepository.findPlatformDefault(claimType))
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "快赔规则未配置: 理赔类型=" + claimType));
     }
 

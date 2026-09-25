@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 
 import com.titanium.claim.common.enums.config.BlacklistStatus;
 import com.titanium.claim.common.enums.config.BlacklistSubjectType;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.Getter;
 
@@ -38,13 +38,13 @@ public final class ClaimBlacklist {
                            String subjectId, String subjectName, String reasonCode,
                            BlacklistStatus status, LocalDateTime effectiveTime) {
         if (subjectType == null) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "黑名单标的类型不能为空");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "黑名单标的类型不能为空");
         }
         if (subjectId == null || subjectId.isBlank()) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "黑名单标的ID不能为空");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "黑名单标的ID不能为空");
         }
         if (reasonCode == null || reasonCode.isBlank()) {
-            throw new BusinessException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "拉黑原因不能为空");
+            throw new DomainException(ClaimErrorCode.CLAIM_CONFIG_INVALID, "拉黑原因不能为空");
         }
         this.blacklistId = blacklistId;
         this.tenantId = tenantId;

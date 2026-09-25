@@ -1,8 +1,7 @@
 package com.titanium.claim.common.exception;
 
-import org.springframework.http.HttpStatus;
-
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 /**
  * 理赔已处理异常
@@ -10,8 +9,8 @@ import com.titanium.metadata.errorcode.ClaimErrorCode;
  * 当对已处理（已结案/已赔付）的理赔案件重复操作时抛出。
  * </p>
  */
-public class ClaimAlreadyProcessedException extends BusinessException {
+public class ClaimAlreadyProcessedException extends DomainException {
     public ClaimAlreadyProcessedException() {
-        super(ClaimErrorCode.CLAIM_ALREADY_PROCESSED, HttpStatus.BAD_REQUEST);
+        super(ClaimErrorCode.CLAIM_ALREADY_PROCESSED);
     }
 }

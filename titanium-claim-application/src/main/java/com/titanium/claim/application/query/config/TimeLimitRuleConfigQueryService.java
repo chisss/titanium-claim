@@ -6,10 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.titanium.claim.aggregate.ClaimTimeLimitRule;
-import com.titanium.claim.common.exception.BusinessException;
 import com.titanium.claim.repository.ClaimTimeLimitRuleRepository;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.exception.DomainException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,7 +32,7 @@ public class TimeLimitRuleConfigQueryService {
     @Transactional(readOnly = true)
     public ClaimTimeLimitRule getTimeLimitRule(String ruleId) {
         return repository.findById(RequestContextHolder.getTenantId(), ruleId)
-                .orElseThrow(() -> new BusinessException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
+                .orElseThrow(() -> new DomainException(ClaimErrorCode.CLAIM_CONFIG_NOT_FOUND,
                         "时限规则不存在: " + ruleId));
     }
 
