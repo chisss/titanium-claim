@@ -13,13 +13,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * @param basicSumInsured 基本保额（定额给付精算依据，如身故/全残给付）
  * @param cashValue       账户价值（可空：policy 域暂未提供账户价值查询接口，为空时全残给付回落基本保额）
  * @param effectiveDate   生效日期（等待期起算基准，责任校验 CLAIM-4 用）
+ * @param productId       产品ID（g09-03：差异化阈值规则求值的产品维度；对端契约已有，可空=
+ *                        保单未关联产品时报文为空，规则按 claimType 等其余维度匹配）
  */
 public record PolicyInfo(
         String policyId,
         String statusCode,
         BigDecimal basicSumInsured,
         BigDecimal cashValue,
-        LocalDateTime effectiveDate
+        LocalDateTime effectiveDate,
+        String productId
 ) {
 
     /**

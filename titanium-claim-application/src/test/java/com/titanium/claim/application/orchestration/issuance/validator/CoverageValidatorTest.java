@@ -2,6 +2,8 @@ package com.titanium.claim.application.orchestration.issuance.validator;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -23,7 +25,9 @@ import com.titanium.claim.port.clause.ClauseServicePort.CoverageInfo;
 import com.titanium.claim.port.policy.ClauseRef;
 import com.titanium.claim.port.policy.PolicyInfo;
 import com.titanium.claim.port.policy.PolicyServicePort;
+import com.titanium.claim.port.ruleengine.ClaimRuleExecutionPort;
 import com.titanium.claim.service.ClaimService;
+import com.titanium.claim.valueobject.ClaimDifferentiatedThreshold;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
@@ -41,13 +45,21 @@ class CoverageValidatorTest {
     private PolicyServicePort policyServicePort;
     @Mock
     private ClauseServicePort clauseServicePort;
+    @Mock
+    private ClaimRuleExecutionPort claimRuleExecutionPort;
 
     private CoverageValidator validator;
 
     @BeforeEach
     void setUp() {
         RequestContextHolder.setTenantId("T-1");
-        validator = new CoverageValidator(policyServicePort, clauseServicePort, new ClaimService());
+        // g09-03：默认 stub 为「无生效 CLAIM 规则集结论」（EMPTY）⇒ 全部既有用例回落条款值、
+        // 行为与改造前逐字一致；lenient 因跳过校验的用例（保单/条款缺失早退）不消费该 stub，
+        // strict 模式会误报 UnnecessaryStubbing。
+        lenient().when(claimRuleExecutionPort.resolveThreshold(any()))
+                .thenReturn(ClaimDifferentiatedThreshold.EMPTY);
+        validator = new CoverageValidator(policyServicePort, clauseServicePort, claimRuleExecutionPort,
+                new ClaimService());
     }
 
     @AfterEach
@@ -65,7 +77,7 @@ class CoverageValidatorTest {
     }
 
     private PolicyInfo policy(LocalDateTime effectiveDate) {
-        return new PolicyInfo("POL-1", "EFFECTIVE", new BigDecimal("500000"), null, effectiveDate);
+        return new PolicyInfo("POL-1", "EFFECTIVE", new BigDecimal("500000"), null, effectiveDate, "P-1");
     }
 
     @Test

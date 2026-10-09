@@ -105,7 +105,8 @@ class ClaimSettlementOrchestratorTest {
     }
 
     private PolicyInfo activePolicy() {
-        return new PolicyInfo("POL-1", "EFFECTIVE", new BigDecimal("500000"), null, LocalDateTime.now().minusDays(30));
+        return new PolicyInfo("POL-1", "EFFECTIVE", new BigDecimal("500000"), null, LocalDateTime.now().minusDays(30),
+                "P-1");
     }
 
     private List<BeneficiaryInfo> masterBeneficiaries() {
@@ -213,7 +214,7 @@ class ClaimSettlementOrchestratorTest {
     @DisplayName("保单非生效状态抛保单未生效异常，不发命令")
     void shouldRejectInactivePolicy() {
         when(policyServicePort.getPolicy("POL-1", "T-1"))
-                .thenReturn(new PolicyInfo("POL-1", "EXPIRED", new BigDecimal("500000"), null, null));
+                .thenReturn(new PolicyInfo("POL-1", "EXPIRED", new BigDecimal("500000"), null, null, "P-1"));
 
         assertThrows(PolicyNotActiveException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
@@ -234,7 +235,7 @@ class ClaimSettlementOrchestratorTest {
     @DisplayName("基本保额缺失抛金额无效错误码，不发命令")
     void shouldRejectMissingBasicSumInsured() {
         when(policyServicePort.getPolicy("POL-1", "T-1"))
-                .thenReturn(new PolicyInfo("POL-1", "EFFECTIVE", null, null, LocalDateTime.now().minusDays(30)));
+                .thenReturn(new PolicyInfo("POL-1", "EFFECTIVE", null, null, LocalDateTime.now().minusDays(30), "P-1"));
 
         BenefitCalculationException ex = assertThrows(BenefitCalculationException.class,
                 () -> orchestrator.settleDeathBenefit("CLAIM-1", validRequest()));
@@ -385,7 +386,7 @@ class ClaimSettlementOrchestratorTest {
     @DisplayName("全残给付：账户价值高于基本保额取账户价值")
     void shouldSettleDisabilityByAccountValueMax() {
         when(policyServicePort.getPolicy("POL-1", "T-1")).thenReturn(new PolicyInfo("POL-1", "EFFECTIVE",
-                new BigDecimal("500000"), new BigDecimal("600000"), LocalDateTime.now().minusDays(30)));
+                new BigDecimal("500000"), new BigDecimal("600000"), LocalDateTime.now().minusDays(30), "P-1"));
         when(policyServicePort.fetchBeneficiaries("POL-1", "T-1")).thenReturn(masterBeneficiaries());
 
         orchestrator.settleDisabilityBenefit("CLAIM-1", validDisabilityRequest());

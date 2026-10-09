@@ -78,6 +78,13 @@
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- 规则引擎API（ClaimRuleExecutionAdapter 调 RuleEngineApi Feign，差异化阈值 g09-03 AC-05/AC-06） -->
+        <dependency>
+            <groupId>com.titanium</groupId>
+            <artifactId>titanium-rule-engine-api</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- OpenFeign（跨域 Feign 客户端） -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

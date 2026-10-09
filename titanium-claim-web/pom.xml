@@ -50,6 +50,25 @@
             <artifactId>mapstruct</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- 租户请求上下文 RequestContextHolder（g07-02c：目录 Provider 从 X-Tenant-Id 取租户，
+             与 ClaimApiProvider/ClaimController 同一取法；此前仅靠 claim-query 传递可得） -->
+        <dependency>
+            <groupId>com.titanium</groupId>
+            <artifactId>titanium-common</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- g07-02c：契约实现（Provider）单元测试用；Mapping 用 MapStruct 生成的实现类，不引 Spring 上下文 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

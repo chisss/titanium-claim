@@ -144,3 +144,401 @@ titanium:
         # 理赔赔付派发组同为出站组：首启位点须取事件流末端，否则全新部署时会把本域全部历史
         # 结算事件重放给 payment 域（虽有下游幂等兜底，但会产生大量无谓流量与日志）。
         - claim-settlement-group
+
+  # ==========================================================================================
+  # 分析型取数声明（G08/g08-06）——由 titanium-analytical-starter 消费，本域零 Java 代码。
+  #
+  # 🔴 YAML 是开发资产，不是运营配置（方案 R-3）：它声明「哪个字段落在哪张表的哪一列」，
+  #    改它走代码评审 + 发版。运营配置的是特征定义（后台），不是取数映射。
+  # 实体码 `claim` 与 t_entity_registry 登记行、字段目录 field_code 前缀三者一致；
+  # 请求写 `claim.claimAmount`（starter 按首个点切分）⇒ 下方 code 一律**不含**实体码前缀。
+  # ==========================================================================================
+  analytical:
+    # 🔴 init：首次启动把下方 catalog 声明一次性导入 t_claim_field_catalog（G07/g07-02e）。
+    #    表非空即整体跳过、不比对不更新——此后表为权威，改 YAML 不会回写已灌种子的库；
+    #    目录变更走属主域的发布流程（同 policy 的 g07-04 版本化路径），不是改 YAML 重启。
+    seed-mode: init
+
+    entities:
+      claim:
+        # CQRS 读模型表：取数走读侧垂直切片，绕过写侧聚合
+        table: t_claim_view
+        subject-column: claim_id
+        # 🔴 如实声明：读模型有投影可见延迟 ⇒ EVENTUAL。与 t_entity_registry.consistency
+        #    逐字一致，R-14 一致性对账据此比对。
+        consistency: EVENTUAL
+        # 读模型无删除标记列（投影不落逻辑删除）——这是**陈述事实**，不是关闭过滤的开关：
+        # starter 会用 JDBC 元数据核验本表确无该列，核验不过即拒绝服务。
+        deleted-column: none
+        # 字段目录落点（G07/g07-02e 的种子导入目标）
+        catalog-table: t_claim_field_catalog
+        # 🔴 不声明 effective-from/to-column（读模型无数据时效列，asOf 如实回报 null）；
+        #    allow-cross-subject 保持默认 false（最小暴露面，需跨主体聚合时改这一行=显式评审决策）。
+        fields:
+          # 字段集 = t_claim_view 全部列（21）− 主体列 claim_id（读模型无审计列），共 20 项。
+          # 🔴 四项能力位与 G07 目录口径逐项对齐（2026-10-01 裁示，权威来源 = policy 的
+          #    policy_field_catalog_analysis_seed_*.sql 的 CASE 谓词）：analyzable=全部 /
+          #    aggregatable=非 TEXT / groupable=ENUM、DATE（本域无 collection 字段）/ filterable=全部。
+          #    特别地 **DATETIME 不可分组**（裁示口径只含 ENUM/DATE，不含 DATETIME）——
+          #    这不是笔误，两份声明（YAML 与目录）取值必须一致，否则即「目录说可分组、取数声明说不可分组」的静默漂移。
+          # 🔴 敏感度全 INTERNAL/NONE：本域无任何掩码设施与掩码用法（涉敏文本如出险描述/拒赔原因
+          #    域内按原样落库），目录声明必须与域内实况一致，不得凭空发明敏感级别。
+          # 写侧能力位（proposable/clearable/execution-supported/requires-object-id）全 false：
+          #    本域目录用途是分析取数，不参与保全申报；change-type-code 随之为空。
+          - code: customerId
+            column: customer_id
+            type: STRING
+            analyzable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: TEXT
+              label-key: claim.field.customerId
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: policyId
+            column: policy_id
+            type: STRING
+            analyzable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: TEXT
+              label-key: claim.field.policyId
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: claimNumber
+            column: claim_number
+            type: STRING
+            analyzable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: TEXT
+              label-key: claim.field.claimNumber
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: claimType
+            column: claim_type
+            type: ENUM
+            analyzable: true
+            aggregatable: true
+            groupable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: ENUM
+              label-key: claim.field.claimType
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: incidentDate
+            column: incident_date
+            type: DATETIME
+            analyzable: true
+            aggregatable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: DATETIME
+              label-key: claim.field.incidentDate
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: incidentDescription
+            column: incident_description
+            type: STRING
+            analyzable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: TEXT
+              label-key: claim.field.incidentDescription
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: claimAmount
+            column: claim_amount
+            type: DECIMAL
+            analyzable: true
+            aggregatable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: DECIMAL
+              label-key: claim.field.claimAmount
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: status
+            column: status
+            type: ENUM
+            analyzable: true
+            aggregatable: true
+            groupable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: ENUM
+              label-key: claim.field.status
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: phase
+            column: phase
+            type: ENUM
+            analyzable: true
+            aggregatable: true
+            groupable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: ENUM
+              label-key: claim.field.phase
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: settledAmount
+            column: settled_amount
+            type: DECIMAL
+            analyzable: true
+            aggregatable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: DECIMAL
+              label-key: claim.field.settledAmount
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: paymentStatus
+            column: payment_status
+            type: ENUM
+            analyzable: true
+            aggregatable: true
+            groupable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: ENUM
+              label-key: claim.field.paymentStatus
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: paymentNo
+            column: payment_no
+            type: STRING
+            analyzable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: TEXT
+              label-key: claim.field.paymentNo
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: paymentFailureType
+            column: payment_failure_type
+            type: ENUM
+            analyzable: true
+            aggregatable: true
+            groupable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: ENUM
+              label-key: claim.field.paymentFailureType
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: paymentFailureReason
+            column: payment_failure_reason
+            type: STRING
+            analyzable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: TEXT
+              label-key: claim.field.paymentFailureReason
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: paymentFailedAt
+            column: payment_failed_at
+            type: DATETIME
+            analyzable: true
+            aggregatable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: DATETIME
+              label-key: claim.field.paymentFailedAt
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: rejectionReason
+            column: rejection_reason
+            type: STRING
+            analyzable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: TEXT
+              label-key: claim.field.rejectionReason
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: rejectedAt
+            column: rejected_at
+            type: DATETIME
+            analyzable: true
+            aggregatable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: DATETIME
+              label-key: claim.field.rejectedAt
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: closedAt
+            column: closed_at
+            type: DATETIME
+            analyzable: true
+            aggregatable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: DATETIME
+              label-key: claim.field.closedAt
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: alertFlags
+            column: alert_flags
+            type: STRING
+            analyzable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: TEXT
+              label-key: claim.field.alertFlags
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE
+          - code: assessedPayableAmount
+            column: assessed_payable_amount
+            type: DECIMAL
+            analyzable: true
+            aggregatable: true
+            filterable: true
+            catalog:
+              object-type: CLAIM
+              value-type: DECIMAL
+              label-key: claim.field.assessedPayableAmount
+              collection: false
+              readable: true
+              proposable: false
+              clearable: false
+              execution-supported: false
+              requires-object-id: false
+              sensitivity: INTERNAL
+              masking-policy: NONE

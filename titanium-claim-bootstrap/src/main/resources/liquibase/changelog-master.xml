@@ -16,4 +16,8 @@
     <include file="classpath:liquibase/ddl/axon_dead_letter_202609151500_weisun_ddl.sql"/>
     <include file="classpath:liquibase/ddl/claim_do_version_column_202609231700_weisun_ddl.sql"/>
     <include file="classpath:liquibase/ddl/claim_shedlock_202609231800_weisun_ddl.sql"/>
+    <!-- G07/g07-02a：claim 域字段目录表（平台标准元数据；种子由 g08-06 的 starter YAML 在 seed-mode=init 导入，本批次不产 INSERT 种子） -->
+    <include file="classpath:liquibase/ddl/claim_field_catalog_202610011800_weisun_ddl.sql"/>
+    <!-- G07/g07-03b：字段目录增加 4 个「可分析」能力位列（本域表由 starter 灌种子，故无赋初值 DML） -->
+    <include file="classpath:liquibase/ddl/claim_field_catalog_analysis_202610020900_weisun_ddl.sql"/>
 </databaseChangeLog>

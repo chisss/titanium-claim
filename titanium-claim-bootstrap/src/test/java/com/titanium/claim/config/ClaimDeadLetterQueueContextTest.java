@@ -21,6 +21,7 @@ import com.titanium.policy.api.PolicyCashValueApi;
 import com.titanium.policy.api.PolicyFieldCatalogApi;
 import com.titanium.policy.api.PolicyIssuanceApi;
 import com.titanium.policy.api.ProposalApi;
+import com.titanium.ruleengine.api.RuleEngineApi;
 
 /**
  * 理赔域出站处理组的上下文级守护（启动真实组合根，非 yml 文本解析）
@@ -82,7 +83,8 @@ import com.titanium.policy.api.ProposalApi;
         PolicyCashValueApi.class,
         PolicyFieldCatalogApi.class,
         PolicyIssuanceApi.class,
-        ProposalApi.class
+        ProposalApi.class,
+        RuleEngineApi.class
 })
 class ClaimDeadLetterQueueContextTest {
 
