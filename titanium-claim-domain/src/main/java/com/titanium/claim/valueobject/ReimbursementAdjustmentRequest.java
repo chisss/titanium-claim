@@ -17,11 +17,15 @@ import com.titanium.claim.common.enums.config.SettlementChannel;
  * @param eligibleExpense 合规费用（核定后的可赔费用）
  * @param payoutRule      赔付规则聚合（险种线 × 理赔类型）
  * @param hospital        出险医院台账聚合（可为空 = 不在医院网络 = 非定点）
+ * @param socialSecurityIdentity 社保身份码（人身险 G12/g12-03；可为空——赔付规则未配置社保分档时无意义，
+ *                        配置了分档而缺身份由领域服务显式拒绝。🔴 取数待 R-2 确认：须来自承保时点保单快照，
+ *                        不得从客户资料现值推断）
  */
 public record ReimbursementAdjustmentRequest(
         BigDecimal eligibleExpense,
         ClaimPayoutRule payoutRule,
-        ClaimHospitalNetwork hospital) {
+        ClaimHospitalNetwork hospital,
+        String socialSecurityIdentity) {
 
     public ReimbursementAdjustmentRequest {
         if (eligibleExpense == null || eligibleExpense.compareTo(BigDecimal.ZERO) <= 0) {
@@ -30,6 +34,19 @@ public record ReimbursementAdjustmentRequest(
         if (payoutRule == null) {
             throw new IllegalArgumentException("赔付规则不能为空");
         }
+    }
+
+    /**
+     * 三参便捷构造器（社保身份为空）。
+     * <p>
+     * 报销型现行链路（宠物险/健康险）不携带社保身份；人身险社保分档（G12/g12-03）启用后由取数层填入。
+     * 🔴 不构成静默降级：赔付规则配置了社保分档而身份为空时，领域服务抛
+     * {@code CLAIM_SOCIAL_SECURITY_REQUIRED} 显式拒绝（fail-closed），不会默认按高档比例赔付。
+     * </p>
+     */
+    public ReimbursementAdjustmentRequest(BigDecimal eligibleExpense, ClaimPayoutRule payoutRule,
+                                          ClaimHospitalNetwork hospital) {
+        this(eligibleExpense, payoutRule, hospital, null);
     }
 
     /**

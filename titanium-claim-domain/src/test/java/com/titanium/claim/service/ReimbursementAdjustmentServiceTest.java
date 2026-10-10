@@ -20,6 +20,7 @@ import com.titanium.claim.service.impl.ReimbursementAdjustmentServiceImpl;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest;
 import com.titanium.claim.valueobject.ReimbursementAdjustmentRequest.ReimbursementAdjustmentResult;
 import com.titanium.claim.valueobject.ReimbursementCalculation;
+import com.titanium.metadata.errorcode.ClaimErrorCode;
 import com.titanium.metadata.exception.DomainException;
 
 /**
@@ -40,12 +41,17 @@ class ReimbursementAdjustmentServiceTest {
     private ClaimPayoutRule payoutRule(Integer payoutRatio, BigDecimal deductible, BigDecimal perClaimLimit,
                                        Map<String, Integer> hospitalTierRatios) {
         return ClaimPayoutRule.create("rule-1", TENANT_ID, "PET", "PET_MEDICAL",
-                deductible, payoutRatio, perClaimLimit, null, hospitalTierRatios, List.of());
+                deductible, payoutRatio, perClaimLimit, null, hospitalTierRatios, null, List.of());
     }
 
     private ClaimHospitalNetwork designatedHospital(Integer payoutRatio) {
         return ClaimHospitalNetwork.create("hosp-1", TENANT_ID, "爱宠宠物医院", "二级",
                 HospitalAgreementStatus.ACTIVE, payoutRatio, true, "朝阳区", "13800000000");
+    }
+
+    private ClaimHospitalNetwork designatedHospitalOfLevel(String level, Integer payoutRatio) {
+        return ClaimHospitalNetwork.create("hosp-2", TENANT_ID, "康宁医院", level,
+                HospitalAgreementStatus.ACTIVE, payoutRatio, true, "海淀区", "13800000001");
     }
 
     @Nested
@@ -135,6 +141,192 @@ class ReimbursementAdjustmentServiceTest {
                     () -> service.adjust(new ReimbursementAdjustmentRequest(
                             new BigDecimal("1000.00"), rule, null)));
             assertTrue(ex.getMessage().contains("赔付比例"));
+        }
+    }
+
+    @Nested
+    @DisplayName("社保身份裁决（G12/g12-03、AC-03）")
+    class SocialSecurityTest {
+
+        /** 社保分档：在职 80% / 居民 60% / 无社保 40%（身份码值域待 R-2 确认，此处以占位码验证机制） */
+        private ClaimPayoutRule socialSecurityRule() {
+            return ClaimPayoutRule.create("rule-1", TENANT_ID, "MEDICAL", "MEDICAL_REIMBURSE",
+                    new BigDecimal("100.00"), 60, null, null, null,
+                    Map.of("EMPLOYEE", 80, "RESIDENT", 60, "NONE", 40), List.of());
+        }
+
+        @Test
+        @DisplayName("AC-03 正向：同一合规费用下，社保内外身份产出不同赔付额")
+        void shouldPayDifferentAmountsAcrossIdentities() {
+            ClaimPayoutRule rule = socialSecurityRule();
+            BigDecimal expense = new BigDecimal("1000.00");
+
+            ReimbursementAdjustmentResult insured = service.adjust(new ReimbursementAdjustmentRequest(
+                    expense, rule, null, "EMPLOYEE"));
+            ReimbursementAdjustmentResult uninsured = service.adjust(new ReimbursementAdjustmentRequest(
+                    expense, rule, null, "NONE"));
+
+            assertEquals(Integer.valueOf(80), insured.payoutRatioUsed());
+            assertEquals(0, insured.calculation().payableAmount().compareTo(new BigDecimal("720.00")));
+            assertEquals(Integer.valueOf(40), uninsured.payoutRatioUsed());
+            assertEquals(0, uninsured.calculation().payableAmount().compareTo(new BigDecimal("360.00")));
+        }
+
+        @Test
+        @DisplayName("AC-03 反向：配置社保分档而缺身份 → 显式拒绝，不得默认按高档赔付")
+        void shouldRejectWhenIdentityMissing() {
+            ClaimPayoutRule rule = socialSecurityRule();
+
+            DomainException ex = assertThrows(DomainException.class,
+                    () -> service.adjust(new ReimbursementAdjustmentRequest(
+                            new BigDecimal("1000.00"), rule, null)));
+            assertEquals(ClaimErrorCode.CLAIM_SOCIAL_SECURITY_REQUIRED, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("AC-03 反向：空白身份同样显式拒绝（fail-closed）")
+        void shouldRejectWhenIdentityBlank() {
+            ClaimPayoutRule rule = socialSecurityRule();
+
+            DomainException ex = assertThrows(DomainException.class,
+                    () -> service.adjust(new ReimbursementAdjustmentRequest(
+                            new BigDecimal("1000.00"), rule, null, "  ")));
+            assertEquals(ClaimErrorCode.CLAIM_SOCIAL_SECURITY_REQUIRED, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("身份未配置档位 → 显式拒绝，不得回落基础比例或非定点档")
+        void shouldRejectWhenIdentityHasNoRatio() {
+            ClaimPayoutRule rule = socialSecurityRule();
+
+            DomainException ex = assertThrows(DomainException.class,
+                    () -> service.adjust(new ReimbursementAdjustmentRequest(
+                            new BigDecimal("1000.00"), rule, null, "UNKNOWN_IDENTITY")));
+            assertEquals(ClaimErrorCode.CLAIM_CONFIG_INVALID, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("配置社保分档 → 社保维度为唯一裁决（R-2 前暂定口径），定点台账比例不参与")
+        void shouldLetSocialSecurityOverrideDesignatedRatio() {
+            ClaimPayoutRule rule = socialSecurityRule();
+            ClaimHospitalNetwork hospital = designatedHospital(90);
+
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), rule, hospital, "EMPLOYEE"));
+
+            assertEquals(SettlementChannel.DESIGNATED, result.settlementChannel());
+            assertEquals(Integer.valueOf(80), result.payoutRatioUsed());
+        }
+
+        @Test
+        @DisplayName("未配置社保分档 → 携带身份也不改变既有定点/非定点裁决（向后兼容）")
+        void shouldIgnoreIdentityWhenDimensionNotConfigured() {
+            ClaimPayoutRule rule = payoutRule(60, new BigDecimal("100.00"), null, Map.of("NON_DESIGNATED", 40));
+
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), rule, null, "EMPLOYEE"));
+
+            assertEquals(SettlementChannel.NON_DESIGNATED, result.settlementChannel());
+            assertEquals(Integer.valueOf(40), result.payoutRatioUsed());
+        }
+    }
+
+    @Nested
+    @DisplayName("医院等级选档裁决（G12/g12-04、AC-05）")
+    class HospitalTierTest {
+
+        /** 等级分档：二级 70% / 三级 50%（基础比例 60，用于对照「不得静默回落」） */
+        private ClaimPayoutRule tierRule() {
+            return payoutRule(60, BigDecimal.ZERO, null, Map.of("二级", 70, "三级", 50));
+        }
+
+        @Test
+        @DisplayName("AC-05 正向：同一合规费用下，二级与三级医院配置不同比例 → 赔付额不同")
+        void shouldPayDifferentAmountsAcrossHospitalLevels() {
+            ClaimPayoutRule rule = tierRule();
+            BigDecimal expense = new BigDecimal("1000.00");
+
+            ReimbursementAdjustmentResult second = service.adjust(new ReimbursementAdjustmentRequest(
+                    expense, rule, designatedHospitalOfLevel("二级", null)));
+            ReimbursementAdjustmentResult third = service.adjust(new ReimbursementAdjustmentRequest(
+                    expense, rule, designatedHospitalOfLevel("三级", null)));
+
+            assertEquals(Integer.valueOf(70), second.payoutRatioUsed());
+            assertEquals(0, second.calculation().payableAmount().compareTo(new BigDecimal("700.00")));
+            assertEquals(Integer.valueOf(50), third.payoutRatioUsed());
+            assertEquals(0, third.calculation().payableAmount().compareTo(new BigDecimal("500.00")));
+        }
+
+        @Test
+        @DisplayName("AC-05 反向：规则配了等级分档而该等级无档位 → 显式拒绝，不得静默回落基础比例")
+        void shouldRejectWhenHospitalLevelNotConfigured() {
+            ClaimPayoutRule rule = tierRule();
+
+            DomainException ex = assertThrows(DomainException.class,
+                    () -> service.adjust(new ReimbursementAdjustmentRequest(
+                            new BigDecimal("1000.00"), rule, designatedHospitalOfLevel("一级", null))));
+            assertEquals(ClaimErrorCode.CLAIM_CONFIG_INVALID, ex.getErrorCode());
+            assertTrue(ex.getMessage().contains("医院等级未配置"));
+        }
+
+        @Test
+        @DisplayName("AC-05 反向：出险医院未登记等级而规则配了等级分档 → 显式拒绝")
+        void shouldRejectWhenHospitalLevelBlank() {
+            ClaimPayoutRule rule = tierRule();
+
+            DomainException ex = assertThrows(DomainException.class,
+                    () -> service.adjust(new ReimbursementAdjustmentRequest(
+                            new BigDecimal("1000.00"), rule, designatedHospitalOfLevel("  ", null))));
+            assertEquals(ClaimErrorCode.CLAIM_CONFIG_INVALID, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("台账赔付比例优先于等级分档（个体配置 > 批量默认）")
+        void shouldPreferHospitalOwnRatioOverTierRatio() {
+            ClaimPayoutRule rule = tierRule();
+            ClaimHospitalNetwork hospital = designatedHospitalOfLevel("二级", 90);
+
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), rule, hospital));
+
+            assertEquals(Integer.valueOf(90), result.payoutRatioUsed());
+        }
+
+        @Test
+        @DisplayName("规则未配等级分档 → 等级档不参与，回落基础比例（向后兼容）")
+        void shouldFallbackToBaseRatioWhenTierDimensionNotConfigured() {
+            ClaimPayoutRule rule = payoutRule(60, BigDecimal.ZERO, null, null);
+
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), rule, designatedHospitalOfLevel("三级", null)));
+
+            assertEquals(Integer.valueOf(60), result.payoutRatioUsed());
+        }
+
+        @Test
+        @DisplayName("非定点路径 NON_DESIGNATED 语义不变（等级档不参与非定点）")
+        void shouldKeepNonDesignatedSemanticsUnchanged() {
+            ClaimPayoutRule rule = payoutRule(60, BigDecimal.ZERO, null,
+                    Map.of("NON_DESIGNATED", 40, "二级", 70));
+
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), rule, null));
+
+            assertEquals(SettlementChannel.NON_DESIGNATED, result.settlementChannel());
+            assertEquals(Integer.valueOf(40), result.payoutRatioUsed());
+        }
+
+        @Test
+        @DisplayName("社保分档与等级分档同时配置 → 社保维度唯一裁决，等级档不参与（R-2 前暂定口径）")
+        void shouldLetSocialSecurityOverrideHospitalTierRatio() {
+            ClaimPayoutRule rule = ClaimPayoutRule.create("rule-1", TENANT_ID, "MEDICAL", "MEDICAL_REIMBURSE",
+                    BigDecimal.ZERO, 60, null, null, Map.of("二级", 70),
+                    Map.of("EMPLOYEE", 80), List.of());
+
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), rule, designatedHospitalOfLevel("二级", null), "EMPLOYEE"));
+
+            assertEquals(Integer.valueOf(80), result.payoutRatioUsed());
         }
     }
 

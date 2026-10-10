@@ -13,6 +13,13 @@ import com.titanium.metadata.exception.DomainException;
  * （免赔额/比例/限额）强制来自赔付规则配置（{@link com.titanium.claim.aggregate.ClaimPayoutRule}），
  * 杜绝透传金额；紧凑构造器校验参数合法性，理算金额 HALF_UP 保留两位小数。
  * </p>
+ * <p>
+ * 🔴 <b>量纲口径（G12/g12-05）</b>：{@code payoutRatio} 为 <b>0-100 百分比整数</b>（构造器校验区间
+ * [0,100]），{@code of()} 是该口径的<b>唯一换算落地处</b>（÷100、HALF_UP 两位小数）——量纲不变量由
+ * {@code ReimbursementCalculationTest} 钉住。口径权威声明与「与条款域
+ * {@code Reimbursement.reimbursementRatio} 0-1 小数口径禁止隐式换算」的纪律见
+ * {@link com.titanium.claim.aggregate.ClaimPayoutRule} 类头「量纲口径」段。
+ * </p>
  *
  * @param eligibleExpense 合规费用（核定后的可赔费用，须大于 0）
  * @param deductible      免赔额（元，可为空=0）

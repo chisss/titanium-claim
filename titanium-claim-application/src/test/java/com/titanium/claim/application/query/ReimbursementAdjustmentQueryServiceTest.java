@@ -77,7 +77,7 @@ class ReimbursementAdjustmentQueryServiceTest {
 
     private ClaimPayoutRule rule() {
         return ClaimPayoutRule.create("rule-1", TENANT_ID, "PET", "PET_MEDICAL",
-                new BigDecimal("100.00"), 60, null, null, Map.of("NON_DESIGNATED", 40), List.of());
+                new BigDecimal("100.00"), 60, null, null, Map.of("NON_DESIGNATED", 40), null, List.of());
     }
 
     @Test

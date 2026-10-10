@@ -59,6 +59,9 @@ public class ReimbursementAdjustmentQueryService {
         }
 
         // 3. 领域服务纯计算
+        // 🔴 社保身份（G12/g12-03）暂不传：取数优先级（产品配置/赔付规则配置/保单快照）待 R-2 业务确认，
+        //    届时经既有出单快照路径取得后填入。规则未配置社保分档时该入参无意义（既有行为完全不变）；
+        //    配置了分档而缺身份由领域服务显式拒绝（fail-closed），不会静默按高档赔付
         ReimbursementAdjustmentResult result = adjustmentService.adjust(
                 new ReimbursementAdjustmentRequest(request.getEligibleExpense(), rule, hospital));
         log.info("[报销理算] tenantId={}, line={}, type={}, designated={}, payable={}", tenantId,

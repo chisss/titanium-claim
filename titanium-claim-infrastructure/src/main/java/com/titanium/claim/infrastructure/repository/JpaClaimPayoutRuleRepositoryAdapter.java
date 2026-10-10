@@ -100,6 +100,7 @@ public class JpaClaimPayoutRuleRepositoryAdapter implements ClaimPayoutRuleRepos
         return ClaimPayoutRule.create(dataObject.getRuleId(), dataObject.getTenantId(), dataObject.getInsuranceLine(),
                 dataObject.getClaimType(), dataObject.getDeductible(), dataObject.getPayoutRatio(), dataObject.getPerClaimLimit(),
                 dataObject.getAnnualLimit(), JsonSupport.toStringIntegerMap(dataObject.getHospitalTierRatios()),
+                JsonSupport.toStringIntegerMap(dataObject.getSocialSecurityRatios()),
                 JsonSupport.toStringList(dataObject.getExclusions()));
     }
 }

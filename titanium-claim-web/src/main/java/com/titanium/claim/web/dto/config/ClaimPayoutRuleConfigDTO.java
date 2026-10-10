@@ -40,6 +40,8 @@ public class ClaimPayoutRuleConfigDTO {
     private BigDecimal          annualLimit;
     /** 医院分档赔付比例（宠物险：档位→0-100） */
     private Map<String, Integer> hospitalTierRatios;
+    /** 社保身份分档赔付比例（人身险 G12/g12-03：身份码→0-100，空=未启用该维度） */
+    private Map<String, Integer> socialSecurityRatios;
     /** 责任免除清单 */
     private List<String>        exclusions;
 }

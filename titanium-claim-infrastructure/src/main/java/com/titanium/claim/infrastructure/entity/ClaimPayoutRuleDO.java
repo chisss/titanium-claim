@@ -68,6 +68,10 @@ public class ClaimPayoutRuleDO extends BaseEntity {
     @Column(name = "hospital_tier_ratios", columnDefinition = "TEXT")
     private String hospitalTierRatios;
 
+    /** 社保身份分档赔付比例（JSON 对象文本：身份码→0-100；G12/g12-03，空=未启用该维度） */
+    @Column(name = "social_security_ratios", columnDefinition = "TEXT")
+    private String socialSecurityRatios;
+
     /** 责任免除清单（JSON 数组文本） */
     @Column(name = "exclusions", columnDefinition = "TEXT")
     private String exclusions;

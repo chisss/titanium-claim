@@ -2,6 +2,7 @@ package com.titanium.claim.aggregate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -88,7 +89,7 @@ class ClaimConfigAggregateTest {
         void shouldRejectWhenPayoutRatioOutOfRange() {
             DomainException ex = assertThrows(DomainException.class,
                     () -> ClaimPayoutRule.create("rule-1", TENANT_ID, "MEDICAL", "MEDICAL_REIMBURSE",
-                            BigDecimal.ZERO, 120, null, null, null, null));
+                            BigDecimal.ZERO, 120, null, null, null, null, null));
             assertTrue(ex.getMessage().contains("赔付比例"));
         }
 
@@ -97,7 +98,7 @@ class ClaimConfigAggregateTest {
         void shouldRejectWhenDeductibleExceedsPerClaimLimit() {
             DomainException ex = assertThrows(DomainException.class,
                     () -> ClaimPayoutRule.create("rule-1", TENANT_ID, "MEDICAL", "MEDICAL_REIMBURSE",
-                            new BigDecimal("500.00"), 80, new BigDecimal("300.00"), null, null, null));
+                            new BigDecimal("500.00"), 80, new BigDecimal("300.00"), null, null, null, null));
             assertTrue(ex.getMessage().contains("免赔额"));
         }
 
@@ -106,7 +107,7 @@ class ClaimConfigAggregateTest {
         void shouldRejectWhenTierRatioOutOfRange() {
             DomainException ex = assertThrows(DomainException.class,
                     () -> ClaimPayoutRule.create("rule-1", TENANT_ID, "MEDICAL", "MEDICAL_REIMBURSE",
-                            BigDecimal.ZERO, 80, null, null, Map.of("一级", 110), null));
+                            BigDecimal.ZERO, 80, null, null, Map.of("一级", 110), null, null));
             assertTrue(ex.getMessage().contains("医院分档比例"));
         }
 
@@ -115,9 +116,65 @@ class ClaimConfigAggregateTest {
         void shouldCreateWhenValid() {
             ClaimPayoutRule rule = ClaimPayoutRule.create("rule-1", TENANT_ID, "PET", "PET_MEDICAL",
                     new BigDecimal("200.00"), 70, new BigDecimal("3000.00"), new BigDecimal("10000.00"),
-                    Map.of("一级", 80, "二级", 60), List.of("美容费用"));
+                    Map.of("一级", 80, "二级", 60), null, List.of("美容费用"));
             assertEquals(Integer.valueOf(70), rule.getPayoutRatio());
             assertEquals(Integer.valueOf(60), rule.getHospitalTierRatios().get("二级"));
+        }
+
+        @Test
+        @DisplayName("社保身份分档比例越界时拒绝创建（G12/g12-03）")
+        void shouldRejectWhenSocialSecurityRatioOutOfRange() {
+            DomainException ex = assertThrows(DomainException.class,
+                    () -> ClaimPayoutRule.create("rule-1", TENANT_ID, "MEDICAL", "MEDICAL_REIMBURSE",
+                            BigDecimal.ZERO, 80, null, null, null, Map.of("EMPLOYEE", 120), null));
+            assertTrue(ex.getMessage().contains("社保身份分档比例"));
+        }
+
+        @Test
+        @DisplayName("未配置社保分档 → hasSocialSecurityRatios=false 且取档返回 null（不回落）")
+        void shouldReportNoSocialSecurityDimensionWhenAbsent() {
+            ClaimPayoutRule rule = ClaimPayoutRule.create("rule-1", TENANT_ID, "PET", "PET_MEDICAL",
+                    BigDecimal.ZERO, 70, null, null, null, null, null);
+            assertFalse(rule.hasSocialSecurityRatios());
+            assertNull(rule.socialSecurityRatio("EMPLOYEE"));
+        }
+
+        @Test
+        @DisplayName("配置社保分档创建成功且 update 全量覆盖（空提交=清空该维度）")
+        void shouldCreateAndReplaceSocialSecurityRatios() {
+            ClaimPayoutRule rule = ClaimPayoutRule.create("rule-1", TENANT_ID, "MEDICAL", "MEDICAL_REIMBURSE",
+                    BigDecimal.ZERO, 80, null, null, null, Map.of("EMPLOYEE", 80), null);
+            assertTrue(rule.hasSocialSecurityRatios());
+            assertEquals(Integer.valueOf(80), rule.socialSecurityRatio("EMPLOYEE"));
+
+            ClaimPayoutRule updated = rule.update("MEDICAL", "MEDICAL_REIMBURSE", BigDecimal.ZERO, 70,
+                    null, null, null, Map.of("EMPLOYEE", 90, "NONE", 50), null);
+            assertEquals(Integer.valueOf(90), updated.socialSecurityRatio("EMPLOYEE"));
+            assertEquals(Integer.valueOf(50), updated.socialSecurityRatio("NONE"));
+
+            ClaimPayoutRule cleared = updated.update("MEDICAL", "MEDICAL_REIMBURSE", BigDecimal.ZERO, 70,
+                    null, null, null, null, null);
+            assertFalse(cleared.hasSocialSecurityRatios());
+        }
+
+        @Test
+        @DisplayName("未配置等级分档 → hasHospitalTierRatios=false 且取档返回 null（不回落，G12/g12-04）")
+        void shouldReportNoHospitalTierDimensionWhenAbsent() {
+            ClaimPayoutRule rule = ClaimPayoutRule.create("rule-1", TENANT_ID, "PET", "PET_MEDICAL",
+                    BigDecimal.ZERO, 70, null, null, null, null, null);
+            assertFalse(rule.hasHospitalTierRatios());
+            assertNull(rule.hospitalTierRatio("二级"));
+        }
+
+        @Test
+        @DisplayName("配置等级分档创建成功且按等级取档（取档不回落，G12/g12-04）")
+        void shouldReadHospitalTierRatioByLevel() {
+            ClaimPayoutRule rule = ClaimPayoutRule.create("rule-1", TENANT_ID, "MEDICAL", "MEDICAL_REIMBURSE",
+                    BigDecimal.ZERO, 60, null, null, Map.of("二级", 70, "三级", 50), null, null);
+            assertTrue(rule.hasHospitalTierRatios());
+            assertEquals(Integer.valueOf(70), rule.hospitalTierRatio("二级"));
+            assertEquals(Integer.valueOf(50), rule.hospitalTierRatio("三级"));
+            assertNull(rule.hospitalTierRatio("一级"));
         }
     }
 

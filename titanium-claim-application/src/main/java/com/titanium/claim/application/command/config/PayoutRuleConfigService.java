@@ -40,7 +40,7 @@ public class PayoutRuleConfigService {
             ClaimPayoutRule rule = ClaimPayoutRule.create(SnowflakeIdGenerator.generate(), tenantId,
                     request.getInsuranceLine(), request.getClaimType(), request.getDeductible(),
                     request.getPayoutRatio(), request.getPerClaimLimit(), request.getAnnualLimit(),
-                    request.getHospitalTierRatios(), request.getExclusions());
+                    request.getHospitalTierRatios(), request.getSocialSecurityRatios(), request.getExclusions());
             repository.save(rule);
             log.info("新增赔付规则, tenantId={}, ruleId={}", tenantId, rule.getRuleId());
             return rule.getRuleId();
@@ -50,7 +50,8 @@ public class PayoutRuleConfigService {
                         "赔付规则不存在: " + request.getRuleId()));
         ClaimPayoutRule updated = existing.update(request.getInsuranceLine(), request.getClaimType(),
                 request.getDeductible(), request.getPayoutRatio(), request.getPerClaimLimit(),
-                request.getAnnualLimit(), request.getHospitalTierRatios(), request.getExclusions());
+                request.getAnnualLimit(), request.getHospitalTierRatios(), request.getSocialSecurityRatios(),
+                request.getExclusions());
         repository.save(updated);
         return updated.getRuleId();
     }

@@ -48,6 +48,7 @@ public interface ClaimConfigPersistenceMapper {
     // ==================== 赔付规则 ====================
 
     @Mapping(target = "hospitalTierRatios", qualifiedByName = "toJsonMap")
+    @Mapping(target = "socialSecurityRatios", qualifiedByName = "toJsonMap")
     @Mapping(target = "exclusions", qualifiedByName = "toJsonList")
     ClaimPayoutRuleDO toDO(ClaimPayoutRule rule);
 
