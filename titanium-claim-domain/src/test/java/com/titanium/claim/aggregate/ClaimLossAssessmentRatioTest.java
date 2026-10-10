@@ -75,7 +75,7 @@ class ClaimLossAssessmentRatioTest {
     private ClaimCreatedEvent createdEvent() {
         return new ClaimCreatedEvent(ClaimId.of("CLAIM-1"), CustomerId.of("C-1"), PolicyId.of("P-1"), "CLM-001",
                 ClaimEnum.ClaimType.ACCIDENT, LocalDateTime.now().minusDays(1), "车辆碰撞",
-                ClaimAmount.of("10000"), LocalDateTime.now().minusDays(1), "T-1");
+                ClaimAmount.of("10000"), LocalDateTime.now().minusDays(1), "T-1", null, null);   // 末尾两参为 subjectId/vin
     }
 
     private ClaimSurveySubmittedEvent surveyEvent() {

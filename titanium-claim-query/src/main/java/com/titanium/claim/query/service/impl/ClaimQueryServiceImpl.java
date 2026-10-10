@@ -67,6 +67,36 @@ public class ClaimQueryServiceImpl implements ClaimQueryService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 按车辆/标的 + 出险日期区间查询历史赔案（G11/g11-03 NCD 反算取数出口）
+     * <p>
+     * VIN 优先（跨保单车辆身份），VIN 缺失时按保单内标的 subjectId 兜底；两者皆空抛
+     * {@link IllegalArgumentException}——「无键可查」必须与「查无记录」可区分（后者返回空列表），
+     * 否则调用方会把缺键误判成「无赔款」。
+     * </p>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClaimQueryResult> getClaimSummariesBySubject(String vin, String subjectId,
+            LocalDateTime incidentFrom, LocalDateTime incidentTo, String tenantId) {
+        boolean hasVin = vin != null && !vin.isBlank();
+        boolean hasSubjectId = subjectId != null && !subjectId.isBlank();
+        if (!hasVin && !hasSubjectId) {
+            throw new IllegalArgumentException("按车辆/标的检索历史赔案时 VIN 与标的ID至少须提供一个");
+        }
+
+        List<ClaimView> views = hasVin
+                ? claimViewRepository
+                        .findByTenantIdAndVinAndIncidentDateGreaterThanEqualAndIncidentDateLessThanAndStatusNot(
+                                tenantId, vin, incidentFrom, incidentTo, ClaimStatus.REJECTED)
+                : claimViewRepository
+                        .findByTenantIdAndSubjectIdAndIncidentDateGreaterThanEqualAndIncidentDateLessThanAndStatusNot(
+                                tenantId, subjectId, incidentFrom, incidentTo, ClaimStatus.REJECTED);
+        return views.stream()
+                .map(claimQueryResultMapper::toResult)
+                .collect(Collectors.toList());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<ClaimQueryResult> getClaimSummariesByStatus(String status, String tenantId) {

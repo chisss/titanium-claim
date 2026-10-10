@@ -22,4 +22,6 @@
     <include file="classpath:liquibase/ddl/claim_field_catalog_analysis_202610020900_weisun_ddl.sql"/>
     <!-- G10/g10-02：4 处 insurance_line 列注释修正（原注释引用不存在的枚举 ClaimEnum.InsuranceLine） -->
     <include file="classpath:liquibase/ddl/claim_config_insurance_comment_202610091849_weisun_ddl.sql"/>
+    <!-- G11/g11-03：读模型新增标的键（subject_id/vin），供 product 域按车辆检索历史赔案反算 NCD -->
+    <include file="classpath:liquibase/ddl/claim_view_subject_key_202610101600_weisun_ddl.sql"/>
 </databaseChangeLog>

@@ -135,7 +135,7 @@ class ClaimPaymentFailureTest {
     private ClaimCreatedEvent createdEvent() {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of("P-1"), "CLM-PF-001",
                 ClaimEnum.ClaimType.MEDICAL, LocalDateTime.now().minusDays(3), "住院医疗", ClaimAmount.of("8000"),
-                LocalDateTime.now().minusDays(3), TENANT_ID);
+                LocalDateTime.now().minusDays(3), TENANT_ID, null, null);   // 末尾两参为 subjectId/vin：本用例不涉车辆标的键
     }
 
     private ClaimStatusChangedEvent toProcessing() {

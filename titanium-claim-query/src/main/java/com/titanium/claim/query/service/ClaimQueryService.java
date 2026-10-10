@@ -1,5 +1,6 @@
 package com.titanium.claim.query.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +30,26 @@ public interface ClaimQueryService {
      * 根据保单ID查询理赔案件摘要列表
      */
     List<ClaimQueryResult> getClaimSummariesByPolicyId(String policyId, String tenantId);
+
+    /**
+     * 按车辆/标的 + 出险日期区间查询历史赔案摘要列表（G11/g11-03 NCD 反算取数出口）
+     * <p>
+     * {@code vin} 与 {@code subjectId} 至少提供一个：VIN 优先（跨保单车辆身份，续保换单后
+     * 唯 VIN 不变），VIN 为空时退化为按保单内标的 {@code subjectId} 检索；两者皆空视为调用方
+     * 错误，抛 {@link IllegalArgumentException}（不静默返回空列表——「无键可查」与「查无记录」
+     * 必须可区分，否则 NCD 反算会把缺键误判成「无赔款」）。区间为出险日期 {@code [from, to)}
+     * 半开；拒赔（{@code REJECTED}）案件不计入历史赔案次数。
+     * </p>
+     *
+     * @param vin 车辆识别代号（优先）
+     * @param subjectId 标的ID（VIN 缺失时的兜底）
+     * @param incidentFrom 出险日期起（含）
+     * @param incidentTo 出险日期止（不含）
+     * @param tenantId 租户ID
+     * @return 区间内命中的历史赔案摘要列表（无记录返回空列表，属合法事实）
+     */
+    List<ClaimQueryResult> getClaimSummariesBySubject(String vin, String subjectId,
+            LocalDateTime incidentFrom, LocalDateTime incidentTo, String tenantId);
 
     /**
      * 根据状态查询理赔案件摘要列表

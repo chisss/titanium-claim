@@ -22,6 +22,14 @@ public class ClaimRequest {
     @NotBlank(message = "保单ID不能为空")
     private String policyId;
 
+    /** 标的ID（保单内唯一；车险为被保车辆标的，可空以兼容存量调用方） */
+    @Size(max = 64, message = "标的ID不能超过64个字符")
+    private String subjectId;
+
+    /** 车辆识别代号 VIN（车险标的键，跨保单反算 NCD 时的车辆身份；可空） */
+    @Size(max = 64, message = "VIN 不能超过64个字符")
+    private String vin;
+
     @NotBlank(message = "理赔类型不能为空")
     @Size(max = 50, message = "理赔类型不能超过50个字符")
     private String claimType;

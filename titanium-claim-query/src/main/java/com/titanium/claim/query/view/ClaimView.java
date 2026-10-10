@@ -46,6 +46,14 @@ public class ClaimView extends BaseView {
     @Column(name = "policy_id", length = 36)
     private String              policyId;
 
+    /** 标的ID（保单内唯一；车险为被保车辆标的；G11/g11-03 新增标的键，历史行为 null） */
+    @Column(name = "subject_id", length = 64)
+    private String              subjectId;
+
+    /** 车辆识别代号 VIN（车险车辆身份，跨保单历史赔案检索键；G11/g11-03 新增标的键，历史行为 null） */
+    @Column(name = "vin", length = 64)
+    private String              vin;
+
     /** 理赔编号 */
     @Column(name = "claim_number", length = 50)
     private String              claimNumber;

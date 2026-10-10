@@ -159,7 +159,7 @@ class ClaimSettlementAmountTest {
     private ClaimCreatedEvent createdEvent() {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of("P-1"), "CLM-SA-001",
                 ClaimEnum.ClaimType.PROPERTY, LocalDateTime.now().minusDays(3), "车辆碰撞", ClaimAmount.of("20000"),
-                LocalDateTime.now().minusDays(3), TENANT_ID);
+                LocalDateTime.now().minusDays(3), TENANT_ID, null, null);   // 末尾两参为 subjectId/vin
     }
 
     private ClaimSurveySubmittedEvent surveySubmittedEvent() {

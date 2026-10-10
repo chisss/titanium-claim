@@ -36,6 +36,37 @@ public interface ClaimViewRepository
     List<ClaimView> findByStatusAndTenantId(ClaimStatus status, String tenantId);
 
     /**
+     * 按车辆识别代号（VIN）+ 出险日期区间检索历史赔案（G11/g11-03 NCD 反算取数出口）
+     * <p>
+     * 区间为出险日期 {@code [from, to)} 半开区间（与今日报案统计同口径）；排除指定状态的案件
+     * （拒赔不构成「历史赔案次数」，由调用方传 {@code REJECTED}）。VIN 是跨保单的车辆身份，
+     * 续保换单后 policyId/subjectId 均变，唯 VIN 不变——故 NCD 历史检索以 VIN 为主键。
+     * </p>
+     *
+     * @param tenantId 租户ID（多租户隔离）
+     * @param vin 车辆识别代号
+     * @param from 出险日期起（含）
+     * @param to 出险日期止（不含）
+     * @param excludedStatus 排除的理赔状态（NCD 场景传 {@code REJECTED}）
+     * @return 区间内命中的赔案读模型列表
+     */
+    List<ClaimView> findByTenantIdAndVinAndIncidentDateGreaterThanEqualAndIncidentDateLessThanAndStatusNot(
+            String tenantId, String vin, LocalDateTime from, LocalDateTime to, ClaimStatus excludedStatus);
+
+    /**
+     * 按标的ID + 出险日期区间检索历史赔案（VIN 缺失时的保单内标的兜底路径，语义同上）
+     *
+     * @param tenantId 租户ID（多租户隔离）
+     * @param subjectId 标的ID（保单内唯一）
+     * @param from 出险日期起（含）
+     * @param to 出险日期止（不含）
+     * @param excludedStatus 排除的理赔状态（NCD 场景传 {@code REJECTED}）
+     * @return 区间内命中的赔案读模型列表
+     */
+    List<ClaimView> findByTenantIdAndSubjectIdAndIncidentDateGreaterThanEqualAndIncidentDateLessThanAndStatusNot(
+            String tenantId, String subjectId, LocalDateTime from, LocalDateTime to, ClaimStatus excludedStatus);
+
+    /**
      * 按租户ID查询全部理赔案件列表：默认按创建时间倒序 + 主键第二排序键
      * <p>
      * 排序下推到数据库：调用方在其结果上做 skip/limit 分页时，窗口必须落在有确定顺序的结果集上。

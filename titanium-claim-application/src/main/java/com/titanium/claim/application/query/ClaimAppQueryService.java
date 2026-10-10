@@ -1,5 +1,6 @@
 package com.titanium.claim.application.query;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -46,6 +47,28 @@ public class ClaimAppQueryService {
     @Transactional(readOnly = true)
     public List<ClaimReadModel> getClaimsByPolicyId(String policyId, String tenantId) {
         return claimQueryService.getClaimSummariesByPolicyId(policyId, tenantId)
+                .stream().map(this::toReadModel).collect(Collectors.toList());
+    }
+
+    /**
+     * 按车辆/标的 + 出险日期区间查询历史赔案（读入口，G11/g11-03 NCD 反算取数出口）。
+     * <p>
+     * 委托 CQRS 读侧 {@link ClaimQueryService#getClaimSummariesBySubject}：VIN 优先、标的ID兜底，
+     * 区间为出险日期 {@code [from, to)} 半开，拒赔案件不计入。两者标识皆空由读侧抛
+     * {@link IllegalArgumentException}（缺键与无记录必须可区分）。读模型最终一致：投影有延迟。
+     * </p>
+     *
+     * @param vin 车辆识别代号（优先）
+     * @param subjectId 标的ID（VIN 缺失时的兜底）
+     * @param incidentFrom 出险日期起（含）
+     * @param incidentTo 出险日期止（不含）
+     * @param tenantId 租户ID
+     * @return 区间内命中的历史赔案读模型列表（无记录返回空列表）
+     */
+    @Transactional(readOnly = true)
+    public List<ClaimReadModel> getClaimHistoryBySubject(String vin, String subjectId,
+            LocalDateTime incidentFrom, LocalDateTime incidentTo, String tenantId) {
+        return claimQueryService.getClaimSummariesBySubject(vin, subjectId, incidentFrom, incidentTo, tenantId)
                 .stream().map(this::toReadModel).collect(Collectors.toList());
     }
 

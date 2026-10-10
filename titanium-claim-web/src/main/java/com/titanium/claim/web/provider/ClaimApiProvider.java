@@ -1,5 +1,6 @@
 package com.titanium.claim.web.provider;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -80,6 +81,22 @@ public class ClaimApiProvider implements ClaimApi {
     @Override
     public ApiResponse<List<ClaimResponse>> getClaimsByPolicyId(String policyId) {
         List<ClaimResponse> list = claimAppQueryService.getClaimsByPolicyId(policyId, RequestContextHolder.requireTenantId())
+                .stream().map(claimWebMapper::toApiResponse).toList();
+        return ApiResponse.success(list);
+    }
+
+    /**
+     * 按车辆/标的检索历史赔案（NCD 反算取数出口，G11/g11-03）
+     * <p>
+     * VIN 优先、标的ID兜底（两者皆空由读侧抛参数异常 → 全局兜底转业务错误响应）；
+     * 区间为出险日期 {@code [incidentFrom, incidentTo)} 半开，拒赔案件已被读侧排除。
+     * </p>
+     */
+    @Override
+    public ApiResponse<List<ClaimResponse>> getClaimsBySubjectHistory(String vin, String subjectId,
+            LocalDateTime incidentFrom, LocalDateTime incidentTo) {
+        List<ClaimResponse> list = claimAppQueryService
+                .getClaimHistoryBySubject(vin, subjectId, incidentFrom, incidentTo, RequestContextHolder.requireTenantId())
                 .stream().map(claimWebMapper::toApiResponse).toList();
         return ApiResponse.success(list);
     }

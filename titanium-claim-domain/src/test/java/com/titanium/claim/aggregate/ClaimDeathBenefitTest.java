@@ -52,7 +52,7 @@ class ClaimDeathBenefitTest {
     private ClaimCreatedEvent deathClaimCreated() {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of(POLICY_ID), "CLM-D-001",
                 ClaimEnum.ClaimType.DEATH, LocalDateTime.now().minusDays(3), "被保险人身故", ClaimAmount.of("500000"),
-                LocalDateTime.now().minusDays(3), TENANT_ID);
+                LocalDateTime.now().minusDays(3), TENANT_ID, null, null);   // 末尾两参为 subjectId/vin
     }
 
     /** 流转至 APPROVED（PENDING→PROCESSING→APPROVED） */
@@ -169,7 +169,7 @@ class ClaimDeathBenefitTest {
     void shouldRejectSettleForNonDeathClaim() {
         ClaimCreatedEvent medicalCreated = new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"),
                 PolicyId.of(POLICY_ID), "CLM-M-001", ClaimEnum.ClaimType.MEDICAL, LocalDateTime.now().minusDays(3),
-                "医疗", ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), TENANT_ID);
+                "医疗", ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), TENANT_ID, null, null);   // 末尾两参为 subjectId/vin
         fixture.given(medicalCreated, toProcessing(), toApproved())
                 .when(settleCommand())
                 .expectException(ClaimStatusPreconditionException.class);

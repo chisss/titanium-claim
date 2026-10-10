@@ -79,7 +79,7 @@ class ClaimPhaseTransitionTest {
     private ClaimCreatedEvent createdEvent(ClaimEnum.ClaimType claimType) {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of(POLICY_ID), "CLM-PH-001",
                 claimType, LocalDateTime.now().minusDays(3), "住院医疗", ClaimAmount.of("8000"),
-                LocalDateTime.now().minusDays(3), TENANT_ID);
+                LocalDateTime.now().minusDays(3), TENANT_ID, null, null);   // 末尾两参为 subjectId/vin
     }
 
     private ClaimStatusChangedEvent toProcessing() {

@@ -131,12 +131,28 @@ public class Claim extends BaseAggregate {
      * </p>
      */
     private String              tenantId;
+    /**
+     * 标的ID（保单内唯一；车险为被保车辆标的）
+     * <p>
+     * G11/g11-03（2026-10）新增标的键：供 product 域按车辆反算 NCD 时检索历史赔案。
+     * 历史事件流无此字段时回放为 null（存量赔案不可按标的检索，属预期）。
+     * </p>
+     */
+    private String              subjectId;
+    /**
+     * 车辆识别代号 VIN（车险车辆身份）
+     * <p>
+     * G11/g11-03（2026-10）新增标的键：VIN 是跨保单的车辆身份（续保换单后 policyId/subjectId 均变），
+     * 是「按车辆反算 NCD」时唯一可跨保单聚合的历史赔案检索键。历史事件回放为 null。
+     * </p>
+     */
+    private String              vin;
 
     @CommandHandler
     public Claim(CreateClaimCommand command) {
         AggregateLifecycle.apply(new ClaimCreatedEvent(command.claimId(), command.customerId(), command.policyId(),
                 command.claimNumber(), command.claimType(), command.incidentDate(), command.incidentDescription(),
-                command.claimAmount(), LocalDateTime.now(), command.tenantId()));
+                command.claimAmount(), LocalDateTime.now(), command.tenantId(), command.subjectId(), command.vin()));
     }
 
     @CommandHandler
@@ -457,6 +473,8 @@ public class Claim extends BaseAggregate {
         this.claimId = event.claimId();
         this.customerId = event.customerId();
         this.policyId = event.policyId();
+        this.subjectId = event.subjectId();
+        this.vin = event.vin();
         this.claimNumber = event.claimNumber();
         this.claimType = event.claimType();
         this.incidentDate = event.incidentDate();

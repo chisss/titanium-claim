@@ -51,7 +51,8 @@ public class ClaimRegistrationOrchestrator {
         ClaimId claimId = ClaimId.generate();
         String claimNumber = claimService.generateClaimNumber();
 
-        // 3. 装配并发命令（租户 ID 贯穿事件，供读模型投影落库）
+        // 3. 装配并发命令（租户 ID 贯穿事件，供读模型投影落库；标的键随命令/事件贯穿，
+        //    供 product 域按车辆反算 NCD 时检索历史赔案，G11/g11-03）
         CreateClaimCommand command = new CreateClaimCommand(
                 claimId,
                 CustomerId.of(request.getCustomerId()),
@@ -61,7 +62,9 @@ public class ClaimRegistrationOrchestrator {
                 request.getIncidentDate(),
                 request.getIncidentDescription(),
                 ClaimAmount.of(request.getClaimAmount()),
-                RequestContextHolder.getTenantId());
+                RequestContextHolder.getTenantId(),
+                request.getSubjectId(),
+                request.getVin());
         commandGateway.sendAndWait(command);
 
         log.info("[报案编排] 理赔创建命令已发送, claimId={}, claimNumber={}", claimId.value(), claimNumber);

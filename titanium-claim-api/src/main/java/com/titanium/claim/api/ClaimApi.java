@@ -1,8 +1,10 @@
 package com.titanium.claim.api;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -97,6 +99,28 @@ public interface ClaimApi {
      */
     @GetMapping("/policy/{policyId}")
     ApiResponse<List<ClaimResponse>> getClaimsByPolicyId(@PathVariable String policyId);
+
+    /**
+     * 按车辆/标的检索历史赔案（出险日期区间内，排除拒赔）—— G11/g11-03
+     * <p>
+     * product 域「NCD 反算」的取数出口：按被保车辆历史赔案次数反算无赔款优待系数。
+     * {@code vin} 与 {@code subjectId} 至少提供一个（VIN 优先——它是跨保单的车辆身份，
+     * 续保换单后 policyId/subjectId 均变，唯 VIN 不变）；区间为出险日期 {@code [incidentFrom, incidentTo)}
+     * 半开区间。拒赔（REJECTED）案件不计入历史赔案。读模型最终一致：投影有延迟，刚创建的赔案可能未可见。
+     * </p>
+     *
+     * @param vin 车辆识别代号（与 subjectId 至少提供一个）
+     * @param subjectId 标的ID（保单内唯一，VIN 缺失时的兜底路径）
+     * @param incidentFrom 出险日期起（含）
+     * @param incidentTo 出险日期止（不含）
+     * @return 区间内命中的历史赔案列表
+     */
+    @GetMapping("/subject-history")
+    ApiResponse<List<ClaimResponse>> getClaimsBySubjectHistory(
+            @RequestParam(required = false) String vin,
+            @RequestParam(required = false) String subjectId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime incidentFrom,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime incidentTo);
 
     /**
      * 根据状态查询理赔案件列表

@@ -52,7 +52,7 @@ class ClaimDisabilityBenefitTest {
     private ClaimCreatedEvent disabilityClaimCreated() {
         return new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"), PolicyId.of(POLICY_ID), "CLM-DIS-001",
                 ClaimEnum.ClaimType.DISABILITY, LocalDateTime.now().minusDays(3), "被保险人全残",
-                ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), TENANT_ID);
+                ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), TENANT_ID, null, null);   // 末尾两参为 subjectId/vin
     }
 
     /** 流转至 APPROVED（PENDING→PROCESSING→APPROVED） */
@@ -162,7 +162,7 @@ class ClaimDisabilityBenefitTest {
     void shouldRejectSettleForNonDisabilityClaim() {
         ClaimCreatedEvent deathCreated = new ClaimCreatedEvent(ClaimId.of(CLAIM_ID), CustomerId.of("C-1"),
                 PolicyId.of(POLICY_ID), "CLM-D-001", ClaimEnum.ClaimType.DEATH, LocalDateTime.now().minusDays(3),
-                "身故", ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), TENANT_ID);
+                "身故", ClaimAmount.of("500000"), LocalDateTime.now().minusDays(3), TENANT_ID, null, null);   // 末尾两参为 subjectId/vin
         fixture.given(deathCreated, toProcessing(), toApproved())
                 .when(settleCommand())
                 .expectException(ClaimStatusPreconditionException.class);
