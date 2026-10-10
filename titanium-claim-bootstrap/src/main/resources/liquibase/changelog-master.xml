@@ -20,4 +20,6 @@
     <include file="classpath:liquibase/ddl/claim_field_catalog_202610011800_weisun_ddl.sql"/>
     <!-- G07/g07-03b：字段目录增加 4 个「可分析」能力位列（本域表由 starter 灌种子，故无赋初值 DML） -->
     <include file="classpath:liquibase/ddl/claim_field_catalog_analysis_202610020900_weisun_ddl.sql"/>
+    <!-- G10/g10-02：4 处 insurance_line 列注释修正（原注释引用不存在的枚举 ClaimEnum.InsuranceLine） -->
+    <include file="classpath:liquibase/ddl/claim_config_insurance_comment_202610091849_weisun_ddl.sql"/>
 </databaseChangeLog>
