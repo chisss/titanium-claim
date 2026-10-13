@@ -184,6 +184,8 @@ public interface ClaimWebMapper {
     @Mapping(target = "payoutRatio", source = "payoutRatioUsed")
     @Mapping(target = "settlementChannel", source = "settlementChannel", qualifiedByName = "channelToCode")
     @Mapping(target = "cappedByLimit", source = "calculation", qualifiedByName = "isCappedByLimit")
+    @Mapping(target = "cappedByAnnualLimit", source = "calculation",
+            qualifiedByName = "isCappedByAnnualLimit")
     ReimbursementAdjustmentVO toReimbursementVO(ReimbursementAdjustmentResult result);
 
     // ==================== 类型转换辅助（空安全） ====================
@@ -218,5 +220,13 @@ public interface ClaimWebMapper {
     @Named("isCappedByLimit")
     default Boolean isCappedByLimit(ReimbursementCalculation calculation) {
         return calculation != null && calculation.cappedByLimit();
+    }
+
+    /**
+     * 理算产物 → 是否触发年度限额封顶（G12/g12-04b；空安全，无年度上下文时为 false）
+     */
+    @Named("isCappedByAnnualLimit")
+    default Boolean isCappedByAnnualLimit(ReimbursementCalculation calculation) {
+        return calculation != null && calculation.cappedByAnnualLimit();
     }
 }

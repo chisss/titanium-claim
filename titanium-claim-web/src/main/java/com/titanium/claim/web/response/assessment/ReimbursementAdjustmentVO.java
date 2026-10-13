@@ -21,4 +21,6 @@ public class ReimbursementAdjustmentVO {
     private String      settlementChannel;
     /** 是否触发单次限额封顶 */
     private Boolean     cappedByLimit;
+    /** 是否触发年度限额封顶（G12/g12-04b；无年度上下文时为空） */
+    private Boolean     cappedByAnnualLimit;
 }

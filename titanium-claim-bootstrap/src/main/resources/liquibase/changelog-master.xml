@@ -26,4 +26,7 @@
     <include file="classpath:liquibase/ddl/claim_view_subject_key_202610101600_weisun_ddl.sql"/>
     <!-- G12/g12-03：赔付规则表新增社保身份分档比例列（人身险社保维度，空=未启用向后兼容） -->
     <include file="classpath:liquibase/ddl/claim_payout_rule_social_security_202610102048_weisun_ddl.sql"/>
+    <!-- G12/g12-05b：赔付规则平台默认种子（三线：寿险/重疾/医疗各一代表三级险种；🔴 档位值为
+         示例基线（AI 推荐 2026-10-13），业务确认后改本种子文件（runOnChange 自动重跑）） -->
+    <include file="classpath:liquibase/dml/t_claim_payout_rule_seed_202610130957_weisun_dml.sql"/>
 </databaseChangeLog>

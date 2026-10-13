@@ -20,12 +20,18 @@ import com.titanium.claim.common.enums.config.SettlementChannel;
  * @param socialSecurityIdentity 社保身份码（人身险 G12/g12-03；可为空——赔付规则未配置社保分档时无意义，
  *                        配置了分档而缺身份由领域服务显式拒绝。🔴 取数待 R-2 确认：须来自承保时点保单快照，
  *                        不得从客户资料现值推断）
+ * @param annualLimitAccumulated 本年度累计已赔付金额（G12/g12-04b；可为空 = 无年度上下文——
+ *                        规则未配年度限额、或试算未携带案件上下文时不压减。非空时领域服务按
+ *                        {@code min(单次公式值, max(0, 年度限额 − 累计))} 压减，口径：自然年 /
+ *                        保单内标的 / 出险日锚定 / 只计 {@code PAID}+{@code CLOSED} 终态，
+ *                        由取数层 {@code ReimbursementAdjustmentQueryService} 裁决）
  */
 public record ReimbursementAdjustmentRequest(
         BigDecimal eligibleExpense,
         ClaimPayoutRule payoutRule,
         ClaimHospitalNetwork hospital,
-        String socialSecurityIdentity) {
+        String socialSecurityIdentity,
+        BigDecimal annualLimitAccumulated) {
 
     public ReimbursementAdjustmentRequest {
         if (eligibleExpense == null || eligibleExpense.compareTo(BigDecimal.ZERO) <= 0) {
@@ -34,6 +40,17 @@ public record ReimbursementAdjustmentRequest(
         if (payoutRule == null) {
             throw new IllegalArgumentException("赔付规则不能为空");
         }
+    }
+
+    /**
+     * 四参便捷构造器（年度累计为空 = 无年度封顶上下文）。
+     * <p>
+     * 未携带案件上下文的试算链路使用；携带案件 ID 的结算/试算链路由取数层传入累计值。
+     * </p>
+     */
+    public ReimbursementAdjustmentRequest(BigDecimal eligibleExpense, ClaimPayoutRule payoutRule,
+                                          ClaimHospitalNetwork hospital, String socialSecurityIdentity) {
+        this(eligibleExpense, payoutRule, hospital, socialSecurityIdentity, null);
     }
 
     /**

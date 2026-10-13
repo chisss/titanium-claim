@@ -98,4 +98,76 @@ class ReimbursementCalculationTest {
         assertFalse(calc.cappedByLimit(),
                 "「恰好等于」不构成截断——判定须比较截断前的原始金额（×100 同量纲比较）");
     }
+
+    // ==================== 年度封顶（G12/g12-04b、AC-04） ====================
+
+    @Test
+    @DisplayName("年度封顶：公式值超年度剩余时压减至剩余（公式 800，年额 1200 累计 1000 ⇒ 200）")
+    void shouldCapByAnnualRemaining() {
+        ReimbursementCalculation calc = ReimbursementCalculation.of(
+                new BigDecimal("1000"), null, 80, null, new BigDecimal("1200"), new BigDecimal("1000"));
+        assertEquals(0, calc.payableAmount().compareTo(new BigDecimal("200")),
+                "应付=min(单次公式 800, 年度剩余 200)=200");
+        assertTrue(calc.cappedByAnnualLimit(), "年度剩余 200 < 公式值 800，构成年度截断");
+    }
+
+    @Test
+    @DisplayName("年度剩余充裕不压减：cappedByAnnualLimit=false（公式 800 < 剩余 1000）")
+    void shouldNotCapWhenAnnualRemainingSufficient() {
+        ReimbursementCalculation calc = ReimbursementCalculation.of(
+                new BigDecimal("1000"), null, 80, null, new BigDecimal("2000"), new BigDecimal("1000"));
+        assertEquals(0, calc.payableAmount().compareTo(new BigDecimal("800")));
+        assertFalse(calc.cappedByAnnualLimit(), "剩余额度未构成约束时不报告年度截断");
+    }
+
+    @Test
+    @DisplayName("年度额度耗尽：应付为 0，不产生负赔付（累计 ≥ 年额）")
+    void shouldPayZeroWhenAnnualLimitExhausted() {
+        ReimbursementCalculation calc = ReimbursementCalculation.of(
+                new BigDecimal("1000"), null, 80, null, new BigDecimal("2000"), new BigDecimal("2500"));
+        assertEquals(0, calc.payableAmount().compareTo(BigDecimal.ZERO),
+                "max(0, 2000−2500) = 0，逐案压减而非负数冲回");
+        assertTrue(calc.cappedByAnnualLimit());
+    }
+
+    @Test
+    @DisplayName("无年度上下文不压减：annualLimit 或累计为空时保持单次公式口径")
+    void shouldNotApplyAnnualCapWithoutContext() {
+        ReimbursementCalculation noLimit = ReimbursementCalculation.of(
+                new BigDecimal("1000"), null, 80, null, null, new BigDecimal("99999"));
+        assertEquals(0, noLimit.payableAmount().compareTo(new BigDecimal("800")),
+                "年度限额未配置时不得用累计值压减");
+        assertFalse(noLimit.cappedByAnnualLimit());
+
+        ReimbursementCalculation noAccumulated = ReimbursementCalculation.of(
+                new BigDecimal("1000"), null, 80, null, new BigDecimal("100"), null);
+        assertEquals(0, noAccumulated.payableAmount().compareTo(new BigDecimal("800")),
+                "无案件上下文（累计为空）时不压减——向后兼容单次公式链路");
+        assertFalse(noAccumulated.cappedByAnnualLimit());
+    }
+
+    @Test
+    @DisplayName("双重截断同触时取更小者（单次限额 500 vs 年度剩余 200 ⇒ 200）")
+    void shouldApplyBothCapsTakingSmaller() {
+        ReimbursementCalculation calc = ReimbursementCalculation.of(
+                new BigDecimal("1000"), null, 80, new BigDecimal("500"),
+                new BigDecimal("1200"), new BigDecimal("1000"));
+        assertEquals(0, calc.payableAmount().compareTo(new BigDecimal("200")),
+                "最终值须为两道限额的更小者");
+        assertTrue(calc.cappedByAnnualLimit());
+    }
+
+    @Test
+    @DisplayName("年度参数负值拒绝（年度限额/累计负值均 CLAIM_AMOUNT_ERROR）")
+    void shouldRejectNegativeAnnualParams() {
+        DomainException limit = assertThrows(DomainException.class,
+                () -> ReimbursementCalculation.of(new BigDecimal("1000"), null, 80, null,
+                        new BigDecimal("-1"), BigDecimal.ZERO));
+        assertEquals(ClaimErrorCode.CLAIM_AMOUNT_ERROR, limit.getErrorCode());
+
+        DomainException accumulated = assertThrows(DomainException.class,
+                () -> ReimbursementCalculation.of(new BigDecimal("1000"), null, 80, null,
+                        new BigDecimal("100"), new BigDecimal("-1")));
+        assertEquals(ClaimErrorCode.CLAIM_AMOUNT_ERROR, accumulated.getErrorCode());
+    }
 }

@@ -121,4 +121,41 @@ public interface ClaimViewRepository
             + "WHERE c.tenantId = :tenantId AND c.status IN :statuses")
     BigDecimal sumSettledAmountByStatusInAndTenantId(@Param("statuses") List<ClaimStatus> statuses,
             @Param("tenantId") String tenantId);
+
+    /**
+     * 年度封顶累计取数（G12/g12-04b、AC-04）：指定自然年内、同一保单与标的的已结算赔付金额之和
+     * <p>
+     * 🔴 口径（2026-10-13 推荐裁示）：自然年（出险日所在年，出险日期半开区间 {@code [from, to)}）/
+     * 累计对象 = 保单内标的（{@code subject_id} 归一化：null 以空串参与比较，无标的案件自成一组）/
+     * 锚定 = 出险日（合同语义「保险期间内发生的事故」，结算时序不影响归年）/ 只计已结算终态
+     * （调用方传 {@code PAID}+{@code CLOSED}，口径同
+     * {@link #sumSettledAmountByStatusInAndTenantId} 的 D-501-48 注释）/ 排除当前案件
+     * （重复试算或结算重放时防自我计数）。
+     * </p>
+     * <p>
+     * ⚠️ 数据源为 CQRS 读模型（投影延迟容忍窗存在，与 NCD 反算取数
+     * {@link #findByTenantIdAndVinAndIncidentDateGreaterThanEqualAndIncidentDateLessThanAndStatusNot} 同法）：
+     * 跨案件统计无强一致写侧来源（Claim 为纯事件溯源聚合，无 JPA 写表）；极端并发下两次结算可能
+     * 双读同一累计而双超额度，属幂等/并发交叉课题（G12 R-9 已登记待 G16 对账），不在本取数处处置。
+     * </p>
+     *
+     * @param tenantId 租户ID（多租户隔离）
+     * @param policyId 保单ID
+     * @param subjectKey 标的键（{@code subject_id} 归一化值：null 传空串）
+     * @param from 出险日期起（含）
+     * @param to 出险日期止（不含）
+     * @param statuses 已结算终态集合（{@code PAID}、{@code CLOSED}）
+     * @param excludedClaimId 排除的案件ID（当前案件，防自我计数）
+     * @return 区间内已结算赔付金额之和，无数据为 0
+     */
+    @Query("SELECT COALESCE(SUM(c.settledAmount), 0) FROM ClaimView c "
+            + "WHERE c.tenantId = :tenantId AND c.policyId = :policyId "
+            + "AND COALESCE(c.subjectId, '') = :subjectKey "
+            + "AND c.incidentDate >= :from AND c.incidentDate < :to "
+            + "AND c.status IN :statuses "
+            + "AND c.claimId <> :excludedClaimId")
+    BigDecimal sumSettledAmountByAnnualContext(@Param("tenantId") String tenantId,
+            @Param("policyId") String policyId, @Param("subjectKey") String subjectKey,
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
+            @Param("statuses") List<ClaimStatus> statuses, @Param("excludedClaimId") String excludedClaimId);
 }

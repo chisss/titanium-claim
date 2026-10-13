@@ -53,7 +53,7 @@ public class ReimbursementSettlementOrchestrator {
      */
     public void settle(String claimId, SettleReimbursementRequest request) {
         ReimbursementAdjustmentResult result =
-                reimbursementAdjustmentQueryService.adjust(toAdjustmentRequest(request));
+                reimbursementAdjustmentQueryService.adjust(toAdjustmentRequest(claimId, request));
         BigDecimal payableAmount = result.calculation().payableAmount();
         commandGateway.sendAndWait(new SettleClaimCommand(ClaimId.of(claimId), payableAmount,
                 ClaimEnum.PayoutMethod.fromCode(request.getPayoutMethod()), request.getPayeeAccount(),
@@ -64,9 +64,15 @@ public class ReimbursementSettlementOrchestrator {
 
     /**
      * 结算入参 → 理算入参（剥掉给付参数：理算只认险种线/理赔类型/医院/合规费用）。
+     * <p>
+     * 🔴 携带案件ID（G12/g12-04b）：结算链路必定有案件上下文，理算取数层按案件读模型累计自然年
+     * 已赔付金额并压减——「试算看到的金额」与「结算用的金额」年度口径因此严格同源（m16-1905 纪律）。
+     * </p>
      */
-    private ReimbursementSettlementRequest toAdjustmentRequest(SettleReimbursementRequest request) {
+    private ReimbursementSettlementRequest toAdjustmentRequest(String claimId,
+                                                               SettleReimbursementRequest request) {
         ReimbursementSettlementRequest adjustment = new ReimbursementSettlementRequest();
+        adjustment.setClaimId(claimId);
         adjustment.setInsuranceLine(request.getInsuranceLine());
         adjustment.setClaimType(request.getClaimType());
         adjustment.setHospitalName(request.getHospitalName());

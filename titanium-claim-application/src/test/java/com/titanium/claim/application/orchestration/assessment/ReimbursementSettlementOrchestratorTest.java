@@ -3,11 +3,13 @@ package com.titanium.claim.application.orchestration.assessment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +29,10 @@ import com.titanium.claim.aggregate.ClaimPayoutRule;
 import com.titanium.claim.application.model.settlement.SettleReimbursementRequest;
 import com.titanium.claim.application.query.ReimbursementAdjustmentQueryService;
 import com.titanium.claim.command.SettleClaimCommand;
+import com.titanium.claim.common.enums.ClaimStatus;
 import com.titanium.claim.common.enums.config.HospitalAgreementStatus;
+import com.titanium.claim.query.repository.ClaimViewRepository;
+import com.titanium.claim.query.view.ClaimView;
 import com.titanium.claim.repository.ClaimHospitalNetworkRepository;
 import com.titanium.claim.repository.ClaimPayoutRuleRepository;
 import com.titanium.claim.service.ReimbursementAdjustmentService;
@@ -57,6 +62,8 @@ class ReimbursementSettlementOrchestratorTest {
     @Mock
     private ClaimHospitalNetworkRepository hospitalRepository;
     @Mock
+    private ClaimViewRepository            claimViewRepository;
+    @Mock
     private CommandGateway                 commandGateway;
 
     private ReimbursementSettlementOrchestrator orchestrator;
@@ -66,7 +73,7 @@ class ReimbursementSettlementOrchestratorTest {
         RequestContextHolder.setTenantId(TENANT_ID);
         ReimbursementAdjustmentService adjustmentService = new ReimbursementAdjustmentServiceImpl();
         ReimbursementAdjustmentQueryService queryService = new ReimbursementAdjustmentQueryService(
-                payoutRuleRepository, hospitalRepository, adjustmentService);
+                payoutRuleRepository, hospitalRepository, claimViewRepository, adjustmentService);
         orchestrator = new ReimbursementSettlementOrchestrator(queryService, commandGateway);
     }
 
@@ -164,6 +171,33 @@ class ReimbursementSettlementOrchestratorTest {
                 .hasMessageContaining("合规费用必须大于0");
 
         verify(commandGateway, never()).sendAndWait(any());
+    }
+
+    @Test
+    @DisplayName("结算链路年度封顶：公式 720，年度剩余 200 ⇒ 命令金额 200（与试算严格同源）")
+    void shouldCapSettledAmountByAnnualLimit() {
+        when(payoutRuleRepository.findByBusinessKey(TENANT_ID, "PET", "PET_MEDICAL"))
+                .thenReturn(Optional.of(ClaimPayoutRule.create("rule-1", TENANT_ID, "PET", "PET_MEDICAL",
+                        new BigDecimal("100.00"), 60, null, new BigDecimal("1200.00"),
+                        Map.of("NON_DESIGNATED", 40), null, List.of())));
+        when(hospitalRepository.findByName(TENANT_ID, "爱宠宠物医院")).thenReturn(Optional.of(
+                ClaimHospitalNetwork.create("hosp-1", TENANT_ID, "爱宠宠物医院", "二级",
+                        HospitalAgreementStatus.ACTIVE, 80, true, "朝阳区", "13800000000")));
+        ClaimView view = new ClaimView();
+        view.setClaimId(CLAIM_ID);
+        view.setPolicyId("policy-1");
+        view.setSubjectId("subject-1");
+        view.setIncidentDate(LocalDateTime.of(2026, 3, 10, 9, 0));
+        when(claimViewRepository.findByClaimIdAndTenantId(CLAIM_ID, TENANT_ID)).thenReturn(Optional.of(view));
+        when(claimViewRepository.sumSettledAmountByAnnualContext(eq(TENANT_ID), eq("policy-1"), eq("subject-1"),
+                eq(LocalDateTime.of(2026, 1, 1, 0, 0)), eq(LocalDateTime.of(2027, 1, 1, 0, 0)),
+                eq(List.of(ClaimStatus.PAID, ClaimStatus.CLOSED)), eq(CLAIM_ID)))
+                .thenReturn(new BigDecimal("1000.00"));
+
+        orchestrator.settle(CLAIM_ID, request());
+
+        // 结算命令金额 = 试算同源理算（含年度封顶）后的 200.00，而非单次公式的 720.00
+        assertThat(captureSettleCommand().settledAmount()).isEqualByComparingTo("200.00");
     }
 
     private SettleClaimCommand captureSettleCommand() {

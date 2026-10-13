@@ -16,6 +16,13 @@ import lombok.Data;
  */
 @Data
 public class ReimbursementAdjustmentDTO {
+    /**
+     * 所属理赔案件ID（G12/g12-04b；可选）
+     * <p>
+     * 携带时按案件读模型计算年度累计已赔付并压减（与结算链路同源口径）；未携带为单次公式试算。
+     * </p>
+     */
+    private String       claimId;
     /** 险种线 code（MEDICAL/PET） */
     @NotBlank(message = "险种线不能为空")
     private String       insuranceLine;

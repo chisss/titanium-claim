@@ -1,6 +1,7 @@
 package com.titanium.claim.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -386,6 +387,52 @@ class ReimbursementAdjustmentServiceTest {
                     () -> ReimbursementCalculation.of(new BigDecimal("100.00"), new BigDecimal("600.00"),
                             80, new BigDecimal("500.00")));
             assertTrue(ex.getMessage().contains("免赔额"));
+        }
+    }
+
+    @Nested
+    @DisplayName("年度封顶（G12/g12-04b、AC-04）")
+    class AnnualLimitTest {
+
+        /** 年度限额 1200、免赔 100、非定点档 40% 的赔付规则 */
+        private ClaimPayoutRule annualRule() {
+            return ClaimPayoutRule.create("rule-1", TENANT_ID, "PET", "PET_MEDICAL",
+                    new BigDecimal("100.00"), 60, null, new BigDecimal("1200.00"),
+                    Map.of("NON_DESIGNATED", 40), null, List.of());
+        }
+
+        @Test
+        @DisplayName("AC-04 正向：规则配年额 + 入参带累计 → 应付压减至年度剩余（公式 360，剩余 200）")
+        void shouldCapPayableByAnnualRemaining() {
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), annualRule(), null, null, new BigDecimal("1000.00")));
+
+            // 单次公式 (1000−100)×40% = 360.00；年度剩余 1200−1000 = 200 ⇒ 压减至 200.00
+            assertEquals(0, result.calculation().payableAmount().compareTo(new BigDecimal("200.00")));
+            assertTrue(result.calculation().cappedByAnnualLimit());
+        }
+
+        @Test
+        @DisplayName("配了年额但入参无累计（无案件上下文）→ 不压减，保持单次公式 360.00")
+        void shouldNotCapWhenAccumulatedMissing() {
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), annualRule(), null));
+
+            assertEquals(0, result.calculation().payableAmount().compareTo(new BigDecimal("360.00")));
+            assertFalse(result.calculation().cappedByAnnualLimit());
+        }
+
+        @Test
+        @DisplayName("入参带累计但规则未配年额 → 不压减（AND 语义，年度限额权威在规则配置）")
+        void shouldNotCapWhenRuleHasNoAnnualLimit() {
+            ClaimPayoutRule rule = payoutRule(60, new BigDecimal("100.00"), null,
+                    Map.of("NON_DESIGNATED", 40));
+
+            ReimbursementAdjustmentResult result = service.adjust(new ReimbursementAdjustmentRequest(
+                    new BigDecimal("1000.00"), rule, null, null, new BigDecimal("99999.00")));
+
+            assertEquals(0, result.calculation().payableAmount().compareTo(new BigDecimal("360.00")));
+            assertFalse(result.calculation().cappedByAnnualLimit());
         }
     }
 }

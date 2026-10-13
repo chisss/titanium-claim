@@ -14,6 +14,14 @@ import lombok.Data;
  */
 @Data
 public class ReimbursementSettlementRequest {
+    /**
+     * 所属理赔案件ID（G12/g12-04b；可为空）
+     * <p>
+     * 携带时取数层按案件读模型（保单/标的/出险日）计算年度累计并压减，且与结算链路同源；
+     * 未携带（如无案件上下文的试算）为单次公式口径，不计年度封顶（日志标注，非静默）。
+     * </p>
+     */
+    private String       claimId;
     /** 险种线 code（metadata InsuranceProductType，如 MEDICAL/PET） */
     private String       insuranceLine;
     /** 理赔类型 code（metadata ClaimEnum.ClaimType，如 MEDICAL_REIMBURSE/PET_MEDICAL） */

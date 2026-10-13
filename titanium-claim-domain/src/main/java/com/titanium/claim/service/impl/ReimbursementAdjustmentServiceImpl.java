@@ -36,8 +36,10 @@ public class ReimbursementAdjustmentServiceImpl implements ReimbursementAdjustme
 
         Integer payoutRatio = resolvePayoutRatio(rule, designated, hospital, request.socialSecurityIdentity());
 
+        // G12/g12-04b：单次公式 + 年度封顶压减（累计为 null=无年度上下文时自动不压减，见值对象 javadoc）
         ReimbursementCalculation calculation = ReimbursementCalculation.of(request.eligibleExpense(),
-                rule.getDeductible(), payoutRatio, rule.getPerClaimLimit());
+                rule.getDeductible(), payoutRatio, rule.getPerClaimLimit(),
+                rule.getAnnualLimit(), request.annualLimitAccumulated());
         SettlementChannel channel = designated ? SettlementChannel.DESIGNATED : SettlementChannel.NON_DESIGNATED;
         return new ReimbursementAdjustmentResult(calculation, payoutRatio, channel);
     }
