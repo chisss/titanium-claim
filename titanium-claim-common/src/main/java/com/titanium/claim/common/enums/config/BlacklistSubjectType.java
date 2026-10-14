@@ -1,6 +1,7 @@
 package com.titanium.claim.common.enums.config;
 
 import com.titanium.metadata.enums.BaseEnum;
+import com.titanium.metadata.enums.Reserved;
 
 import lombok.Getter;
 
@@ -14,12 +15,16 @@ import lombok.Getter;
 @Getter
 public enum BlacklistSubjectType implements BaseEnum {
     /** 人员：客户/受益人/驾驶员 */
+    @Reserved("2026-10-14 g16-05 零引用登记（枚举级消费）：存在 values/valueOf/自定方法/:: 调用，常量名零出现；接入时摘标注+删清单行。见 docs/技术文档/枚举零引用清单.md")
     PERSON(1, "PERSON", "人员"),
     /** 车辆：车牌/车架号 */
+    @Reserved("2026-10-14 g16-05 零引用登记（枚举级消费）：存在 values/valueOf/自定方法/:: 调用，常量名零出现；接入时摘标注+删清单行。见 docs/技术文档/枚举零引用清单.md")
     VEHICLE(2, "VEHICLE", "车辆"),
     /** 医院：恶意骗保/虚开医院 */
+    @Reserved("2026-10-14 g16-05 零引用登记（枚举级消费）：存在 values/valueOf/自定方法/:: 调用，常量名零出现；接入时摘标注+删清单行。见 docs/技术文档/枚举零引用清单.md")
     HOSPITAL(3, "HOSPITAL", "医院"),
     /** 修理厂：车险虚报维修 */
+    @Reserved("2026-10-14 g16-05 零引用登记（枚举级消费）：存在 values/valueOf/自定方法/:: 调用，常量名零出现；接入时摘标注+删清单行。见 docs/技术文档/枚举零引用清单.md")
     REPAIR_SHOP(4, "REPAIR_SHOP", "修理厂");
 
     BlacklistSubjectType(Integer enumCode, String code, String name) {

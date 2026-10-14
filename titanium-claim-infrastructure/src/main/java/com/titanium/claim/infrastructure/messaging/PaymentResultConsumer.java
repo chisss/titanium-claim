@@ -10,6 +10,7 @@ import com.titanium.claim.common.constant.ClaimConstants;
 import com.titanium.claim.infrastructure.messaging.inbound.PaymentOrderFailedMessage;
 import com.titanium.claim.infrastructure.messaging.inbound.PaymentOrderPaidMessage;
 import com.titanium.common.context.RequestContextHolder;
+import com.titanium.common.messaging.Idempotent;
 import com.titanium.common.messaging.KafkaIdempotencyGuard;
 import com.titanium.metadata.enums.BusinessDomainType;
 
@@ -59,6 +60,8 @@ public class PaymentResultConsumer {
      * 消息被无限重放。域外消息静默跳过，不记 ERROR（属正常流量，非故障）。
      * </p>
      */
+    @Idempotent(strategy = Idempotent.Strategy.REDIS_GUARD,
+            reason = "KafkaIdempotencyGuard 占位（消费组 claim-payment-result + 租户 + 赔案ID + 支付单号），失败释放占位并重抛")
     @KafkaListener(topics = ClaimConstants.KafkaTopic.PAYMENT_ORDER_PAID,
             groupId = "${spring.kafka.consumer.group-id}")
     public void onPaymentPaid(String payload) {
@@ -127,6 +130,8 @@ public class PaymentResultConsumer {
      * （已 PAID 时 {@code status != APPROVED}），重投递会一路重试到 DLT，故必须就地短路。
      * </p>
      */
+    @Idempotent(strategy = Idempotent.Strategy.AGGREGATE_GUARD,
+            reason = "聚合静默吸收重复/乱序失败消息（仅「已结算赔付中」落事件，其余 return 不抛异常），有意不挂 Guard")
     @KafkaListener(topics = ClaimConstants.KafkaTopic.PAYMENT_ORDER_FAILED,
             groupId = "${spring.kafka.consumer.group-id}")
     public void onPaymentFailed(String payload) {

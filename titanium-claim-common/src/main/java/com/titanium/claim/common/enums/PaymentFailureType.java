@@ -1,6 +1,7 @@
 package com.titanium.claim.common.enums;
 
 import com.titanium.metadata.enums.BaseEnum;
+import com.titanium.metadata.enums.Reserved;
 
 import lombok.Getter;
 
@@ -18,6 +19,7 @@ public enum PaymentFailureType implements BaseEnum {
     FAILED(1, "FAILED", "渠道确认失败"),
 
     /** 人工取消：出款在渠道成功前被内部主动取消 */
+    @Reserved("2026-10-14 g16-05 零引用登记（枚举级消费）：存在 values/valueOf/自定方法/:: 调用，常量名零出现；接入时摘标注+删清单行。见 docs/技术文档/枚举零引用清单.md")
     CANCELLED(2, "CANCELLED", "人工取消");
 
     private final Integer enumCode;

@@ -22,6 +22,7 @@ import com.titanium.claim.api.request.settlement.SettleDeathBenefitRequest;
 import com.titanium.claim.api.request.settlement.SettleDisabilityBenefitRequest;
 import com.titanium.claim.api.request.settlement.SettleReimbursementRequest;
 import com.titanium.claim.api.response.ClaimResponse;
+import com.titanium.metadata.enums.Reserved;
 import com.titanium.metadata.response.ApiResponse;
 
 import jakarta.validation.Valid;
@@ -49,6 +50,7 @@ public interface ClaimApi {
      * @return 理赔案件ID
      */
     @PostMapping
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<String> createClaim(@RequestBody @Valid ClaimRequest requestDTO);
 
     /**
@@ -59,6 +61,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PutMapping("/{claimId}")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> updateClaim(@PathVariable String claimId,
                                   @RequestBody @Valid ClaimRequest requestDTO);
 
@@ -70,6 +73,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PutMapping("/{claimId}/status")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> updateClaimStatus(@PathVariable String claimId,
                                         @RequestParam String status);
 
@@ -80,6 +84,7 @@ public interface ClaimApi {
      * @return 理赔详情，不存在时 code=404
      */
     @GetMapping("/{claimId}")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<ClaimResponse> getClaim(@PathVariable String claimId);
 
     /**
@@ -89,6 +94,7 @@ public interface ClaimApi {
      * @return 理赔案件列表
      */
     @GetMapping("/customer/{customerId}")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<List<ClaimResponse>> getClaimsByCustomerId(@PathVariable String customerId);
 
     /**
@@ -129,6 +135,7 @@ public interface ClaimApi {
      * @return 理赔案件列表
      */
     @GetMapping("/status/{status}")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<List<ClaimResponse>> getClaimsByStatus(@PathVariable String status);
 
     /**
@@ -137,6 +144,7 @@ public interface ClaimApi {
      * @return 理赔案件列表
      */
     @GetMapping
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<List<ClaimResponse>> getAllClaims();
 
     /**
@@ -147,6 +155,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/survey")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> submitSurvey(@PathVariable String claimId,
                                    @RequestBody @Valid SubmitSurveyRequest requestDTO);
 
@@ -158,6 +167,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/loss-assessment")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> submitLossAssessment(@PathVariable String claimId,
                                            @RequestBody @Valid SubmitLossAssessmentRequest requestDTO);
 
@@ -169,6 +179,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/settlement")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> settleClaim(@PathVariable String claimId,
                                   @RequestBody @Valid SettleClaimRequest requestDTO);
 
@@ -184,6 +195,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/death-benefit")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> settleDeathBenefit(@PathVariable String claimId,
                                          @RequestBody @Valid SettleDeathBenefitRequest requestDTO);
 
@@ -199,6 +211,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/disability-benefit")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> settleDisabilityBenefit(@PathVariable String claimId,
                                               @RequestBody @Valid SettleDisabilityBenefitRequest requestDTO);
 
@@ -214,6 +227,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/alert-flags")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> flagClaimAlert(@PathVariable String claimId,
                                      @RequestBody @Valid FlagClaimAlertRequest requestDTO);
 
@@ -225,6 +239,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/quick-pay")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> quickPay(@PathVariable String claimId);
 
     /**
@@ -239,6 +254,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/reimbursement-settlement")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> settleReimbursement(@PathVariable String claimId,
                                           @RequestBody @Valid SettleReimbursementRequest requestDTO);
 
@@ -250,6 +266,7 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/reject")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> rejectClaim(@PathVariable String claimId,
                                   @RequestBody @Valid RejectClaimRequest requestDTO);
 
@@ -260,5 +277,6 @@ public interface ClaimApi {
      * @return 空响应
      */
     @PostMapping("/{claimId}/close")
+    @Reserved("g16-04: 跨域零消费者（管理面经 web 层）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<Void> closeClaim(@PathVariable String claimId);
 }
