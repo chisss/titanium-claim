@@ -2,6 +2,8 @@ package com.titanium.claim.event;
 
 import java.time.LocalDateTime;
 
+import org.axonframework.serialization.Revision;
+
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.metadata.enums.claim.RejectReason;
 
@@ -21,6 +23,7 @@ import com.titanium.metadata.enums.claim.RejectReason;
  * 字段增删须同步核对 notification 的入站防腐镜像 {@code ClaimRejectedMessage}。
  * </p>
  */
+@Revision("1")
 public record ClaimRejectedEvent(
         ClaimId claimId,
         String policyId,

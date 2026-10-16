@@ -2,6 +2,8 @@ package com.titanium.claim.event;
 
 import java.time.LocalDateTime;
 
+import org.axonframework.serialization.Revision;
+
 import com.titanium.claim.common.enums.PaymentFailureType;
 import com.titanium.claim.valueobject.ClaimId;
 
@@ -15,6 +17,7 @@ import com.titanium.claim.valueobject.ClaimId;
  *
  * @param failureType 失败类型；对端 code 无法识别时为 {@code null}（未知类型不阻断回写）
  */
+@Revision("1")
 public record ClaimPaymentFailedEvent(
         ClaimId claimId,
         String paymentNo,

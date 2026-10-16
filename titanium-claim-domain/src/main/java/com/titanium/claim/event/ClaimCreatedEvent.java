@@ -2,6 +2,8 @@ package com.titanium.claim.event;
 
 import java.time.LocalDateTime;
 
+import org.axonframework.serialization.Revision;
+
 import com.titanium.claim.valueobject.ClaimAmount;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
@@ -20,6 +22,7 @@ import com.titanium.metadata.enums.claim.ClaimEnum;
  * 历史事件（两者引入前产生）反序列化后为 null——缺键即该历史赔案不可按车辆检索，属预期而非错误。
  * </p>
  */
+@Revision("1")
 public record ClaimCreatedEvent(
         ClaimId claimId,
         CustomerId customerId,

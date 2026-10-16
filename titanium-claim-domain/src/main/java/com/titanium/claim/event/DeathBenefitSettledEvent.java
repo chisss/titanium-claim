@@ -2,6 +2,8 @@ package com.titanium.claim.event;
 
 import java.time.LocalDateTime;
 
+import org.axonframework.serialization.Revision;
+
 import com.titanium.claim.valueobject.BenefitCalculation;
 import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.ClaimSettlement;
@@ -22,6 +24,7 @@ import com.titanium.claim.valueobject.DeathClaimEvidence;
  * @param settlement 核赔结论（给付总额/给付方式/收款方）
  * @param settledAt 结算时间
  */
+@Revision("1")
 public record DeathBenefitSettledEvent(
         ClaimId claimId,
         String policyId,
