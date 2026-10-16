@@ -87,11 +87,15 @@ public record ClaimFieldDescriptor(
      * 错误码枚举亦定义在 metadata，它反向依赖业务域同样会破坏「metadata 是纯契约 jar」的定位。
      * 规则只能内聚在<b>唯一能同时看到三个事实的地方</b>——即本类。已同批勘误文档措辞。</p>
      *
-     * <p>🔴 <b>为何返回 {@link BaseErrorCode} 而非 policy 域的 {@code RuleDecision}</b>：
-     * 本域不存在 {@code RuleDecision} 类型，且它与 policy 域同名类型的形态不兼容
-     * （后者为 {@code passed()/errorCode()} 三态裁决、前者为 {@code approved()/manualReview()}）。
-     * 错误码本身已表达「违反了哪一条」，字段码由抛异常的调用方（紧凑构造器）拼接——不引入新类型、
-     * 不造第二份镜像裁决，四条规则的语义与 policy 域逐条等价。</p>
+     * <p>🔴 <b>为何返回 {@link BaseErrorCode} 而非复用 {@code RuleDecision}</b>：
+     * 🔧 订正（2026-10-15，DSN-08/m25-10）：原记「本域不存在 {@code RuleDecision} 类型、它与
+     * policy 域同名类型形态不兼容（后者 {@code passed()/errorCode()} 三态裁决、前者
+     * {@code approved()/manualReview()}）」已随三副本收敛失效——现全域唯一版在 metadata
+     * （{@code com.titanium.metadata.valueobject.RuleDecision}），本域可引。本方法仍返回
+     * {@link BaseErrorCode} 是<b>轻量契约选择</b>：通过返回 {@code null}、拒绝返回违反码，
+     * 调用方（紧凑构造器）取码拼字段定位、拒绝态零决策对象分配；本方法只有「通过/拒绝」两态，
+     * 不涉统一版的「需人工判定」第三态（未来若需第三态，须改返 {@code RuleDecision} 而非用
+     * null 语义承载）。</p>
      *
      * @param analysis   分析能力位；调用方须先行判空（紧凑构造器已在统一判空处拦截）
      * @param valueType  字段值类型

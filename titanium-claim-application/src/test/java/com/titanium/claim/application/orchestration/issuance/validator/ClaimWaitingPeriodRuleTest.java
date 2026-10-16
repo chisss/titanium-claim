@@ -35,11 +35,11 @@ import com.titanium.claim.port.ruleengine.ClaimRuleExecutionPort.DifferentiatedT
 import com.titanium.claim.service.ClaimService;
 import com.titanium.claim.valueobject.ClaimDifferentiatedThreshold;
 import com.titanium.claim.valueobject.CoverageResult;
-import com.titanium.claim.valueobject.RuleDecision;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 import com.titanium.metadata.exception.DomainException;
+import com.titanium.metadata.valueobject.RuleDecision;
 
 /**
  * 差异化等待期规则接线测试（g09-03 · G09/AC-05 · AC-06）
@@ -135,7 +135,7 @@ class ClaimWaitingPeriodRuleTest {
                 "意外险产品：规则输出 0 天必须覆盖条款值 90 天");
         assertEquals(CLAUSE_WAITING_PERIOD_DAYS, sent.get(1).matches().get(0).waitingPeriodDays().intValue(),
                 "重疾险产品：规则输出 90 天");
-        assertTrue(recompute(sent.get(0)).isApproved(), "等待期 0 天 ⇒ 责任成立");
+        assertTrue(recompute(sent.get(0)).passed(), "等待期 0 天 ⇒ 责任成立");
         assertTrue(recompute(sent.get(1)).isManualReview(), "等待期 90 天 ⇒ 需人工判定");
     }
 

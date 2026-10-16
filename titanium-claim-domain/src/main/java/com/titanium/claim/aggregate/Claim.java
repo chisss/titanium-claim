@@ -60,10 +60,9 @@ import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.enums.claim.ClaimPhase;
 import com.titanium.metadata.enums.claim.RejectReason;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.SuperBuilder;
 
 /**
  * 理赔聚合根
@@ -76,9 +75,8 @@ import lombok.experimental.SuperBuilder;
  */
 @Aggregate
 @Getter
-@Setter
-@NoArgsConstructor
-@SuperBuilder(toBuilder = true)
+/** 仅供 Axon 回放使用（Lombok 生成 protected 无参构造器），业务代码禁止调用 */
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Claim extends BaseAggregate {
     @AggregateIdentifier
     private ClaimId             claimId;
@@ -599,5 +597,10 @@ public class Claim extends BaseAggregate {
         this.status = ClaimStatus.CLOSED;
         this.closedAt = event.closedAt();
         this.updateTime = event.closedAt();
+    }
+
+    /** alertFlags 不可变视图（DSN-02：杜绝经 getter 外泄内部集合引用，变更须经命令与事件） */
+    public List<AlertFlag> getAlertFlags() {
+        return alertFlags == null ? null : List.copyOf(alertFlags);
     }
 }

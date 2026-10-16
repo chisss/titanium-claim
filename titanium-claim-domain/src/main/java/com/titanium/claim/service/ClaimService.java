@@ -10,9 +10,9 @@ import com.titanium.claim.common.exception.InvalidClaimAmountException;
 import com.titanium.claim.common.exception.InvalidClaimStatusException;
 import com.titanium.claim.valueobject.CoverageResult;
 import com.titanium.claim.valueobject.CoverageResult.CoverageMatch;
-import com.titanium.claim.valueobject.RuleDecision;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.valueobject.RuleDecision;
 
 import lombok.AllArgsConstructor;
 
@@ -93,6 +93,6 @@ public class ClaimService {
                 return RuleDecision.manualReview();
             }
         }
-        return RuleDecision.approved();
+        return RuleDecision.accepted();
     }
 }

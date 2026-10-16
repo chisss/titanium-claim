@@ -1,6 +1,7 @@
 package com.titanium.claim.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
@@ -9,12 +10,11 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.titanium.claim.common.enums.DecisionType;
 import com.titanium.claim.valueobject.CoverageResult;
 import com.titanium.claim.valueobject.CoverageResult.CoverageMatch;
-import com.titanium.claim.valueobject.RuleDecision;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
+import com.titanium.metadata.valueobject.RuleDecision;
 
 /**
  * 理赔领域服务测试（CLAIM-4 责任匹配纯规则）
@@ -42,8 +42,8 @@ class ClaimServiceTest {
         RuleDecision decision = claimService.isClaimInCoverage(ClaimEnum.ClaimType.DEATH,
                 LocalDateTime.of(2026, 6, 1, 0, 0), result);
 
-        assertEquals(DecisionType.REJECTED, decision.type());
-        assertEquals(ClaimErrorCode.CLAIM_OUT_OF_COVERAGE, decision.rejectCode());
+        assertTrue(decision.isRejected());
+        assertEquals(ClaimErrorCode.CLAIM_OUT_OF_COVERAGE, decision.errorCode());
     }
 
     @Test
@@ -52,8 +52,8 @@ class ClaimServiceTest {
         RuleDecision decision = claimService.isClaimInCoverage(ClaimEnum.ClaimType.DEATH,
                 LocalDateTime.of(2026, 6, 1, 0, 0), coverageWith(90));
 
-        assertEquals(DecisionType.APPROVED, decision.type());
-        assertTrue(decision.isApproved());
+        assertTrue(decision.passed());
+        assertFalse(decision.isRejected());
     }
 
     @Test
@@ -62,7 +62,7 @@ class ClaimServiceTest {
         RuleDecision decision = claimService.isClaimInCoverage(ClaimEnum.ClaimType.DEATH,
                 LocalDateTime.of(2026, 2, 1, 0, 0), coverageWith(90));
 
-        assertEquals(DecisionType.MANUAL_REVIEW, decision.type());
+        assertFalse(decision.isRejected());
         assertTrue(decision.isManualReview());
     }
 
@@ -72,7 +72,7 @@ class ClaimServiceTest {
         RuleDecision decision = claimService.isClaimInCoverage(ClaimEnum.ClaimType.ACCIDENT,
                 LocalDateTime.of(2026, 2, 1, 0, 0), coverageWith(90));
 
-        assertEquals(DecisionType.APPROVED, decision.type());
+        assertTrue(decision.passed());
     }
 
     @Test
@@ -81,7 +81,7 @@ class ClaimServiceTest {
         RuleDecision decision = claimService.isClaimInCoverage(ClaimEnum.ClaimType.DEATH,
                 LocalDateTime.of(2026, 4, 1, 0, 0), coverageWith(90));
 
-        assertEquals(DecisionType.APPROVED, decision.type());
+        assertTrue(decision.passed());
     }
 
     @Test
@@ -90,7 +90,7 @@ class ClaimServiceTest {
         RuleDecision decision = claimService.isClaimInCoverage(ClaimEnum.ClaimType.DEATH,
                 LocalDateTime.of(2026, 1, 10, 0, 0), coverageWith(0));
 
-        assertEquals(DecisionType.APPROVED, decision.type());
+        assertTrue(decision.passed());
     }
 
     @Test
@@ -99,7 +99,7 @@ class ClaimServiceTest {
         RuleDecision decision = claimService.isClaimInCoverage(ClaimEnum.ClaimType.DEATH,
                 null, coverageWith(90));
 
-        assertEquals(DecisionType.APPROVED, decision.type());
+        assertTrue(decision.passed());
     }
 
     @Test
@@ -109,6 +109,6 @@ class ClaimServiceTest {
 
         RuleDecision decision = claimService.isClaimInCoverage(null, null, result);
 
-        assertEquals(DecisionType.REJECTED, decision.type());
+        assertTrue(decision.isRejected());
     }
 }

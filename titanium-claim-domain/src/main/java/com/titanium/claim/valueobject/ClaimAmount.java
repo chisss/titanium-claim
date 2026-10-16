@@ -11,7 +11,11 @@ import com.titanium.claim.common.exception.InvalidClaimAmountException;
  * </p>
  *
  * @param value 理赔金额
+ * @deprecated DSN-07 货币建模统一（m25-09，2026-10）：新代码禁止使用，一律改用
+ *             {@link com.titanium.metadata.valueobject.Money}（金额 + 币种）。
+ *             存量按「先小域后大域」分批迁移：maintenance → regulatory → policy → underwriting → claim。
  */
+@Deprecated(since = "2026-10", forRemoval = true)
 public record ClaimAmount(BigDecimal value) {
 
     public ClaimAmount {
@@ -35,16 +39,6 @@ public record ClaimAmount(BigDecimal value) {
      * @return 理赔金额值对象
      */
     public static ClaimAmount of(String value) {
-        return of(new BigDecimal(value));
-    }
-
-    /**
-     * 由 double 构造理赔金额
-     *
-     * @param value 金额
-     * @return 理赔金额值对象
-     */
-    public static ClaimAmount of(double value) {
         return of(new BigDecimal(value));
     }
 

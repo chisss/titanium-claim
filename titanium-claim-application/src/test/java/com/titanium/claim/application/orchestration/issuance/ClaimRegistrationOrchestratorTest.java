@@ -32,6 +32,7 @@ import com.titanium.claim.port.policy.PolicyInfo;
 import com.titanium.claim.port.policy.PolicyServicePort;
 import com.titanium.claim.service.ClaimService;
 import com.titanium.common.context.RequestContextHolder;
+import com.titanium.common.number.IdGenerator;
 
 /**
  * 报案校验链编排器测试
@@ -50,14 +51,18 @@ class ClaimRegistrationOrchestratorTest {
     @Mock
     private CommandGateway    commandGateway;
 
+    /** DSN-05：理赔 ID 由编排器经注入的 IdGenerator 生成（单方法接口用 lambda 给确定性值） */
+    private static final String CLAIM_ID = "CLAIM-DSN05-001";
+
     private ClaimRegistrationOrchestrator orchestrator;
 
     @BeforeEach
     void setUp() {
         RequestContextHolder.setTenantId("default-tenant");
+        IdGenerator idGenerator = () -> CLAIM_ID;
         orchestrator = new ClaimRegistrationOrchestrator(
                 List.of(new ClaimAmountValidator(claimService), new PolicyActiveValidator(policyServicePort)),
-                claimService, commandGateway);
+                claimService, commandGateway, idGenerator);
     }
 
     @AfterEach
@@ -87,6 +92,8 @@ class ClaimRegistrationOrchestratorTest {
         ArgumentCaptor<CreateClaimCommand> captor = ArgumentCaptor.forClass(CreateClaimCommand.class);
         verify(commandGateway).sendAndWait(captor.capture());
         CreateClaimCommand command = captor.getValue();
+        // DSN-05：理赔 ID 取自注入的 IdGenerator（不再由值对象静态 generate 自产）
+        assertEquals(CLAIM_ID, claimId);
         assertEquals(claimId, command.claimId().value());
         assertEquals("CLAIM-20260902-000001", command.claimNumber());
         assertEquals("CUST-1", command.customerId().value());

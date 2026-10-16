@@ -18,9 +18,9 @@ import com.titanium.claim.service.ClaimService;
 import com.titanium.claim.valueobject.ClaimDifferentiatedThreshold;
 import com.titanium.claim.valueobject.CoverageResult;
 import com.titanium.claim.valueobject.CoverageResult.CoverageMatch;
-import com.titanium.claim.valueobject.RuleDecision;
 import com.titanium.common.context.RequestContextHolder;
 import com.titanium.metadata.enums.claim.ClaimEnum;
+import com.titanium.metadata.valueobject.RuleDecision;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

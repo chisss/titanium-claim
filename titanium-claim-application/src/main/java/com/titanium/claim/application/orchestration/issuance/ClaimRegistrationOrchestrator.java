@@ -14,6 +14,7 @@ import com.titanium.claim.valueobject.ClaimId;
 import com.titanium.claim.valueobject.CustomerId;
 import com.titanium.claim.valueobject.PolicyId;
 import com.titanium.common.context.RequestContextHolder;
+import com.titanium.common.number.IdGenerator;
 import com.titanium.metadata.enums.claim.ClaimEnum;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class ClaimRegistrationOrchestrator {
     private final List<ClaimRegistrationValidator> validators;
     private final ClaimService                     claimService;
     private final CommandGateway                   commandGateway;
+    private final IdGenerator                      idGenerator;
 
     /**
      * 报案登记：校验链 → 生成理赔 ID 与理赔编号 → 装配并发送 {@link CreateClaimCommand}。
@@ -48,7 +50,7 @@ public class ClaimRegistrationOrchestrator {
         validators.forEach(validator -> validator.validate(request));
 
         // 2. 生成理赔 ID 与理赔编号
-        ClaimId claimId = ClaimId.generate();
+        ClaimId claimId = ClaimId.of(idGenerator.nextIdString());
         String claimNumber = claimService.generateClaimNumber();
 
         // 3. 装配并发命令（租户 ID 贯穿事件，供读模型投影落库；标的键随命令/事件贯穿，
