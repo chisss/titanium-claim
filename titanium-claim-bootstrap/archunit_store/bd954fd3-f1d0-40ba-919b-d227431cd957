@@ -1,0 +1,2 @@
+Class <com.titanium.claim.service.ClaimService> is annotated with @Service in (ClaimService.java:0)
+Class <com.titanium.claim.service.impl.ReimbursementAdjustmentServiceImpl> is annotated with @Service in (ReimbursementAdjustmentServiceImpl.java:0)

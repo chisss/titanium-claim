@@ -53,33 +53,6 @@ public enum ClaimStatus implements BaseEnum {
         return status;
     }
 
-    /**
-     * 理赔状态描述（兼容旧调用）。
-     *
-     * @return 与 {@link #getName()} 等价的中文名称
-     * @deprecated 请改用 {@link #getName()}，本方法仅为兼容既有调用点保留
-     */
-    @Deprecated(since = "2026-08", forRemoval = true)
-    public String getDescription() {
-        return name;
-    }
-
-    /**
-     * 按描述反查理赔状态（兼容旧调用），未匹配抛出非法状态异常。
-     *
-     * @param description 理赔状态描述
-     * @return 匹配的枚举
-     * @deprecated 请改用 {@link #fromCode(String)}，本方法仅为兼容既有调用点保留
-     */
-    @Deprecated(since = "2026-08", forRemoval = true)
-    public static ClaimStatus fromDescription(String description) {
-        ClaimStatus status = BaseEnum.fromName(ClaimStatus.class, description);
-        if (status == null) {
-            throw new InvalidClaimStatusException();
-        }
-        return status;
-    }
-
     @Override
     public String toString() {
         return code;
