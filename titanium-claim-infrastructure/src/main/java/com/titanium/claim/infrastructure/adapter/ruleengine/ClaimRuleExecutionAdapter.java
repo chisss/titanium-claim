@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import com.titanium.claim.port.ruleengine.ClaimRuleExecutionPort;
 import com.titanium.claim.valueobject.ClaimDifferentiatedThreshold;
 import com.titanium.metadata.enums.BusinessDomainType;
+import com.titanium.metadata.enums.ruleengine.RuleSetStatus;
+import com.titanium.metadata.enums.ruleengine.RuleSetType;
 import com.titanium.metadata.errorcode.ClaimErrorCode;
 import com.titanium.metadata.exception.DomainException;
 import com.titanium.metadata.response.ApiResponse;
@@ -16,8 +18,6 @@ import com.titanium.ruleengine.api.RuleEngineApi;
 import com.titanium.ruleengine.api.request.execution.RuleFacts;
 import com.titanium.ruleengine.api.response.execution.RuleExecutionResultResponse;
 import com.titanium.ruleengine.api.response.ruleset.RuleSetResponse;
-import com.titanium.ruleengine.common.enums.RuleSetStatus;
-import com.titanium.ruleengine.common.enums.RuleSetType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

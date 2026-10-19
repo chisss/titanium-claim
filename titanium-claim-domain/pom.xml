@@ -32,7 +32,7 @@
         <!-- 通用内核（聚合根基类 BaseAggregate） -->
         <dependency>
             <groupId>com.titanium</groupId>
-            <artifactId>titanium-common</artifactId>
+            <artifactId>titanium-kernel</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
@@ -54,16 +54,10 @@
             <artifactId>axon-spring</artifactId>
         </dependency>
 
-        <!-- Spring Boot -->
+        <!-- Spring 上下文（仅 @Service 领域服务注解；PKG-01：domain 不引入 Boot） -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- Java 8+ Time API -->
-        <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
         </dependency>
 
         <!-- 测试依赖（版本由 parent 管理） -->
@@ -83,6 +77,29 @@
             <artifactId>hamcrest</artifactId>
             <scope>test</scope>
         </dependency>
+    
+        <!-- Jackson 注解（值对象/事件 @JsonIgnore 等；m27-01：原经 titanium-common 传递获得，现显式声明） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+    
+        <!-- 测试面 JSON 序列化断言（m27-01：原经 titanium-common 传递获得） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
+
+    <build>
+        <plugins>
+            <!-- m27-01/PKG-01：领域层 classpath 纯净门禁（规则见 titanium-parent pluginManagement） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

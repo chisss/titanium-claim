@@ -109,8 +109,11 @@ public interface ClaimApi {
     /**
      * 按车辆/标的检索历史赔案（出险日期区间内，排除拒赔）—— G11/g11-03
      * <p>
-     * product 域「NCD 反算」的取数出口：按被保车辆历史赔案次数反算无赔款优待系数。
-     * {@code vin} 与 {@code subjectId} 至少提供一个（VIN 优先——它是跨保单的车辆身份，
+     * 原 product 域「NCD 反算」的取数出口：按被保车辆历史赔案次数反算无赔款优待系数。
+     * 🔴 <b>m27-04/PKG-04 起 product 域改为消费理赔域赔案事件、维护本地投影
+     * （{@code t_product_claim_history_view}），本端点跨域零消费者</b>——保留作为理赔域
+     * 历史赔案检索能力的服务间出口（{@code @Reserved} 已登记，见契约登记表 §二）。
+     * 语义不变：{@code vin} 与 {@code subjectId} 至少提供一个（VIN 优先——它是跨保单的车辆身份，
      * 续保换单后 policyId/subjectId 均变，唯 VIN 不变）；区间为出险日期 {@code [incidentFrom, incidentTo)}
      * 半开区间。拒赔（REJECTED）案件不计入历史赔案。读模型最终一致：投影有延迟，刚创建的赔案可能未可见。
      * </p>
@@ -122,6 +125,7 @@ public interface ClaimApi {
      * @return 区间内命中的历史赔案列表
      */
     @GetMapping("/subject-history")
+    @Reserved("m27-04: 跨域零消费者（product 改本地赔案投影）；登记见 docs/技术文档/契约登记表.md")
     ApiResponse<List<ClaimResponse>> getClaimsBySubjectHistory(
             @RequestParam(required = false) String vin,
             @RequestParam(required = false) String subjectId,
